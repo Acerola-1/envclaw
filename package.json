@@ -1,7 +1,7 @@
 {
-  "name": "hermes-web-ui",
+  "name": "envclaw",
   "version": "0.6.15",
-  "description": "Self-hosted AI chat dashboard for Hermes Agent — multi-model web UI with multi-platform integration",
+  "description": "Envclaw — self-hosted AI chat dashboard for Hermes Agent — multi-model web UI with multi-platform integration",
   "repository": {
     "type": "git",
     "url": "https://github.com/EKKOLearnAI/hermes-studio.git"
@@ -34,6 +34,7 @@
     "hermes-web-ui-mcp": "./bin/hermes-web-ui-mcp.mjs"
   },
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "start": "vite --host --port 8648",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "cross-env HERMES_WEB_UI_BACKEND_PORT=8647 vite --host --port 8649 --strictPort",

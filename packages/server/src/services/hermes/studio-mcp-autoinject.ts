@@ -6,13 +6,15 @@ import { updateConfigYamlForProfile } from '../config-helpers'
 import { logger } from '../logger'
 import { listProfileNamesFromDisk } from './hermes-profile'
 
-const SERVER_NAME = 'hermes-studio'
+const SERVER_NAME = 'envclaw'
+const LEGACY_SERVER_NAMES = ['hermes-studio']
 const MANAGED_ENV_KEY = 'HERMES_WEB_UI_MANAGED_MCP'
 const LEGACY_COMMANDS = new Set([
   'hermes-lan-peer-mcp',
   'hermes-devices-mcp',
   'hermes-web-ui-mcp',
   'hermes-studio-mcp',
+  'envclaw-mcp',
 ])
 
 export type BundledMcpInjectionStatus = 'injected' | 'updated' | 'unchanged' | 'skipped'
@@ -76,7 +78,7 @@ function bundledMcpScriptPath(): string | null {
 
 function managedCommandConfig(): Record<string, unknown> {
   if (isDesktopRuntime()) {
-    return { command: 'hermes-studio-mcp' }
+    return { command: 'envclaw-mcp' }
   }
 
   const bundledScript = bundledMcpScriptPath()
@@ -139,6 +141,17 @@ async function injectIntoProfile(profile: string, desired: Record<string, unknow
     const cfg = isRecord(current) ? current : {}
     if (!isRecord(cfg.mcp_servers)) cfg.mcp_servers = {}
 
+    // Drop any legacy managed entries (e.g. previous brand "hermes-studio") so
+    // we don't leave orphaned MCP servers in user profiles after the rename.
+    let removedLegacy = false
+    for (const legacyName of LEGACY_SERVER_NAMES) {
+      const legacy = cfg.mcp_servers[legacyName]
+      if (legacy && isManagedServer(legacy)) {
+        delete cfg.mcp_servers[legacyName]
+        removedLegacy = true
+      }
+    }
+
     const existing = cfg.mcp_servers[SERVER_NAME]
     if (!existing) {
       cfg.mcp_servers[SERVER_NAME] = desired
@@ -148,11 +161,11 @@ async function injectIntoProfile(profile: string, desired: Record<string, unknow
     if (!isManagedServer(existing)) {
       return {
         data: cfg,
-        write: false,
+        write: removedLegacy,
         result: {
           profile,
           status: 'skipped',
-          reason: `existing ${SERVER_NAME} MCP server is not managed by Hermes Web UI`,
+          reason: `existing ${SERVER_NAME} MCP server is not managed by Envclaw`,
         } satisfies BundledMcpInjectionTargetResult,
       }
     }
@@ -160,7 +173,7 @@ async function injectIntoProfile(profile: string, desired: Record<string, unknow
     if (isRecord(existing) && existing.enabled === false) {
       return {
         data: cfg,
-        write: false,
+        write: removedLegacy,
         result: {
           profile,
           status: 'skipped',
@@ -172,7 +185,7 @@ async function injectIntoProfile(profile: string, desired: Record<string, unknow
     if (sameConfig(existing, desired)) {
       return {
         data: cfg,
-        write: false,
+        write: removedLegacy,
         result: { profile, status: 'unchanged' } satisfies BundledMcpInjectionTargetResult,
       }
     }

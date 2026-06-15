@@ -1,5 +1,5 @@
 <p align="center">
-  <strong>Hermes Studio</strong>
+  <strong>Envclaw</strong>
   <a href="./README.md">English</a>
 </p>
 
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/EKKOLearnAI/hermes-studio/releases/latest">下载 Hermes Studio 桌面版</a>
+  <a href="https://github.com/EKKOLearnAI/hermes-studio/releases/latest">下载 Envclaw 桌面版</a>
   ·
   <code>npm install -g hermes-web-ui && hermes-web-ui start</code>
 </p>
@@ -35,7 +35,7 @@
 
 ## 核心能力
 
-| 模块 | Hermes Studio 能做什么 |
+| 模块 | Envclaw 能做什么 |
 |---|---|
 | Agent 聊天 | 运行 Hermes Agent 对话，支持流式回复、工具调用轨迹、文件上传下载和本地持久化会话。 |
 | 本地控制台 | 在一个仪表盘中管理 Profile、Provider、模型、凭证、记忆、技能、插件、日志和运行时设置。 |
@@ -217,10 +217,10 @@ hermes-web-ui reset-default-login
 ### 桌面应用与自动更新
 
 - Windows、macOS 和 Linux 原生 Electron 桌面壳
-- 内置 Web UI 运行时，并自动启动本地 Hermes Studio 服务
+- 内置 Web UI 运行时，并自动启动本地 Envclaw 服务
 - 桌面自动更新优先使用 Cloudflare 下载端点获取更新元数据和安装包
 - 如果 Cloudflare 更新源不可用，会回退到 GitHub Releases `latest` 资源
-- Windows 升级时会先尝试关闭已有 Hermes Studio 进程，再替换文件
+- Windows 升级时会先尝试关闭已有 Envclaw 进程，再替换文件
 
 ---
 
@@ -229,7 +229,7 @@ hermes-web-ui reset-default-login
 ### 桌面应用（推荐）
 
 从 [GitHub Releases](https://github.com/EKKOLearnAI/hermes-studio/releases/latest)
-下载最新的 **Hermes Studio** 桌面安装包。
+下载最新的 **Envclaw** 桌面安装包。
 
 桌面版会发布 macOS、Windows 和 Linux 构建；适用时会区分不同 CPU 架构。
 桌面应用内置 Web UI 运行时，Hermes Agent 数据会保存到原生 Hermes 目录：
@@ -367,10 +367,47 @@ Web UI 启动后端聊天能力时，会优先使用包含 `run_agent.py` 的源
 
 ## 开发
 
+### 一键初始化（推荐）
+
+`git clone` 后只需要跑**一次**：
+
 ```bash
-git clone https://github.com/EKKOLearnAI/hermes-studio.git
-cd hermes-web-ui
-npm install
+npm run setup
+```
+
+它会按顺序：安装根目录 + desktop 依赖（走 npmmirror）、修复 Electron
+安装异常、构建 Web UI、下载内置 Hermes 运行时（Python + hermes-agent）。
+下载源默认走国内镜像：Node 用 npmmirror，python-build-standalone 走
+ghproxy.net，pip/uv 走清华 PyPI。Chrome for Testing 浏览器运行时默认
+跳过；需要的话加 `--with-browser`。
+
+常用参数：
+
+```bash
+npm run setup -- --skip-runtime    # 只装 Web UI，不下 desktop 运行时
+npm run setup -- --skip-build      # 沿用已有的 dist/
+npm run setup -- --with-browser    # 同时安装 Chromium
+npm run setup -- --help
+```
+
+不在国内的同事可以用环境变量切回官方源：
+
+```bash
+ELECTRON_MIRROR=https://github.com/electron/electron/releases/download/ \
+HERMES_DESKTOP_GITHUB_PROXY= \
+npm_config_registry=https://registry.npmjs.org/ \
+npm run setup
+```
+
+### 启动桌面端
+
+```bash
+npm run desktop:dev
+```
+
+### 或启动浏览器开发版
+
+```bash
 npm run dev
 ```
 

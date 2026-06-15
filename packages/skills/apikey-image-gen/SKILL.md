@@ -52,7 +52,7 @@ Resolve the token in this order:
 1. `AUTH_TOKEN` environment variable, if set.
 2. `${HERMES_WEB_UI_HOME}/.token`, if `HERMES_WEB_UI_HOME` is set.
 3. `${HERMES_WEBUI_STATE_DIR}/.token`, if `HERMES_WEBUI_STATE_DIR` is set.
-4. `~/.hermes-web-ui/.token`.
+4. `~/.envclaw-web-ui/.token`.
 
 Profile selection:
 
@@ -129,7 +129,7 @@ The server calls `POST /v1/images/edits` against the `fun-codex` base URL.
 - `quality`: defaults to `auto`.
 - `model`: optional override. Text/edit default to `gpt-image-2`; image mode defaults to the `fun-codex` model in `config.yaml`.
 - `image_model`: optional image tool model for image mode. Defaults to `gpt-image-2`.
-- `output_path`: optional absolute output file path. If omitted, the server saves to `${HERMES_WEB_UI_HOME:-~/.hermes-web-ui}/media/*.png`.
+- `output_path`: optional absolute output file path. If omitted, the server saves to `${HERMES_WEB_UI_HOME:-~/.envclaw-web-ui}/media/*.png`.
 - `timeout_ms`: defaults to `600000`.
 
 ## Curl Template
@@ -142,11 +142,11 @@ fi
 if [ -z "$TOKEN" ] && [ -n "${HERMES_WEBUI_STATE_DIR:-}" ] && [ -f "$HERMES_WEBUI_STATE_DIR/.token" ]; then
   TOKEN="$(cat "$HERMES_WEBUI_STATE_DIR/.token")"
 fi
-if [ -z "$TOKEN" ] && [ -f "$HOME/.hermes-web-ui/.token" ]; then
-  TOKEN="$(cat "$HOME/.hermes-web-ui/.token")"
+if [ -z "$TOKEN" ] && [ -f "$HOME/.envclaw-web-ui/.token" ]; then
+  TOKEN="$(cat "$HOME/.envclaw-web-ui/.token")"
 fi
 if [ -z "$TOKEN" ]; then
-  echo "Missing Hermes Web UI token. Check AUTH_TOKEN, HERMES_WEB_UI_HOME, HERMES_WEBUI_STATE_DIR, or ~/.hermes-web-ui/.token." >&2
+  echo "Missing Hermes Web UI token. Check AUTH_TOKEN, HERMES_WEB_UI_HOME, HERMES_WEBUI_STATE_DIR, or ~/.envclaw-web-ui/.token." >&2
   exit 1
 fi
 

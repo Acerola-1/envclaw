@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   createMcpShimContent,
   createShimContent,
-  installHermesStudioCliShim,
+  installEnvclawCliShim,
   pathContainsDir,
   shimPathForPlatform,
 } from '../../packages/desktop/src/main/cli-shim'
@@ -20,24 +20,24 @@ afterEach(() => {
 })
 
 function tempHome(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'hermes-studio-shim-'))
+  const dir = mkdtempSync(join(tmpdir(), 'envclaw-shim-'))
   tempDirs.push(dir)
   return dir
 }
 
-describe('Hermes Studio CLI shim', () => {
+describe('Envclaw CLI shim', () => {
   it('quotes Unix app paths and forwards args through --hermes-cli', () => {
-    const content = createShimContent("/Applications/Hermes Studio's.app/Contents/MacOS/Hermes Studio", 'darwin')
+    const content = createShimContent("/Applications/Envclaw's.app/Contents/MacOS/Envclaw", 'darwin')
 
     expect(content).toContain("--hermes-cli")
-    expect(content).toContain("APP='/Applications/Hermes Studio'\\''s.app/Contents/MacOS/Hermes Studio'")
+    expect(content).toContain("APP='/Applications/Envclaw'\\''s.app/Contents/MacOS/Envclaw'")
     expect(content).toContain('unset ELECTRON_RUN_AS_NODE')
     expect(content).toContain('exec "$APP" -- --hermes-cli "$@"')
   })
 
   it('runs the bundled Python Hermes CLI directly in Windows shims', () => {
     const content = createShimContent(
-      'C:\\Users\\Example\\AppData\\Local\\Programs\\Hermes Studio\\Hermes Studio.exe',
+      'C:\\Users\\Example\\AppData\\Local\\Programs\\Envclaw\\Envclaw.exe',
       'win32',
       'x64',
     )
@@ -57,7 +57,7 @@ describe('Hermes Studio CLI shim', () => {
     expect(content).toContain('if [ -n "${HERMES_DESKTOP_PORT:-}" ]; then')
     expect(content).toContain('HERMES_WEB_UI_URL="http://127.0.0.1:${HERMES_DESKTOP_PORT}"')
     expect(content).toContain("HERMES_WEB_UI_URL='http://127.0.0.1:8748'")
-    expect(content).toContain('export HERMES_MCP_SERVER_NAME=hermes-studio-mcp')
+    expect(content).toContain('export HERMES_MCP_SERVER_NAME=envclaw-mcp')
   })
 
   it('sets the desktop MCP URL from HERMES_DESKTOP_PORT in Windows shims', () => {
@@ -66,7 +66,7 @@ describe('Hermes Studio CLI shim', () => {
     expect(content).toContain('if "%HERMES_DESKTOP_PORT%"=="" (')
     expect(content).toContain('set "HERMES_WEB_UI_URL=http://127.0.0.1:8748"')
     expect(content).toContain('set "HERMES_WEB_UI_URL=http://127.0.0.1:%HERMES_DESKTOP_PORT%"')
-    expect(content).toContain('set "HERMES_MCP_SERVER_NAME=hermes-studio-mcp"')
+    expect(content).toContain('set "HERMES_MCP_SERVER_NAME=envclaw-mcp"')
   })
 
   it('detects user bin paths with platform-specific separators', () => {
@@ -76,10 +76,10 @@ describe('Hermes Studio CLI shim', () => {
 
   it('installs a managed Unix shim and adds ~/bin to a shell profile', async () => {
     const homeDir = tempHome()
-    const result = await installHermesStudioCliShim({
+    const result = await installEnvclawCliShim({
       homeDir,
       platform: 'darwin',
-      executablePath: '/Applications/Hermes Studio.app/Contents/MacOS/Hermes Studio',
+      executablePath: '/Applications/Envclaw.app/Contents/MacOS/Envclaw',
       env: { PATH: '/usr/bin', SHELL: '/bin/zsh' },
     })
 

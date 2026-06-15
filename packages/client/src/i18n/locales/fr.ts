@@ -259,7 +259,7 @@ export default {
     remoteLoadFailed: 'Impossible de charger les versions distantes',
     downloadTasks: 'Tâches de téléchargement',
     downloadStarted: 'Téléchargement démarré',
-    activateSuccess: 'Sélection de version enregistrée. Redémarrez Hermes Studio pour l’utiliser.',
+    activateSuccess: 'Sélection de version enregistrée. Redémarrez Envclaw pour l’utiliser.',
     jobStatus: {
       queued: 'En attente',
       running: 'En cours',

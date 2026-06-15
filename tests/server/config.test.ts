@@ -16,8 +16,8 @@ describe('server config', () => {
     expect(getListenHost({ BIND_HOST: ' ' })).toBe('0.0.0.0')
   })
 
-  it('defaults web-ui home to ~/.hermes-web-ui', () => {
-    expect(getWebUiHome({})).toBe(join(homedir(), '.hermes-web-ui'))
+  it('defaults web-ui home to ~/.envclaw-web-ui', () => {
+    expect(getWebUiHome({})).toBe(join(homedir(), '.envclaw-web-ui'))
   })
 
   it('uses HERMES_WEB_UI_HOME when provided', () => {

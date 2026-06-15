@@ -30,13 +30,13 @@ import {
 import { extractTarGzipArchive } from './runtime-archive'
 import { t } from './desktop-i18n'
 
-const DEFAULT_RUNTIME_BASE_URL = 'https://download.ekkolearnai.com'
 const DEFAULT_RUNTIME_GITHUB_REPO = 'EKKOLearnAI/hermes-studio'
+const DEFAULT_GITHUB_PROXY = 'https://ghproxy.net/'
 const RUNTIME_MANIFEST_NAME = 'runtime-manifest.json'
 const PACKAGED_RUNTIME_RELEASE_NAME = 'runtime-release.json'
 const ACTIVE_RUNTIME_VERSION_NAME = 'active-version.json'
 
-export type RuntimeDownloadSource = 'cf' | 'github'
+export type RuntimeDownloadSource = 'github'
 
 type RuntimeManifest = {
   schema: number
@@ -75,7 +75,7 @@ type RuntimeProgressHandler = (progress: RuntimeProgress) => void
 function runtimeDownloadSource(source?: RuntimeDownloadSource): RuntimeDownloadSource | null {
   if (source) return source
   const value = process.env.HERMES_DESKTOP_RUNTIME_SOURCE?.trim().toLowerCase()
-  if (value === 'github' || value === 'cf') return value
+  if (value === 'github') return value
   return null
 }
 
@@ -167,22 +167,38 @@ export function cachedRuntimeNeedsPackagedReleaseUpdate(): boolean {
   return match === false
 }
 
+function githubProxyPrefix(): string {
+  // Override (or disable with empty string) via HERMES_DESKTOP_GITHUB_PROXY.
+  const raw = process.env.HERMES_DESKTOP_GITHUB_PROXY
+  const value = raw === undefined ? DEFAULT_GITHUB_PROXY : raw.trim()
+  if (!value) return ''
+  return value.endsWith('/') ? value : `${value}/`
+}
+
 function runtimeAssetUrl(assetName: string, tag: string, source: RuntimeDownloadSource): string {
   if (source === 'github') {
-    const repo = process.env.HERMES_DESKTOP_RUNTIME_REPO?.trim() || DEFAULT_RUNTIME_GITHUB_REPO
-    if (tag === 'latest') {
-      return `https://github.com/${repo}/releases/latest/download/${encodeURIComponent(assetName)}`
+    // If the operator points HERMES_DESKTOP_RUNTIME_BASE_URL at a private mirror
+    // (e.g. their own OSS bucket), bypass GitHub entirely and resolve assets
+    // from there instead.
+    const baseUrlTemplate = process.env.HERMES_DESKTOP_RUNTIME_BASE_URL?.trim()
+    if (baseUrlTemplate) {
+      if (baseUrlTemplate.includes('{asset}') || baseUrlTemplate.includes('{tag}')) {
+        return baseUrlTemplate
+          .replace(/\{asset\}/g, encodeURIComponent(assetName))
+          .replace(/\{tag\}/g, encodeURIComponent(tag))
+      }
+      return `${baseUrlTemplate.replace(/\/$/, '')}/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
     }
-    return `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
+
+    const repo = process.env.HERMES_DESKTOP_RUNTIME_REPO?.trim() || DEFAULT_RUNTIME_GITHUB_REPO
+    const proxy = githubProxyPrefix()
+    if (tag === 'latest') {
+      return `${proxy}https://github.com/${repo}/releases/latest/download/${encodeURIComponent(assetName)}`
+    }
+    return `${proxy}https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
   }
 
-  const template = process.env.HERMES_DESKTOP_RUNTIME_BASE_URL?.trim() || DEFAULT_RUNTIME_BASE_URL
-  if (template.includes('{asset}') || template.includes('{tag}')) {
-    return template
-      .replace(/\{asset\}/g, encodeURIComponent(assetName))
-      .replace(/\{tag\}/g, encodeURIComponent(tag))
-  }
-  return `${template.replace(/\/$/, '')}/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
+  throw new Error(`Unsupported runtime download source: ${source}`)
 }
 
 async function fetchJson<T>(url: string): Promise<T> {

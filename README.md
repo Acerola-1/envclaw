@@ -1,5 +1,5 @@
 <p align="center">
-  <strong>Hermes Studio</strong>
+  <strong>Envclaw</strong>
   <a href="./README_zh.md">中文</a>
 </p>
 
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/EKKOLearnAI/hermes-studio/releases/latest">Download Hermes Studio Desktop</a>
+  <a href="https://github.com/EKKOLearnAI/hermes-studio/releases/latest">Download Envclaw Desktop</a>
   ·
   <code>npm install -g hermes-web-ui && hermes-web-ui start</code>
 </p>
@@ -27,7 +27,7 @@
 
 ## Core Capabilities
 
-| Area | What Hermes Studio does |
+| Area | What Envclaw does |
 | --- | --- |
 | Agent chat | Runs Hermes Agent conversations with streaming responses, tool traces, file upload/download, and persistent local sessions. |
 | Local control plane | Manages profiles, providers, models, credentials, memory, skills, plugins, logs, and runtime settings from one dashboard. |
@@ -149,7 +149,7 @@ Unified configuration for **8 platforms** in one page:
 ### Admin & Runtime Management
 
 - Device and LAN peer views for local-network discovery and peer tooling
-- MCP manager for the managed `hermes-studio` MCP server and profile injection
+- MCP manager for the managed `envclaw` MCP server and profile injection
 - Runtime version and version-preview tooling for testing newer builds in isolation
 - Performance monitor views for super administrators
 
@@ -209,10 +209,10 @@ hermes-web-ui reset-default-login
 ### Desktop App & Updates
 
 - Native Electron shell for Windows, macOS, and Linux
-- Bundles the Web UI runtime and starts the local Hermes Studio server automatically
+- Bundles the Web UI runtime and starts the local Envclaw server automatically
 - Uses Cloudflare download endpoints for desktop auto-update metadata and assets first
 - Falls back to GitHub Releases `latest` assets if the Cloudflare update feed is unavailable
-- Windows upgrades attempt to close an existing Hermes Studio process before replacing files
+- Windows upgrades attempt to close an existing Envclaw process before replacing files
 
 ---
 
@@ -220,7 +220,7 @@ hermes-web-ui reset-default-login
 
 ### Desktop App (Recommended)
 
-Download the latest **Hermes Studio** desktop installer from
+Download the latest **Envclaw** desktop installer from
 [GitHub Releases](https://github.com/EKKOLearnAI/hermes-studio/releases/latest).
 
 Desktop builds are published for macOS, Windows, and Linux, with separate
@@ -288,7 +288,7 @@ These variables configure Hermes Web UI, its local Hermes runtime integration, a
 | `BIND_HOST` | `0.0.0.0` | Web UI bind host. Set `::` explicitly for IPv6. |
 | `HERMES_WEB_UI_HOME` | `~/.hermes-web-ui` | Web UI data home for auth token, credentials, logs, DB, and default uploads. `HERMES_WEBUI_STATE_DIR` is also supported as a compatibility alias. |
 | `HERMES_WEBUI_STATE_DIR` | unset | Compatibility alias for `HERMES_WEB_UI_HOME`. |
-| `HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT` | unset | Disable startup injection of the managed `hermes-studio` MCP server into Hermes profile configs. |
+| `HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT` | unset | Disable startup injection of the managed `envclaw` MCP server into Hermes profile configs. |
 | `HERMES_WEB_UI_ALLOW_TRANSIENT_MCP_AUTOINJECT` | unset | Allow managed MCP injection when `HERMES_WEB_UI_HOME` is under a temporary directory, such as Version Preview runtimes. |
 | `UPLOAD_DIR` | `$HERMES_WEB_UI_HOME/upload` | Upload root override. Files are stored below profile-scoped subdirectories. |
 | `CORS_ORIGINS` | same host only | Comma- or space-separated cross-origin allowlist for HTTP, Socket.IO, and WebSocket requests. Set `*` only when you intentionally need legacy wildcard CORS. |
@@ -321,7 +321,7 @@ These variables configure Hermes Web UI, its local Hermes runtime integration, a
 | `HERMES_BRIDGE_MAX_TURNS` | profile/default | Maximum turn override for bridge runs. |
 | `HERMES_BRIDGE_SUPPRESS_PLATFORM_HINT` | `cli` | Controls bridge platform hint suppression passed to Hermes Agent. |
 | `HERMES_OPENROUTER_APP_REFERER` | `https://hermes-studio.ai` | OpenRouter attribution referer sent by bridge runs. |
-| `HERMES_OPENROUTER_APP_TITLE` | `Hermes Web UI` | OpenRouter attribution title sent by bridge runs. |
+| `HERMES_OPENROUTER_APP_TITLE` | `Envclaw` | OpenRouter attribution title sent by bridge runs. |
 | `HERMES_OPENROUTER_APP_CATEGORIES` | `cli-agent,personal-agent` | OpenRouter attribution categories sent by bridge runs. |
 | `HERMES_WEB_UI_MANAGED_GATEWAY` | enabled | Controls Web UI-managed Hermes gateway process handling. Set `0`, `false`, `no`, or `off` to use `hermes gateway start` instead. |
 | `HERMES_WEB_UI_DISABLE_GATEWAY_AUTOSTART` | unset | Skip startup gateway checks/autostart. Set `1`, `true`, `yes`, or `on` for dashboard-only deployments where another service owns Hermes gateway lifecycle. |
@@ -364,10 +364,48 @@ On startup the BFF server automatically:
 
 ## Development
 
+### One-shot setup (recommended)
+
+After `git clone`, run **once**:
+
 ```bash
-git clone https://github.com/EKKOLearnAI/hermes-studio.git
-cd hermes-web-ui
-npm install
+npm run setup
+```
+
+This installs root + desktop dependencies (via npmmirror), repairs Electron
+if its installer half-failed, builds the Web UI, then downloads the bundled
+Hermes runtime (Python + hermes-agent) using China-friendly mirrors
+(`npmmirror` for Node, `ghproxy.net` for python-build-standalone, Tsinghua
+PyPI for hermes-agent). The Chrome-for-Testing browser runtime is skipped by
+default; pass `--with-browser` if you need it.
+
+Useful flags:
+
+```bash
+npm run setup -- --skip-runtime    # Web UI only, no desktop runtime download
+npm run setup -- --skip-build      # reuse an existing dist/
+npm run setup -- --with-browser    # also install bundled Chromium
+npm run setup -- --help
+```
+
+Override mirrors via env if you're outside mainland China:
+
+```bash
+ELECTRON_MIRROR=https://github.com/electron/electron/releases/download/ \
+HERMES_DESKTOP_GITHUB_PROXY= \
+npm_config_registry=https://registry.npmjs.org/ \
+npm run setup
+```
+
+### Run the desktop app
+
+```bash
+npm run desktop:dev
+```
+
+### Or run the browser dev UI
+
+```bash
 npm run dev
 ```
 

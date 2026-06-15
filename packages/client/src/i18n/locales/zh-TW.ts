@@ -259,7 +259,7 @@ export default {
     remoteLoadFailed: '遠端版本載入失敗',
     downloadTasks: '下載任務',
     downloadStarted: '已開始下載',
-    activateSuccess: '版本選擇已儲存，重啟 Hermes Studio 後生效。',
+    activateSuccess: '版本選擇已儲存，重啟 Envclaw 後生效。',
     jobStatus: {
       queued: '排隊中',
       running: '下載中',

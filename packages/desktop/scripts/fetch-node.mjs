@@ -26,7 +26,7 @@ if (!DIST_ARCH || !['win', 'darwin', 'linux'].includes(DIST_PLATFORM)) {
 
 const ext = TARGET_OS === 'win32' ? 'zip' : 'tar.gz'
 const file = `node-v${NODE_VERSION}-${DIST_PLATFORM}-${DIST_ARCH}.${ext}`
-const baseUrl = (process.env.NODE_DIST_BASE_URL || 'https://nodejs.org/dist').replace(/\/$/, '')
+const baseUrl = (process.env.NODE_DIST_BASE_URL || 'https://npmmirror.com/mirrors/node').replace(/\/$/, '')
 const url = `${baseUrl}/v${NODE_VERSION}/${file}`
 const marker = TARGET_OS === 'win32' ? 'node.exe' : join('bin', 'node')
 

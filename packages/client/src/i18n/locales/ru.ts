@@ -181,7 +181,7 @@ export default {
     remoteLoadFailed: 'Не удалось загрузить удаленные версии',
     downloadTasks: 'Задачи загрузки',
     downloadStarted: 'Загрузка начата',
-    activateSuccess: 'Выбор версии сохранен. Перезапустите Hermes Studio, чтобы применить его.',
+    activateSuccess: 'Выбор версии сохранен. Перезапустите Envclaw, чтобы применить его.',
     jobStatus: {
       queued: 'В очереди',
       running: 'Выполняется',

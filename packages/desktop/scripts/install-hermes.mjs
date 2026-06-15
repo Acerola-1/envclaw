@@ -26,6 +26,13 @@ const ROOT = resolve(__dirname, '..')
 const TARGET_OS = process.env.TARGET_OS || osPlatform()
 const TARGET_ARCH = process.env.TARGET_ARCH || osArch()
 const HERMES_VERSION = hermesVersion()
+
+// Default Python package index to a China mirror; allow override via env.
+const DEFAULT_PYPI_INDEX = 'https://pypi.tuna.tsinghua.edu.cn/simple'
+if (!process.env.PIP_INDEX_URL) process.env.PIP_INDEX_URL = DEFAULT_PYPI_INDEX
+if (!process.env.UV_INDEX_URL) process.env.UV_INDEX_URL = DEFAULT_PYPI_INDEX
+// Default npm registry (used by browser runtime install) to npmmirror.
+if (!process.env.npm_config_registry) process.env.npm_config_registry = 'https://registry.npmmirror.com/'
 // Match the packaged runtime to the channel list exposed at /hermes/channels.
 // Telegram, Discord, and Slack are covered by "messaging". We intentionally
 // install Matrix's plaintext deps below instead of using the "matrix" extra:

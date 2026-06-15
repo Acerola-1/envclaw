@@ -12,7 +12,7 @@ import { homedir } from 'os'
  * Web UI storage:
  * - HERMES_WEB_UI_HOME: Web UI data home for auth token, credentials, logs, DB, and default uploads.
  * - HERMES_WEBUI_STATE_DIR: Compatibility alias for HERMES_WEB_UI_HOME.
- *   Default: join(homedir(), '.hermes-web-ui').
+ *   Default: join(homedir(), '.envclaw-web-ui').
  * - UPLOAD_DIR: Upload directory override. Default: join(HERMES_WEB_UI_HOME, 'upload').
  * - dataDir: Development-only internal Web UI runtime data directory.
  *
@@ -26,7 +26,7 @@ import { homedir } from 'os'
  * - GATEWAY_PORT: Default Hermes gateway upstream port. Default: 8642.
  * - HERMES_WEB_UI_MANAGED_GATEWAY: Web UI-managed Hermes gateway handling. Enabled by default; set 0/false/off to use CLI start.
  * - HERMES_WEB_UI_STOP_GATEWAYS_ON_SHUTDOWN: Whether Web UI shutdown also stops managed gateways.
- * - HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT: Disable Hermes Studio MCP config injection.
+ * - HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT: Disable Envclaw MCP config injection.
  * - HERMES_WEB_UI_ALLOW_TRANSIENT_MCP_AUTOINJECT: Allow MCP injection when HERMES_WEB_UI_HOME is under a temp dir.
  * - HERMES_LAN_DISCOVERY_ENABLED: Set false/0/off to disable UDP LAN discovery responder.
  * - HERMES_LAN_DISCOVERY_HTTP_PORTS: HTTP ports to probe during UDP discovery scans. Default: 8648,8748 plus current PORT.
@@ -46,7 +46,7 @@ export function getListenHost(env: Record<string, string | undefined> = process.
 
 export function getWebUiHome(env: Record<string, string | undefined> = process.env): string {
   const appHome = env.HERMES_WEB_UI_HOME?.trim() || env.HERMES_WEBUI_STATE_DIR?.trim()
-  return appHome ? resolve(appHome) : join(homedir(), '.hermes-web-ui')
+  return appHome ? resolve(appHome) : join(homedir(), '.envclaw-web-ui')
 }
 
 export function shouldCreateWebUiDataDir(env: Record<string, string | undefined> = process.env): boolean {

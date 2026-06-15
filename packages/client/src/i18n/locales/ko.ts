@@ -259,7 +259,7 @@ export default {
     remoteLoadFailed: '원격 버전을 불러오지 못했습니다',
     downloadTasks: '다운로드 작업',
     downloadStarted: '다운로드를 시작했습니다',
-    activateSuccess: '버전 선택이 저장되었습니다. Hermes Studio를 다시 시작하면 적용됩니다.',
+    activateSuccess: '버전 선택이 저장되었습니다. Envclaw를 다시 시작하면 적용됩니다.',
     jobStatus: {
       queued: '대기 중',
       running: '실행 중',

@@ -1,11 +1,11 @@
 {
-  "name": "hermes-studio",
+  "name": "envclaw-desktop",
   "version": "0.6.15",
-  "description": "Hermes Studio desktop distribution with bundled Python runtime and hermes-agent",
+  "description": "Envclaw desktop distribution with bundled Python runtime and hermes-agent",
   "homepage": "https://hermes-studio.ai",
   "author": {
-    "name": "Hermes Studio Contributors",
-    "email": "noreply@hermes-studio.local"
+    "name": "Envclaw Contributors",
+    "email": "noreply@envclaw.local"
   },
   "license": "BSL-1.1",
   "private": true,

@@ -1,6 +1,6 @@
 export default {
   brand: {
-    name: 'Hermes Studio',
+    name: 'Envclaw',
     logoAlt: 'Hermes',
   },
   ui: {
@@ -28,7 +28,7 @@ export default {
       deploy: '部署',
     },
     badge: '本地优先的 AI Agent 工作区',
-    title: 'Hermes Studio',
+    title: 'Envclaw',
     subtitle: '面向 Hermes Agent 的桌面应用和本地控制台。聊天、管理 Profile、运行 Coding Agent、查看文件、自动化任务，并掌控自己的运行环境。',
     cta: '下载桌面版',
     docsCta: '查看文档',
@@ -39,11 +39,11 @@ export default {
     docsTitle: '文档',
     docsLibrary: '资料库',
     install: 'npm install -g hermes-web-ui',
-    previewAlt: 'Hermes Studio 仪表板预览',
+    previewAlt: 'Envclaw 仪表板预览',
   },
   features: {
     title: 'Hermes Agent 的本地控制台',
-    desc: 'Hermes Studio 把聊天、运行时管理、自动化、文件、Coding Agent 和桌面分发整合到一个工作区。',
+    desc: 'Envclaw 把聊天、运行时管理、自动化、文件、Coding Agent 和桌面分发整合到一个工作区。',
     streaming: {
       title: 'Agent 聊天',
       desc: 'Hermes Agent 流式对话，支持会话、Markdown、工具轨迹、上传下载、模型标签和上下文用量。',
@@ -82,7 +82,7 @@ export default {
     },
     quickInstall: {
       title: '桌面运行时',
-      desc: 'Windows、macOS 和 Linux 桌面版内置 Web UI 运行时，并把 Hermes Studio 状态与 Hermes Agent 数据分开管理。',
+      desc: 'Windows、macOS 和 Linux 桌面版内置 Web UI 运行时，并把 Envclaw 状态与 Hermes Agent 数据分开管理。',
     },
     i18n: {
       title: 'Coding Agent 与 MCP',
@@ -114,22 +114,22 @@ export default {
     items: [
       {
         src: '/image.gif',
-        alt: 'Hermes Studio 产品流程演示',
-        title: 'Hermes Studio 工作流',
+        alt: 'Envclaw 产品流程演示',
+        title: 'Envclaw 工作流',
         desc: '在一个应用里完成 Agent 对话、版本预览、Runtime 管理和工作区浏览。',
       },
     ],
   },
   install: {
     title: '快速开始',
-    desc: '下载桌面应用，或自行运行 Hermes Studio。',
+    desc: '下载桌面应用，或自行运行 Envclaw。',
     desktop: {
       title: '桌面版',
       download: '下载',
       githubDownload: 'GitHub 下载',
       cloudflareDownload: 'Cloudflare 下载',
       allDownloads: '查看全部发布文件',
-      prereq: '桌面版已内置 Hermes Studio 运行时。',
+      prereq: '桌面版已内置 Envclaw 运行时。',
       downloads: [
         {
           title: 'macOS Apple Silicon',
@@ -207,14 +207,14 @@ export default {
     },
     gettingStarted: {
       title: '快速开始',
-      intro: 'Hermes Studio 是一个自托管的 Web 仪表板，用于管理 AI 对话、平台通道、定时任务等。它封装了 Hermes Agent CLI 并提供美观的 Web 界面。',
+      intro: 'Envclaw 是一个自托管的 Web 仪表板，用于管理 AI 对话、平台通道、定时任务等。它封装了 Hermes Agent CLI 并提供美观的 Web 界面。',
       install: {
         title: '安装',
         content: '通过 npm 全局安装。需要 Node.js 23 或更高版本。',
       },
       firstRun: {
         title: '首次运行',
-        content: '首次启动时，Hermes Studio 会自动生成认证令牌、初始化本地数据、启动 Hermes agent bridge 并在浏览器中打开仪表板。',
+        content: '首次启动时，Envclaw 会自动生成认证令牌、初始化本地数据、启动 Hermes agent bridge 并在浏览器中打开仪表板。',
       },
       login: {
         title: '登录',
@@ -223,13 +223,13 @@ export default {
     },
     configuration: {
       title: '配置说明',
-      intro: 'Hermes Studio 可通过环境变量进行配置。',
+      intro: 'Envclaw 可通过环境变量进行配置。',
       envVars: {
         title: '环境变量',
         rows: [
           ['PORT', '服务器监听端口（默认：8648）'],
           ['BIND_HOST', '服务器绑定地址（默认：0.0.0.0）。如需 IPv6，请显式设置为 ::。'],
-          ['HERMES_WEB_UI_HOME', 'Hermes Studio 数据目录，用于认证 token、登录凭据、日志、数据库和默认上传目录'],
+          ['HERMES_WEB_UI_HOME', 'Envclaw 数据目录，用于认证 token、登录凭据、日志、数据库和默认上传目录'],
           ['HERMES_WEBUI_STATE_DIR', 'HERMES_WEB_UI_HOME 的兼容别名'],
           ['HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT', '关闭启动时向 Hermes profile 配置自动注入托管的 hermes-studio MCP server'],
           ['HERMES_WEB_UI_ALLOW_TRANSIENT_MCP_AUTOINJECT', '当 HERMES_WEB_UI_HOME 位于临时目录（例如 Version Preview runtime）时，仍允许托管 MCP 自动注入'],
@@ -269,7 +269,7 @@ export default {
           ['HERMES_WEB_UI_MANAGED_GATEWAY', '控制 Web UI 托管 Hermes gateway。默认开启；设为 0/false/off 时改用 hermes gateway start'],
           ['HERMES_WEB_UI_DISABLE_GATEWAY_AUTOSTART', '跳过启动时的 gateway 检查/自动启动；适用于由其它服务管理 Hermes gateway 的 dashboard-only 部署'],
           ['HERMES_WEB_UI_DISABLE_SKILL_INJECTION', '跳过启动时的内置 skill 注入；适用于由 Hermes Web UI 外部管理 skills 的部署。启用注入时只更新 Web UI 管理或完全相同的内置副本，本地修改会跳过'],
-          ['HERMES_WEB_UI_STOP_GATEWAYS_ON_SHUTDOWN', 'Hermes Studio 关闭时是否同时停止托管的 gateway 进程'],
+          ['HERMES_WEB_UI_STOP_GATEWAYS_ON_SHUTDOWN', 'Envclaw 关闭时是否同时停止托管的 gateway 进程'],
           ['HERMES_GATEWAY_URL / GATEWAY_URL', 'proxy 路由使用的 Hermes gateway upstream URL'],
           ['GATEWAY_HOST', 'proxy 路由使用的默认 Hermes gateway upstream host'],
           ['GATEWAY_PORT', 'proxy 路由使用的默认 Hermes gateway upstream port'],
@@ -282,7 +282,7 @@ export default {
       },
       gateway: {
         title: 'Agent Bridge 运行时',
-        content: '聊天运行通过 Hermes agent bridge 处理。它随 Hermes Studio 服务一起运行，并直接连接 Hermes Agent runtime。HERMES_AGENT_BRIDGE_ENDPOINT 控制 Node 与 bridge broker 的连接地址；HERMES_AGENT_BRIDGE_WORKER_TRANSPORT 控制 broker 与各 Profile worker 的连接方式。前端切换 Hermes Profile 只影响后续请求上下文，不会重启 bridge 或清理其他正在运行的任务。',
+        content: '聊天运行通过 Hermes agent bridge 处理。它随 Envclaw 服务一起运行，并直接连接 Hermes Agent runtime。HERMES_AGENT_BRIDGE_ENDPOINT 控制 Node 与 bridge broker 的连接地址；HERMES_AGENT_BRIDGE_WORKER_TRANSPORT 控制 broker 与各 Profile worker 的连接方式。前端切换 Hermes Profile 只影响后续请求上下文，不会重启 bridge 或清理其他正在运行的任务。',
       },
       profiles: {
         title: '配置文件',
@@ -291,10 +291,10 @@ export default {
     },
     features: {
       title: '功能详解',
-      intro: '探索 Hermes Studio 的核心功能。',
+      intro: '探索 Envclaw 的核心功能。',
       chat: {
         title: 'AI 聊天',
-        content: '通过 Socket.IO /chat-run 实时流式聊天。支持多会话管理、Markdown 渲染与语法高亮、工具调用检查、按 Profile 上传、按路径下载，以及 Ctrl+K 搜索 Hermes Studio 本地会话库。',
+        content: '通过 Socket.IO /chat-run 实时流式聊天。支持多会话管理、Markdown 渲染与语法高亮、工具调用检查、按 Profile 上传、按路径下载，以及 Ctrl+K 搜索 Envclaw 本地会话库。',
       },
       kanban: {
         title: '看板管理',
@@ -330,8 +330,8 @@ export default {
       },
     },
     hermesStudioManual: {
-      title: 'Hermes Studio 客户端完整操作手册',
-      intro: '这份手册面向 Hermes Studio 桌面客户端和 Web 界面的使用、配置、运维、验收与内部培训场景，覆盖当前客户端可见导航、设置、弹窗、状态页、关键按钮、常见流程和风险提示。',
+      title: 'Envclaw 客户端完整操作手册',
+      intro: '这份手册面向 Envclaw 桌面客户端和 Web 界面的使用、配置、运维、验收与内部培训场景，覆盖当前客户端可见导航、设置、弹窗、状态页、关键按钮、常见流程和风险提示。',
       open: {
         title: '打开完整手册',
         content: '完整手册保留原始 HTML 排版、截图标注和 PDF 版本。HTML 版本适合在线浏览，PDF 版本适合归档、打印和离线分发。',
@@ -351,7 +351,7 @@ export default {
       scope: {
         title: '适用范围',
         rows: [
-          ['适用版本', 'Hermes Studio 0.6.12 客户端操作手册'],
+          ['适用版本', 'Envclaw 0.6.12 客户端操作手册'],
           ['文档语言', '中文完整手册；官网提供中英文入口说明'],
           ['覆盖内容', '登录、聊天、历史、记忆、技能、插件、文件、终端、任务、群聊、看板、用量、日志、MCP、平台集成、设备、设置、备份、安全和故障排除'],
           ['推荐读者', '个人用户、管理员、技术支持、交付验收人员和内部培训对象'],
@@ -400,7 +400,7 @@ export default {
     },
     api: {
       title: 'API 参考',
-      intro: 'Hermes Studio 提供本地 BFF API，并通过 Socket.IO 端点进行聊天流式通信。',
+      intro: 'Envclaw 提供本地 BFF API，并通过 Socket.IO 端点进行聊天流式通信。',
       local: {
         title: '本地 BFF 端点',
         content: 'Koa 服务器处理会话管理、Profile CRUD、分账户分 Profile 管理、配置读写、日志访问、技能列表、记忆操作和静态资源。',

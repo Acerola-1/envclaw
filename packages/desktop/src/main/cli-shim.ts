@@ -14,10 +14,12 @@ import { HERMES_CLI_ARG } from './cli-constants'
 
 const execFileAsync = promisify(execFile)
 
-const SHIM_MARKER = 'HERMES_STUDIO_CLI_SHIM'
-const MCP_SHIM_MARKER = 'HERMES_STUDIO_MCP_SHIM'
-const PATH_MARKER_START = '# >>> Hermes Studio CLI shim >>>'
-const PATH_MARKER_END = '# <<< Hermes Studio CLI shim <<<'
+const SHIM_MARKER = 'ENVCLAW_CLI_SHIM'
+const MCP_SHIM_MARKER = 'ENVCLAW_MCP_SHIM'
+const LEGACY_SHIM_MARKERS = ['HERMES_STUDIO_CLI_SHIM']
+const LEGACY_MCP_SHIM_MARKERS = ['HERMES_STUDIO_MCP_SHIM']
+const PATH_MARKER_START = '# >>> Envclaw CLI shim >>>'
+const PATH_MARKER_END = '# <<< Envclaw CLI shim <<<'
 
 type ShimInstallStatus = 'installed' | 'updated' | 'unchanged' | 'skipped'
 
@@ -67,11 +69,11 @@ function executableForShim(options: Required<Pick<CliShimInstallOptions, 'env' |
 }
 
 export function shimPathForPlatform(binDir: string, platform: NodeJS.Platform = process.platform): string {
-  return join(binDir, platform === 'win32' ? 'hermes-studio.cmd' : 'hermes-studio')
+  return join(binDir, platform === 'win32' ? 'envclaw.cmd' : 'envclaw')
 }
 
 export function mcpShimPathForPlatform(binDir: string, platform: NodeJS.Platform = process.platform): string {
-  return join(binDir, platform === 'win32' ? 'hermes-studio-mcp.cmd' : 'hermes-studio-mcp')
+  return join(binDir, platform === 'win32' ? 'envclaw-mcp.cmd' : 'envclaw-mcp')
 }
 
 function shellQuote(value: string): string {
@@ -96,7 +98,7 @@ export function createShimContent(
       `set "APP=${executablePath}"`,
       'set "WEBUI_HOME=%HERMES_WEB_UI_HOME%"',
       'if "%WEBUI_HOME%"=="" set "WEBUI_HOME=%HERMES_WEBUI_STATE_DIR%"',
-      'if "%WEBUI_HOME%"=="" set "WEBUI_HOME=%USERPROFILE%\\.hermes-web-ui"',
+      'if "%WEBUI_HOME%"=="" set "WEBUI_HOME=%USERPROFILE%\\.envclaw-web-ui"',
       'set "RUNTIME=%HERMES_DESKTOP_RUNTIME_DIR%"',
       'if "%RUNTIME%"=="" if exist "%WEBUI_HOME%\\desktop-runtime\\active-version.json" (',
       `  for /f "usebackq delims=" %%I in (\`powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$p = Join-Path $env:WEBUI_HOME 'desktop-runtime\\active-version.json'; try { $j = Get-Content -LiteralPath $p -Raw | ConvertFrom-Json; if ($j.platform -eq '${runtimePlatform}' -and $j.runtimeDirectory -and (Test-Path -LiteralPath $j.runtimeDirectory)) { [Console]::Out.Write($j.runtimeDirectory) } } catch {}" 2^>nul\`) do set "RUNTIME=%%I"`,
@@ -104,8 +106,8 @@ export function createShimContent(
       `if "%RUNTIME%"=="" set "RUNTIME=%WEBUI_HOME%\\desktop-runtime\\hermes\\${runtimeVersion}\\${runtimePlatform}"`,
       'set "PYTHON=%RUNTIME%\\python\\python.exe"',
       'if not exist "%PYTHON%" (',
-      '  echo Hermes Studio Python runtime not found at "%PYTHON%" 1>&2',
-      '  echo Open Hermes Studio once to finish runtime setup, then retry hermes-studio. 1>&2',
+      '  echo Envclaw Python runtime not found at "%PYTHON%" 1>&2',
+      '  echo Open Envclaw once to finish runtime setup, then retry envclaw. 1>&2',
       '  exit /b 127',
       ')',
       '"%PYTHON%" -m hermes_cli.main %*',
@@ -119,7 +121,7 @@ export function createShimContent(
     `# ${SHIM_MARKER}`,
     `APP=${shellQuote(executablePath)}`,
     'if [ ! -x "$APP" ]; then',
-    '  echo "Hermes Studio executable not found at $APP" >&2',
+    '  echo "Envclaw executable not found at $APP" >&2',
     '  exit 127',
     'fi',
     'unset ELECTRON_RUN_AS_NODE',
@@ -141,12 +143,12 @@ export function createMcpShimContent(
       `set "NODE=${nodePath}"`,
       `set "SCRIPT=${scriptPath}"`,
       'if not exist "%NODE%" (',
-      '  echo Hermes Studio Node runtime not found at "%NODE%" 1>&2',
-      '  echo Open Hermes Studio once to finish runtime setup, then retry hermes-studio-mcp. 1>&2',
+      '  echo Envclaw Node runtime not found at "%NODE%" 1>&2',
+      '  echo Open Envclaw once to finish runtime setup, then retry envclaw-mcp. 1>&2',
       '  exit /b 127',
       ')',
       'if not exist "%SCRIPT%" (',
-      '  echo Hermes Studio MCP script not found at "%SCRIPT%" 1>&2',
+      '  echo Envclaw MCP script not found at "%SCRIPT%" 1>&2',
       '  exit /b 127',
       ')',
       'if "%HERMES_WEB_UI_URL%"=="" (',
@@ -156,7 +158,7 @@ export function createMcpShimContent(
       '    set "HERMES_WEB_UI_URL=http://127.0.0.1:%HERMES_DESKTOP_PORT%"',
       '  )',
       ')',
-      'set "HERMES_MCP_SERVER_NAME=hermes-studio-mcp"',
+      'set "HERMES_MCP_SERVER_NAME=envclaw-mcp"',
       '"%NODE%" "%SCRIPT%" %*',
       'exit /b %ERRORLEVEL%',
       '',
@@ -169,12 +171,12 @@ export function createMcpShimContent(
     `NODE=${shellQuote(nodePath)}`,
     `SCRIPT=${shellQuote(scriptPath)}`,
     'if [ ! -x "$NODE" ]; then',
-    '  echo "Hermes Studio Node runtime not found at $NODE" >&2',
-    '  echo "Open Hermes Studio once to finish runtime setup, then retry hermes-studio-mcp." >&2',
+    '  echo "Envclaw Node runtime not found at $NODE" >&2',
+    '  echo "Open Envclaw once to finish runtime setup, then retry envclaw-mcp." >&2',
     '  exit 127',
     'fi',
     'if [ ! -f "$SCRIPT" ]; then',
-    '  echo "Hermes Studio MCP script not found at $SCRIPT" >&2',
+    '  echo "Envclaw MCP script not found at $SCRIPT" >&2',
     '  exit 127',
     'fi',
     'if [ -z "${HERMES_WEB_UI_URL:-}" ]; then',
@@ -185,14 +187,16 @@ export function createMcpShimContent(
     '  fi',
     'fi',
     'export HERMES_WEB_UI_URL',
-    'export HERMES_MCP_SERVER_NAME=hermes-studio-mcp',
+    'export HERMES_MCP_SERVER_NAME=envclaw-mcp',
     'exec "$NODE" "$SCRIPT" "$@"',
     '',
   ].join('\n')
 }
 
 function isManagedShim(content: string, marker: string): boolean {
-  return content.includes(marker)
+  if (content.includes(marker)) return true
+  const legacyList = marker === MCP_SHIM_MARKER ? LEGACY_MCP_SHIM_MARKERS : LEGACY_SHIM_MARKERS
+  return legacyList.some(legacy => content.includes(legacy))
 }
 
 function writeShim(shimPath: string, content: string, platform: NodeJS.Platform, marker = SHIM_MARKER): ShimInstallStatus {
@@ -215,7 +219,7 @@ function shellProfilePaths(homeDir: string, platform: NodeJS.Platform, env: Node
 
   const shell = env.SHELL?.trim() || ''
   const name = shell.split('/').pop() || ''
-  if (name === 'fish') return [join(homeDir, '.config', 'fish', 'conf.d', 'hermes-studio.fish')]
+  if (name === 'fish') return [join(homeDir, '.config', 'fish', 'conf.d', 'envclaw.fish')]
   if (name === 'bash') return [join(homeDir, '.bash_profile'), join(homeDir, '.bashrc')]
   if (name === 'zsh' || platform === 'darwin') return [join(homeDir, '.zprofile'), join(homeDir, '.zshrc')]
   return [join(homeDir, '.profile')]
@@ -298,7 +302,7 @@ async function ensureUserBinOnPath(homeDir: string, binDir: string, platform: No
   return ensureUnixShellPath(homeDir, binDir, platform, env)
 }
 
-export async function installHermesStudioCliShim(options: CliShimInstallOptions = {}): Promise<CliShimInstallResult> {
+export async function installEnvclawCliShim(options: CliShimInstallOptions = {}): Promise<CliShimInstallResult> {
   const platform = options.platform || process.platform
   const env = options.env || process.env
   const homeDir = options.homeDir || homedir()
@@ -321,11 +325,11 @@ export async function installHermesStudioCliShim(options: CliShimInstallOptions 
     shimPath,
     status,
     pathUpdated,
-    reason: status === 'skipped' ? 'existing hermes-studio shim is not managed by Hermes Studio' : undefined,
+    reason: status === 'skipped' ? 'existing envclaw shim is not managed by Envclaw' : undefined,
   }
 }
 
-export async function installHermesStudioMcpShim(options: McpShimInstallOptions = {}): Promise<CliShimInstallResult> {
+export async function installEnvclawMcpShim(options: McpShimInstallOptions = {}): Promise<CliShimInstallResult> {
   const platform = options.platform || process.platform
   const env = options.env || process.env
   const homeDir = options.homeDir || homedir()
@@ -346,6 +350,6 @@ export async function installHermesStudioMcpShim(options: McpShimInstallOptions 
     shimPath,
     status,
     pathUpdated,
-    reason: status === 'skipped' ? 'existing hermes-studio-mcp shim is not managed by Hermes Studio' : undefined,
+    reason: status === 'skipped' ? 'existing envclaw-mcp shim is not managed by Envclaw' : undefined,
   }
 }

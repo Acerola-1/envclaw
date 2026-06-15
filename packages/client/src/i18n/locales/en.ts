@@ -259,7 +259,7 @@ export default {
     remoteLoadFailed: 'Failed to load remote versions',
     downloadTasks: 'Download tasks',
     downloadStarted: 'Download started',
-    activateSuccess: 'Version selection saved. Restart Hermes Studio to use it.',
+    activateSuccess: 'Version selection saved. Restart Envclaw to use it.',
     jobStatus: {
       queued: 'Queued',
       running: 'Running',

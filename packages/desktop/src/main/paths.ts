@@ -335,7 +335,7 @@ export function desktopTrayTemplateIcon(): string {
 }
 
 export function webUiHome(): string {
-  return process.env.HERMES_WEB_UI_HOME?.trim() || resolve(homedir(), '.hermes-web-ui')
+  return process.env.HERMES_WEB_UI_HOME?.trim() || resolve(homedir(), '.envclaw-web-ui')
 }
 
 export function hermesHome(): string {

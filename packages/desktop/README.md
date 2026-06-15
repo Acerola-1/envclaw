@@ -1,6 +1,6 @@
-# Hermes Studio
+# Envclaw
 
-Electron desktop distribution for Hermes Studio.
+Electron desktop distribution for Envclaw.
 
 ## Install
 

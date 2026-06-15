@@ -45,7 +45,7 @@ Resolve the token in this order:
 1. `AUTH_TOKEN` environment variable, if set.
 2. `${HERMES_WEB_UI_HOME}/.token`, if `HERMES_WEB_UI_HOME` is set.
 3. `${HERMES_WEBUI_STATE_DIR}/.token`, if `HERMES_WEBUI_STATE_DIR` is set.
-4. `~/.hermes-web-ui/.token`.
+4. `~/.envclaw-web-ui/.token`.
 
 Profile selection:
 
@@ -69,7 +69,7 @@ Required JSON fields:
 Optional JSON fields:
 
 - `duration`: seconds, 1 to 15. Defaults to 8.
-- `output_path`: local path where the server should save the mp4. If omitted, the server saves to `${HERMES_WEB_UI_HOME:-~/.hermes-web-ui}/media/<request_id>.mp4` and creates the `media` directory if needed.
+- `output_path`: local path where the server should save the mp4. If omitted, the server saves to `${HERMES_WEB_UI_HOME:-~/.envclaw-web-ui}/media/<request_id>.mp4` and creates the `media` directory if needed.
 - `timeout_ms`: maximum wait time. Defaults to 600000.
 
 Example:
@@ -82,11 +82,11 @@ fi
 if [ -z "$TOKEN" ] && [ -n "${HERMES_WEBUI_STATE_DIR:-}" ] && [ -f "$HERMES_WEBUI_STATE_DIR/.token" ]; then
   TOKEN="$(cat "$HERMES_WEBUI_STATE_DIR/.token")"
 fi
-if [ -z "$TOKEN" ] && [ -f "$HOME/.hermes-web-ui/.token" ]; then
-  TOKEN="$(cat "$HOME/.hermes-web-ui/.token")"
+if [ -z "$TOKEN" ] && [ -f "$HOME/.envclaw-web-ui/.token" ]; then
+  TOKEN="$(cat "$HOME/.envclaw-web-ui/.token")"
 fi
 if [ -z "$TOKEN" ]; then
-  echo "Missing Hermes Web UI token. Check AUTH_TOKEN, HERMES_WEB_UI_HOME, HERMES_WEBUI_STATE_DIR, or ~/.hermes-web-ui/.token." >&2
+  echo "Missing Hermes Web UI token. Check AUTH_TOKEN, HERMES_WEB_UI_HOME, HERMES_WEBUI_STATE_DIR, or ~/.envclaw-web-ui/.token." >&2
   exit 1
 fi
 

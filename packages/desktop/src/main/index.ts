@@ -5,7 +5,7 @@ import { startWebUiServer, stopWebUiServer, getToken } from './webui-server'
 import { bundledNode, desktopIcon, desktopRuntimeVersion, desktopTrayTemplateIcon, desktopWindowsTrayIcon, hermesBinExists, hermesBin, webuiDir } from './paths'
 import { checkForDesktopUpdates, initAutoUpdater } from './updater'
 import { t } from './desktop-i18n'
-import { installHermesStudioCliShim, installHermesStudioMcpShim } from './cli-shim'
+import { installEnvclawCliShim, installEnvclawMcpShim } from './cli-shim'
 import { parseHermesCliArgs, runBundledHermesCli } from './hermes-cli'
 import {
   ensureDesktopRuntime,
@@ -18,7 +18,7 @@ import {
 const PORT = Number(process.env.HERMES_DESKTOP_PORT) || 8748
 const START_HIDDEN = process.argv.includes('--hidden')
 const QUIT_EXISTING = process.argv.includes('--quit')
-const APP_USER_MODEL_ID = 'com.hermeswebui.studio'
+const APP_USER_MODEL_ID = 'com.envclaw.desktop'
 type WindowControlAction = 'minimize' | 'toggle-maximize' | 'close'
 
 let mainWindow: BrowserWindow | null = null
@@ -185,7 +185,7 @@ function createTray() {
     icon.setTemplateImage(true)
   }
   tray = new Tray(icon)
-  tray.setToolTip('Hermes Studio')
+  tray.setToolTip('Envclaw')
   tray.on('click', () => {
     showMainWindow()
     updateTrayMenu()
@@ -199,7 +199,7 @@ function createWindow() {
     height: 820,
     minWidth: 960,
     minHeight: 600,
-    title: 'Hermes Studio',
+    title: 'Envclaw',
     backgroundColor: '#1a1a1a',
     autoHideMenuBar: true,
     show: false,
@@ -259,7 +259,7 @@ function createWindow() {
 
 function splashHtml(label = t('desktop.startingLocalServices')): string {
   const startingLabel = escapeHtml(label)
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Hermes Studio</title>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Envclaw</title>
 <style>
   html,body{margin:0;height:100%;background:#1a1a1a;color:#e5e5e5;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;-webkit-app-region:drag;}
   .wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:20px}
@@ -273,7 +273,7 @@ function splashHtml(label = t('desktop.startingLocalServices')): string {
   .bar{width:0;height:100%;background:#d8d8d8;transition:width .18s ease}
   h1{font-weight:500;margin:0;font-size:18px}
 </style></head><body><div class="wrap">
-<h1>Hermes Studio</h1>
+<h1>Envclaw</h1>
 <div class="row"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
 <div id="label" class="label">${startingLabel}</div>
 <div class="progress"><div id="bar" class="bar"></div></div>
@@ -336,19 +336,19 @@ function runtimeSourceHtml(errorMessage?: string): string {
         <pre>${safeError}</pre>
        </section>`
     : ''
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Hermes Studio</title>
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Envclaw</title>
 <style>
   :root{color-scheme:dark}
   *{box-sizing:border-box}
   html,body{margin:0;width:100%;height:100%;background:#191919;color:#f1f1f1;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;}
   body{min-height:100%;display:grid;place-items:center;padding:32px;-webkit-app-region:drag;}
-  .wrap{width:min(720px,100%);display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+  .wrap{width:min(560px,100%);display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
   .brand{display:flex;align-items:center;gap:10px;color:#f6f6f6}
   .mark{width:34px;height:34px;border-radius:8px;object-fit:contain;display:block}
   h1{font-weight:560;margin:0;font-size:22px;line-height:1.25}
   .label{max-width:520px;font-size:14px;line-height:1.6;color:#b9b9b9;margin:0}
-  .actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  button{min-height:86px;border:1px solid #4c4c4c;border-radius:8px;background:#242424;color:#f2f2f2;cursor:pointer;padding:16px;text-align:left;display:flex;flex-direction:column;gap:7px;transition:background .14s ease,border-color .14s ease,transform .14s ease;-webkit-app-region:no-drag}
+  .actions{width:100%;display:flex;justify-content:center}
+  button{min-height:64px;min-width:240px;border:1px solid #4c4c4c;border-radius:8px;background:#242424;color:#f2f2f2;cursor:pointer;padding:16px 22px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:background .14s ease,border-color .14s ease,transform .14s ease;-webkit-app-region:no-drag}
   button:hover{background:#2d2d2d;border-color:#747474;transform:translateY(-1px)}
   button:active{transform:translateY(0)}
   button:focus-visible{outline:2px solid #dcdcdc;outline-offset:3px}
@@ -359,27 +359,19 @@ function runtimeSourceHtml(errorMessage?: string): string {
   pre{width:100%;max-height:180px;overflow:auto;white-space:pre-wrap;margin:0;color:#ffaaaa;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;-webkit-app-region:no-drag}
   @media (max-width:560px){
     body{padding:24px}
-    .actions{grid-template-columns:1fr}
-    button{min-height:78px}
+    button{min-width:0;width:100%}
   }
 </style></head><body><main class="wrap">
-<div class="brand">${logoUrl ? `<img class="mark" src="${logoUrl}" alt="Hermes Studio">` : ''}<h1>Hermes Studio</h1></div>
-<p class="label">${escapeHtml(t('desktop.selectRuntimeSource'))}</p>
+<div class="brand">${logoUrl ? `<img class="mark" src="${logoUrl}" alt="Envclaw">` : ''}<h1>Envclaw</h1></div>
+<p class="label">${escapeHtml(t('desktop.downloadRuntimePrompt'))}</p>
 ${errorBlock}
 <div class="actions">
-  <button id="cf">
-    <span class="button-title">${escapeHtml(t('desktop.downloadCloudflareTitle'))}</span>
-    <span class="button-detail">${escapeHtml(t('desktop.downloadCloudflareDetail'))}</span>
-  </button>
   <button id="github">
     <span class="button-title">${escapeHtml(t('desktop.downloadGithubTitle'))}</span>
     <span class="button-detail">${escapeHtml(t('desktop.downloadGithubDetail'))}</span>
   </button>
 </div>
 <script>
-  document.getElementById('cf')?.addEventListener('click', () => {
-    window.hermesDesktop?.retryBootstrap?.('cf')
-  })
   document.getElementById('github')?.addEventListener('click', () => {
     window.hermesDesktop?.retryBootstrap?.('github')
   })
@@ -390,7 +382,7 @@ ${errorBlock}
 
 function envRuntimeDownloadSource(): RuntimeDownloadSource | undefined {
   const source = process.env.HERMES_DESKTOP_RUNTIME_SOURCE?.trim().toLowerCase()
-  return source === 'cf' || source === 'github' ? source : undefined
+  return source === 'github' ? source : undefined
 }
 
 function formatBytes(bytes: number): string {
@@ -434,7 +426,7 @@ async function bootstrap(source?: RuntimeDownloadSource) {
   isBootstrapping = true
 
   try {
-    const selectedSource = source || envRuntimeDownloadSource()
+    const selectedSource: RuntimeDownloadSource = source || envRuntimeDownloadSource() || 'github'
     const runtimeUrlOverride = !!process.env.HERMES_DESKTOP_RUNTIME_URL?.trim()
     const manifestOverride = !!process.env.HERMES_DESKTOP_RUNTIME_MANIFEST_URL?.trim()
     const forceUpdate = !!process.env.HERMES_DESKTOP_RUNTIME_FORCE_UPDATE
@@ -442,11 +434,6 @@ async function bootstrap(source?: RuntimeDownloadSource) {
     const needsRuntimeWork = !runtimeReady || forceUpdate || runtimeUrlOverride || manifestOverride
 
     if (needsRuntimeWork) {
-      if (!selectedSource && !runtimeUrlOverride && !manifestOverride) {
-        if (mainWindow) await mainWindow.loadURL(runtimeSourceHtml())
-        isBootstrapping = false
-        return
-      }
       await ensureDesktopRuntime(updateSplash, selectedSource)
     }
     if (isDesktopRuntimeReady()) {
@@ -516,7 +503,7 @@ ipcMain.handle('hermes-desktop:notify-completion', (_event, payload?: { title?: 
 
   const title = typeof payload?.title === 'string' && payload.title.trim()
     ? payload.title.trim()
-    : 'Hermes Studio'
+    : 'Envclaw'
   const body = typeof payload?.body === 'string' ? payload.body.trim().slice(0, 240) : ''
   const icon = resolveNotificationIcon(payload?.icon)
   const notification = new Notification({
@@ -546,7 +533,7 @@ ipcMain.handle('hermes-desktop:retry-bootstrap', async (_event, source?: Runtime
     await mainWindow?.loadURL(serverUrl)
     return
   }
-  const selectedSource = source === 'cf' || source === 'github' ? source : undefined
+  const selectedSource = source === 'github' ? source : undefined
   await mainWindow?.loadURL(splashHtml(t('runtime.downloading')))
   await bootstrap(selectedSource)
 })
@@ -578,14 +565,14 @@ function runDesktopApp() {
     // default is fine there.
     if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
     if (app.isPackaged) {
-      installHermesStudioCliShim({ runtimeVersion: desktopRuntimeVersion() }).then(result => {
+      installEnvclawCliShim({ runtimeVersion: desktopRuntimeVersion() }).then(result => {
         if (result.status === 'skipped') {
           console.warn(`[cli-shim] ${result.reason}: ${result.shimPath}`)
         }
       }).catch(err => {
-        console.warn(`[cli-shim] failed to install hermes-studio command: ${err instanceof Error ? err.message : String(err)}`)
+        console.warn(`[cli-shim] failed to install envclaw command: ${err instanceof Error ? err.message : String(err)}`)
       })
-      installHermesStudioMcpShim({
+      installEnvclawMcpShim({
         nodePath: bundledNode(),
         scriptPath: join(webuiDir(), 'bin', 'hermes-web-ui-mcp.mjs'),
         webUiUrl: `http://127.0.0.1:${PORT}`,
@@ -594,7 +581,7 @@ function runDesktopApp() {
           console.warn(`[cli-shim] ${result.reason}: ${result.shimPath}`)
         }
       }).catch(err => {
-        console.warn(`[cli-shim] failed to install hermes-studio-mcp command: ${err instanceof Error ? err.message : String(err)}`)
+        console.warn(`[cli-shim] failed to install envclaw-mcp command: ${err instanceof Error ? err.message : String(err)}`)
       })
     }
     createTray()

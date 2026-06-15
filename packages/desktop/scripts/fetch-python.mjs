@@ -37,7 +37,7 @@ const OS_LABEL = TARGET_OS === 'win32' ? 'win' : TARGET_OS === 'darwin' ? 'mac' 
 const OUT_DIR = resolve(ROOT, 'resources', 'python', `${OS_LABEL}-${TARGET_ARCH}`)
 const FLAVOR = 'install_only_stripped'
 const FILE = `cpython-${PYTHON_VERSION}+${PBS_TAG}-${triple}-${FLAVOR}.tar.gz`
-const PBS_BASE_URL = (process.env.PBS_BASE_URL || 'https://github.com/astral-sh/python-build-standalone/releases/download').replace(/\/$/, '')
+const PBS_BASE_URL = (process.env.PBS_BASE_URL || 'https://ghproxy.net/https://github.com/astral-sh/python-build-standalone/releases/download').replace(/\/$/, '')
 const URL = `${PBS_BASE_URL}/${PBS_TAG}/${FILE}`
 
 if (existsSync(resolve(OUT_DIR, 'python')) || existsSync(resolve(OUT_DIR, 'bin', 'python3'))) {

@@ -5,7 +5,7 @@ const updateConfigYamlForProfileMock = vi.fn()
 const listProfileNamesFromDiskMock = vi.fn()
 const configMock = vi.hoisted(() => ({
   port: 8648,
-  appHome: '/Users/test/.hermes-web-ui',
+  appHome: '/Users/test/.envclaw-web-ui',
 }))
 
 vi.mock('../../packages/server/src/services/config-helpers', () => ({
@@ -36,7 +36,7 @@ describe('studio MCP autoinject', () => {
     delete process.env.HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT
     delete process.env.HERMES_WEB_UI_ALLOW_TRANSIENT_MCP_AUTOINJECT
     configMock.port = 8648
-    configMock.appHome = '/Users/test/.hermes-web-ui'
+    configMock.appHome = '/Users/test/.envclaw-web-ui'
     listProfileNamesFromDiskMock.mockReturnValue(['default', 'work'])
     updateConfigYamlForProfileMock.mockImplementation(async (_profile: string, updater: any) => {
       const updated = await updater({})
@@ -52,13 +52,13 @@ describe('studio MCP autoinject', () => {
     expect(result.targets.map(target => target.profile)).toEqual(['default', 'work'])
     expect(updateConfigYamlForProfileMock).toHaveBeenCalledTimes(2)
     const injectedDefault = await updateConfigYamlForProfileMock.mock.calls[0][1]({})
-    expect(injectedDefault.data.mcp_servers['hermes-studio']).toEqual({
+    expect(injectedDefault.data.mcp_servers['envclaw']).toEqual({
       command: process.execPath,
       args: [join(process.cwd(), 'bin/hermes-web-ui-mcp.mjs')],
       env: {
         HERMES_WEB_UI_URL: 'http://127.0.0.1:8648',
-        HERMES_WEB_UI_HOME: '/Users/test/.hermes-web-ui',
-        HERMES_WEBUI_STATE_DIR: '/Users/test/.hermes-web-ui',
+        HERMES_WEB_UI_HOME: '/Users/test/.envclaw-web-ui',
+        HERMES_WEBUI_STATE_DIR: '/Users/test/.envclaw-web-ui',
         HERMES_WEB_UI_MANAGED_MCP: '1',
       },
       enabled: true,
@@ -93,13 +93,13 @@ describe('studio MCP autoinject', () => {
 
     const updated = await updateConfigYamlForProfileMock.mock.calls[0][1]({
       mcp_servers: {
-        'hermes-studio': {
+        'envclaw': {
           command: process.execPath,
           args: [join(process.cwd(), 'bin/hermes-web-ui-mcp.mjs')],
           env: {
             HERMES_WEB_UI_URL: 'http://127.0.0.1:8648',
-            HERMES_WEB_UI_HOME: '/Users/test/.hermes-web-ui',
-            HERMES_WEBUI_STATE_DIR: '/Users/test/.hermes-web-ui',
+            HERMES_WEB_UI_HOME: '/Users/test/.envclaw-web-ui',
+            HERMES_WEBUI_STATE_DIR: '/Users/test/.envclaw-web-ui',
             HERMES_WEB_UI_MANAGED_MCP: '1',
           },
           enabled: false,
@@ -110,9 +110,9 @@ describe('studio MCP autoinject', () => {
     expect(updated.write).toBe(false)
     expect(updated.result).toMatchObject({
       status: 'skipped',
-      reason: 'existing hermes-studio MCP server is disabled by user',
+      reason: 'existing envclaw MCP server is disabled by user',
     })
-    expect(updated.data.mcp_servers['hermes-studio'].enabled).toBe(false)
+    expect(updated.data.mcp_servers['envclaw'].enabled).toBe(false)
   })
 
   it('updates old managed PATH-only MCP entries to the bundled node script', async () => {
@@ -122,7 +122,7 @@ describe('studio MCP autoinject', () => {
 
     const updated = await updateConfigYamlForProfileMock.mock.calls[0][1]({
       mcp_servers: {
-        'hermes-studio': {
+        'envclaw': {
           command: 'hermes-web-ui-mcp',
           env: {
             HERMES_WEB_UI_URL: 'http://127.0.0.1:8648',
@@ -135,8 +135,8 @@ describe('studio MCP autoinject', () => {
       },
     })
     expect(updated.result.status).toBe('updated')
-    expect(updated.data.mcp_servers['hermes-studio'].command).toBe(process.execPath)
-    expect(updated.data.mcp_servers['hermes-studio'].args).toEqual([join(process.cwd(), 'bin/hermes-web-ui-mcp.mjs')])
+    expect(updated.data.mcp_servers['envclaw'].command).toBe(process.execPath)
+    expect(updated.data.mcp_servers['envclaw'].args).toEqual([join(process.cwd(), 'bin/hermes-web-ui-mcp.mjs')])
   })
 
   it('uses the desktop command in desktop runtime', async () => {
@@ -146,7 +146,7 @@ describe('studio MCP autoinject', () => {
     await injectBundledMcpServer()
 
     const injected = await updateConfigYamlForProfileMock.mock.calls[0][1]({})
-    expect(injected.data.mcp_servers['hermes-studio'].command).toBe('hermes-studio-mcp')
+    expect(injected.data.mcp_servers['envclaw'].command).toBe('envclaw-mcp')
   })
 
   it('removes stale injected tokens from managed server config', async () => {
@@ -156,7 +156,7 @@ describe('studio MCP autoinject', () => {
 
     const updated = await updateConfigYamlForProfileMock.mock.calls[0][1]({
       mcp_servers: {
-        'hermes-studio': {
+        'envclaw': {
           command: 'hermes-web-ui-mcp',
           env: {
             HERMES_WEB_UI_URL: 'http://127.0.0.1:8648',
@@ -170,7 +170,7 @@ describe('studio MCP autoinject', () => {
       },
     })
     expect(updated.result.status).toBe('updated')
-    expect(updated.data.mcp_servers['hermes-studio'].env.HERMES_WEB_UI_TOKEN).toBeUndefined()
+    expect(updated.data.mcp_servers['envclaw'].env.HERMES_WEB_UI_TOKEN).toBeUndefined()
   })
 
   it('skips an unmanaged existing server entry', async () => {
@@ -180,10 +180,29 @@ describe('studio MCP autoinject', () => {
 
     const updated = await updateConfigYamlForProfileMock.mock.calls[0][1]({
       mcp_servers: {
-        'hermes-studio': { command: 'custom-command' },
+        'envclaw': { command: 'custom-command' },
       },
     })
     expect(updated.write).toBe(false)
     expect(updated.result.status).toBe('skipped')
+  })
+
+  it('removes a legacy managed hermes-studio entry while injecting envclaw', async () => {
+    const { injectBundledMcpServer } = await import('../../packages/server/src/services/hermes/studio-mcp-autoinject')
+
+    await injectBundledMcpServer()
+
+    const updated = await updateConfigYamlForProfileMock.mock.calls[0][1]({
+      mcp_servers: {
+        'hermes-studio': {
+          command: 'hermes-web-ui-mcp',
+          env: { HERMES_WEB_UI_MANAGED_MCP: '1' },
+          enabled: true,
+        },
+      },
+    })
+    expect(updated.data.mcp_servers['hermes-studio']).toBeUndefined()
+    expect(updated.data.mcp_servers['envclaw']).toBeDefined()
+    expect(updated.result.status).toBe('injected')
   })
 })
