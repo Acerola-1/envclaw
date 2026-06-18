@@ -34,7 +34,16 @@ import SessionListItem from "./SessionListItem.vue";
 import OutlinePanel from "./OutlinePanel.vue";
 import FilesPanel from "./FilesPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
+import AgentPanel from "./AgentPanel.vue";
+import AgentMorePanel from "./AgentMorePanel.vue";
+import type { AgentMoreItem } from "./AgentMorePanel.vue";
 import PageSidebarNav from "@/components/layout/PageSidebarNav.vue";
+import JobsPanel from "@/components/hermes/jobs/JobsPanel.vue";
+import JobRunHistory from "@/components/hermes/jobs/JobRunHistory.vue";
+import JobFormModal from "@/components/hermes/jobs/JobFormModal.vue";
+import JobTreeList from "@/components/hermes/jobs/JobTreeList.vue";
+import { readCronRun } from '@/api/hermes/cron-history'
+import { useJobsStore } from "@/stores/hermes/jobs";
 import ProfileSelector from "@/components/layout/ProfileSelector.vue";
 import ModelSelector from "@/components/layout/ModelSelector.vue";
 import LanguageSwitch from "@/components/layout/LanguageSwitch.vue";
@@ -42,11 +51,15 @@ import ThemeSwitch from "@/components/layout/ThemeSwitch.vue";
 import VersionManagementModal from "@/components/layout/VersionManagementModal.vue";
 import { changelog } from "@/data/changelog";
 import { getStoredUsername, isStoredSuperAdmin } from "@/api/client";
+import GuardPanel from "@/components/hermes/guard/GuardPanel.vue";
+import TaskDetailPanel from "@/components/hermes/guard/TaskDetailPanel.vue";
+import CreateGuardTaskModal from "@/components/hermes/guard/CreateGuardTaskModal.vue";
 
 const chatStore = useChatStore();
 const appStore = useAppStore();
 const profilesStore = useProfilesStore();
 const sessionBrowserPrefsStore = useSessionBrowserPrefsStore();
+const jobsStore = useJobsStore();
 const router = useRouter();
 const message = useMessage();
 const { t } = useI18n();
@@ -55,6 +68,7 @@ const isSuperAdmin = computed(() => isStoredSuperAdmin());
 
 const showOutline = ref(false);
 const messageListRef = ref<InstanceType<typeof MessageList> | null>(null);
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
 const chatContentWrapperRef = ref<HTMLElement | null>(null);
 const showVersionManagement = ref(false);
 const showChangelog = ref(false);
@@ -66,13 +80,55 @@ const activeToolPanel = ref<"files" | "terminal">("files");
 const toolPanelWidth = ref(560);
 const toolResizeStart = ref<{ x: number; width: number } | null>(null);
 
-const currentMode = ref<"chat" | "live">("chat");
+const currentMode = ref<"chat" | "live" | "jobs">("chat");
+
+// App mode: smartQuery (智能问数) or automation (自动化值守)
+type AppMode = 'smartQuery' | 'automation';
+const appMode = ref<AppMode>('smartQuery');
+const activeAgentId = ref<string | null>(null);
+const showAgentPanel = ref(true);
+const showAgentMorePanel = ref(false);
 
 // Batch selection mode
 const isBatchMode = ref(false);
 const selectedSessionKeys = ref<Set<string>>(new Set());
 const showBatchDeleteConfirm = ref(false);
 const isBatchDeleting = ref(false);
+
+// Jobs mode
+const selectedJobId = ref<string | null>(null);
+const activeJobSessionId = ref<string | null>(null)
+const activeRunSessionId = ref<string | null>(null)
+const activeRunContext = ref<{ jobId: string; fileName: string; runTime: string } | null>(null)
+
+type RightPanelMode = 'guard' | 'chat' | 'run-chat'
+const rightPanelMode = computed<RightPanelMode>(() => {
+  if (activeRunSessionId.value) return 'run-chat'
+  if (activeJobSessionId.value) return 'chat'
+  return 'guard'
+})
+
+const selectedJobName = computed(() => {
+  if (!selectedJobId.value) return ''
+  const job = jobsStore.jobs.find(j => (j.job_id || j.id) === selectedJobId.value)
+  return job?.name || ''
+})
+const showJobFormModal = ref(false);
+const editingJobId = ref<string | null>(null);
+
+// Guard mode (值守模式)
+interface GuardRobot {
+  id: string
+  name: string
+  icon: string
+  description: string
+  category: 'scheduled' | 'monitoring' | 'daily'
+  color: string
+}
+const showGuardPanel = ref(true)
+const selectedRobot = ref<GuardRobot | null>(null)
+const showCreateGuardModal = ref(false)
+const selectedTaskJob = ref<any>(null)
 
 // Initialize synchronously from the media query so first paint is correct.
 // On narrow viewports the session list is an absolute-positioned overlay
@@ -168,6 +224,177 @@ function openPageSidebar() {
   showSessions.value = true;
 }
 
+function openJobs() {
+  currentMode.value = "jobs";
+  appMode.value = "automation";
+  void jobsStore.fetchJobs();
+}
+
+function closeJobs() {
+  currentMode.value = "chat";
+  appMode.value = "smartQuery";
+  selectedJobId.value = null;
+}
+
+function handleAppModeChange(mode: 'smartQuery' | 'automation') {
+  appMode.value = mode;
+  if (mode === 'automation') {
+    currentMode.value = "jobs";
+    selectedJobId.value = null;
+    activeJobSessionId.value = null;
+    activeRunSessionId.value = null;
+    activeRunContext.value = null;
+    showGuardPanel.value = true;
+    selectedRobot.value = null;
+    selectedTaskJob.value = null;
+    void jobsStore.fetchJobs();
+  } else {
+    currentMode.value = "chat";
+    selectedJobId.value = null;
+    activeJobSessionId.value = null;
+    activeRunSessionId.value = null;
+    activeRunContext.value = null;
+    showGuardPanel.value = true;
+    selectedRobot.value = null;
+    selectedTaskJob.value = null;
+  }
+}
+
+// 值守模式处理函数
+function handleRobotSelect(robot: GuardRobot) {
+  selectedRobot.value = robot;
+  showCreateGuardModal.value = true;
+}
+
+function handleCreateGuardTask(task: any) {
+  // TODO: 调用API创建任务
+  console.log('Create guard task:', task);
+  showCreateGuardModal.value = false;
+  selectedRobot.value = null;
+  // 刷新任务列表
+  void jobsStore.fetchJobs();
+}
+
+function handleSelectTaskJob(job: any) {
+  selectedTaskJob.value = job;
+  showGuardPanel.value = false;
+}
+
+function handleBackToGuardPanel() {
+  selectedJobId.value = null;
+  selectedTaskJob.value = null;
+}
+
+function handlePauseJob(jobId: string) {
+  // TODO: 调用API暂停/恢复任务
+  console.log('Toggle pause job:', jobId)
+  if (selectedTaskJob.value) {
+    selectedTaskJob.value.status = selectedTaskJob.value.status === 'active' ? 'paused' : 'active'
+  }
+}
+
+function handleExecuteJob(jobId: string) {
+  // TODO: 调用API立即执行任务
+  console.log('Execute job now:', jobId)
+}
+
+function handleOpenAgentMore() {
+  showAgentMorePanel.value = true
+}
+
+async function handleAgentMoreSelect(agent: AgentMoreItem) {
+  showAgentMorePanel.value = false
+  if (agent.prompt) {
+    await nextTick()
+    if (chatInputRef.value) {
+      chatInputRef.value.inputText = agent.prompt
+    }
+  }
+}
+
+async function handleFillPrompt(text: string) {
+  const needClose = showAgentMorePanel.value
+  if (needClose) showAgentMorePanel.value = false
+  await nextTick()
+  if (chatInputRef.value) {
+    chatInputRef.value.inputText = text
+  }
+}
+
+async function handleSelectJobForChat(jobId: string) {
+  selectedJobId.value = jobId
+  activeRunSessionId.value = null
+  activeRunContext.value = null
+  const job = jobsStore.jobs.find(j => (j.job_id || j.id) === jobId)
+  if (job) {
+    const sessionId = await chatStore.ensureJobSession(jobId, job.prompt || '')
+    activeJobSessionId.value = sessionId
+  }
+}
+
+async function handleSelectRunForChat(jobId: string, fileName: string, runTime: string) {
+  selectedJobId.value = jobId
+  try {
+    const detail = await readCronRun(jobId, fileName)
+    const sessionId = await chatStore.ensureRunSession(jobId, fileName, detail.content)
+    activeRunSessionId.value = sessionId
+    activeRunContext.value = { jobId, fileName, runTime }
+  } catch (e) {
+    console.error('加载运行记录失败:', e)
+  }
+}
+
+function handleEditJobFromTree(jobId: string) {
+  editingJobId.value = jobId
+  showJobFormModal.value = true
+}
+
+function handleBackToGuard() {
+  activeJobSessionId.value = null
+  activeRunSessionId.value = null
+  activeRunContext.value = null
+  selectedJobId.value = null
+}
+
+function handleBackToJobChat() {
+  activeRunSessionId.value = null
+  activeRunContext.value = null
+  if (activeJobSessionId.value) {
+    chatStore.switchSession(activeJobSessionId.value)
+  }
+}
+
+function handleSelectJob(jobId: string | null) {
+  if (jobId === null || selectedJobId.value === jobId) {
+    selectedJobId.value = null;
+    selectedTaskJob.value = null;
+  } else {
+    selectedJobId.value = jobId;
+    const job = jobsStore.jobs.find(j => (j.job_id || j.id) === jobId);
+    selectedTaskJob.value = job || null;
+  }
+}
+
+function openCreateJobModal() {
+  editingJobId.value = null;
+  showJobFormModal.value = true;
+}
+
+function openEditJobModal(jobId: string) {
+  editingJobId.value = jobId;
+  showJobFormModal.value = true;
+}
+
+function handleJobFormClose() {
+  showJobFormModal.value = false;
+  editingJobId.value = null;
+}
+
+async function handleJobFormSave() {
+  await jobsStore.fetchJobs();
+  handleJobFormClose();
+}
+
 onMounted(() => {
   mobileQuery = window.matchMedia("(max-width: 768px)");
   handleMobileChange(mobileQuery);
@@ -252,6 +479,17 @@ const activeSessionModelLabel = computed(() => {
 const isActiveSessionCodingAgent = computed(() =>
   chatStore.activeSession?.source === "coding_agent",
 );
+
+const activeProfileName = computed(() => profilesStore.activeProfileName || 'default');
+
+const jobNameMap = computed(() => {
+  const map: Record<string, string> = {};
+  for (const job of jobsStore.jobs) {
+    const id = job.job_id || job.id;
+    map[id] = job.name;
+  }
+  return map;
+});
 
 const headerTitle = computed(() =>
   currentMode.value === "live"
@@ -978,23 +1216,26 @@ async function handleSessionModelCustomSubmit() {
 <template>
   <div class="chat-panel">
     <div
-      v-if="currentMode === 'chat'"
+      v-if="currentMode !== 'live'"
       class="session-backdrop"
       :class="{ active: showSessions }"
       @click="showSessions = false"
     />
     <aside
-      v-if="currentMode === 'chat'"
+      v-if="currentMode !== 'live'"
       class="session-list"
       :class="{ collapsed: !showSessions }"
     >
       <div v-if="showSessions" class="page-sidebar-top">
         <PageSidebarNav
-          active="chat"
-          :primary-label="t('chat.newChat')"
-          @primary="openNewChatModal"
+          :active="currentMode === 'jobs' ? 'jobs' : 'chat'"
+          :primary-label="appMode === 'smartQuery' ? t('chat.newChat') : '新建任务'"
+          :app-mode="appMode"
+          @primary="appMode === 'smartQuery' ? openNewChatModal() : openCreateJobModal()"
+          @jobs="openJobs"
+          @update:app-mode="handleAppModeChange"
         />
-        <div class="session-list-toolbar">
+        <div v-if="currentMode !== 'jobs'" class="session-list-toolbar">
           <NSelect
             class="session-profile-filter"
             :value="sessionProfileFilter || '__all__'"
@@ -1110,7 +1351,23 @@ async function handleSessionModelCustomSubmit() {
           </div>
         </div>
       </div>
-      <div v-if="showSessions" class="session-items">
+      <!-- 值守模式：定时任务列表 -->
+      <div v-if="showSessions && currentMode === 'jobs'" class="session-items session-items--jobs">
+        <div class="session-group-header session-group-header--static">
+          <span class="session-group-label">定时任务</span>
+          <span class="session-group-count">{{ jobsStore.jobs.length }}</span>
+        </div>
+        <JobTreeList
+          :selected-job-id="selectedJobId"
+          :selected-run-key="activeRunContext ? `${activeRunContext.jobId}/${activeRunContext.fileName}` : null"
+          @select-job="handleSelectJobForChat"
+          @select-run="handleSelectRunForChat"
+          @edit-job="handleEditJobFromTree"
+          @create-job="openCreateJobModal"
+        />
+      </div>
+      <!-- 智能问数模式：对话历史列表 -->
+      <div v-if="showSessions && currentMode !== 'jobs'" class="session-items">
         <div
           v-if="chatStore.isLoadingSessions && chatStore.sessions.length === 0"
           class="session-loading"
@@ -1587,7 +1844,41 @@ async function handleSessionModelCustomSubmit() {
               </svg>
             </template>
           </NButton>
-          <span class="header-session-title">{{ headerTitle }}</span>
+          <NButton
+            v-if="currentMode === 'jobs'"
+            class="header-sidebar-toggle"
+            quaternary
+            size="small"
+            @click="closeJobs"
+            circle
+          >
+            <template #icon>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </template>
+          </NButton>
+          <span class="header-session-title">
+            <template v-if="currentMode === 'jobs'">
+              {{ selectedTaskJob ? selectedTaskJob.name : '值守方案' }}
+            </template>
+            <template v-else>
+              {{ headerTitle }}
+            </template>
+          </span>
+          <span
+            v-if="activeAgentId && currentMode === 'chat' && appMode === 'smartQuery'"
+            class="agent-badge"
+          >
+            {{ activeAgentId === 'status' ? '📊 问现状' : activeAgentId === 'future' ? '🔮 问将来' : activeAgentId === 'rootcause' ? '🔍 问根因' : activeAgentId === 'hourly-broadcast' ? '⏰ 小时播报' : activeAgentId === 'ratio-analysis' ? '📈 综合占比分析' : activeAgentId === 'daily-report' ? '📋 日报总结' : activeAgentId === 'alert-check' ? '🚨 预警检查' : activeAgentId === 'compare-analysis' ? '📉 同比环比分析' : activeAgentId === 'anomaly-detect' ? '🎯 异常检测' : '🤖 ' + activeAgentId }}
+          </span>
           <span
             v-if="chatStore.activeSession?.workspace"
             class="workspace-badge"
@@ -1600,8 +1891,63 @@ async function handleSessionModelCustomSubmit() {
           >
         </div>
         <div class="header-actions">
+          <!-- 值守模式：返回值守方案按钮 -->
+          <NTooltip v-if="currentMode === 'jobs' && selectedTaskJob" trigger="hover">
+            <template #trigger>
+              <NButton
+                class="header-tool-toggle"
+                quaternary
+                size="small"
+                @click="handleBackToGuardPanel"
+                circle
+              >
+                <template #icon>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                </template>
+              </NButton>
+            </template>
+            返回值守方案
+          </NTooltip>
           <!-- chat/live mode toggle hidden -->
           <template v-if="currentMode === 'chat'">
+            <NTooltip v-if="appMode === 'smartQuery'" trigger="hover">
+              <template #trigger>
+                <NButton
+                  class="header-tool-toggle"
+                  :class="{ active: showAgentPanel }"
+                  quaternary
+                  size="small"
+                  @click="showAgentPanel = !showAgentPanel"
+                  circle
+                >
+                  <template #icon>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </template>
+                </NButton>
+              </template>
+              智能体列表
+            </NTooltip>
             <NTooltip v-if="isSuperAdmin" trigger="hover">
               <template #trigger>
                 <NButton
@@ -1714,24 +2060,44 @@ async function handleSessionModelCustomSubmit() {
               <template v-if="!isMobile">{{ activeSessionModelLabel }}</template>
             </NButton>
           </template>
+          <template v-if="currentMode === 'jobs'">
+            <NButton type="primary" size="small" @click="openCreateJobModal">
+              <template #icon>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </template>
+              {{ t('jobs.createJob') }}
+            </NButton>
+          </template>
         </div>
       </header>
 
       <template v-if="currentMode === 'chat'">
         <div ref="chatContentWrapperRef" class="chat-content-wrapper">
-          <div class="chat-main-content">
-            <MessageList ref="messageListRef" />
-            <ChatInput />
-          </div>
-          <OutlinePanel
-            v-if="showOutline"
-            :messages="chatStore.messages"
-            @navigate="handleOutlineNavigate"
+          <AgentPanel
+            v-if="showAgentPanel && appMode === 'smartQuery'"
+            :active-agent-id="activeAgentId"
+            @fill-prompt="handleFillPrompt"
+            @open-more="handleOpenAgentMore"
           />
-          <aside
-            v-if="showToolPanel"
-            class="chat-tool-panel"
-            :style="toolPanelStyle"
+          <AgentMorePanel
+            v-if="showAgentMorePanel"
+            @select="handleAgentMoreSelect"
+            @close="showAgentMorePanel = false"
+          />
+          <template v-if="!showAgentMorePanel">
+            <div class="chat-main-content">
+              <MessageList ref="messageListRef" />
+              <ChatInput ref="chatInputRef" />
+            </div>
+            <OutlinePanel
+              v-if="showOutline"
+              :messages="chatStore.messages"
+              @navigate="handleOutlineNavigate"
+            />
+            <aside
+              v-if="showToolPanel"
+              class="chat-tool-panel"
+              :style="toolPanelStyle"
           >
             <div
               class="chat-tool-resize-handle"
@@ -1769,6 +2135,51 @@ async function handleSessionModelCustomSubmit() {
               </div>
             </div>
           </aside>
+          </template>
+        </div>
+      </template>
+      <template v-else-if="currentMode === 'jobs'">
+        <div class="guard-content-area">
+          <!-- GuardPanel：未选中任何 Job 时展示 -->
+          <GuardPanel
+            v-if="rightPanelMode === 'guard'"
+            @select="handleRobotSelect"
+            @create-task="handleRobotSelect"
+          />
+
+          <!-- Job 对话：选中 Job 时展示 -->
+          <div v-else-if="rightPanelMode === 'chat'" class="job-chat-panel">
+            <div class="job-chat-header">
+              <span class="job-chat-title">{{ selectedJobName }}</span>
+              <button class="job-chat-back" @click="handleBackToGuard">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                返回
+              </button>
+            </div>
+            <div class="job-chat-body">
+              <MessageList />
+              <ChatInput />
+            </div>
+          </div>
+
+          <!-- Run 对话：选中 Run 时展示 -->
+          <div v-else-if="rightPanelMode === 'run-chat'" class="job-chat-panel">
+            <div class="job-chat-header">
+              <span class="job-chat-title">{{ activeRunContext?.runTime }} 运行分析</span>
+              <button class="job-chat-back" @click="handleBackToJobChat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                返回任务对话
+              </button>
+            </div>
+            <div class="job-chat-body">
+              <MessageList />
+              <ChatInput />
+            </div>
+          </div>
         </div>
       </template>
       <ConversationMonitorPane
@@ -1776,6 +2187,20 @@ async function handleSessionModelCustomSubmit() {
         :human-only="sessionBrowserPrefsStore.humanOnly"
       />
     </div>
+
+    <JobFormModal
+      v-if="showJobFormModal"
+      :job-id="editingJobId"
+      @close="handleJobFormClose"
+      @saved="handleJobFormSave"
+    />
+
+    <CreateGuardTaskModal
+      :robot="selectedRobot"
+      :visible="showCreateGuardModal"
+      @close="showCreateGuardModal = false"
+      @create="handleCreateGuardTask"
+    />
   </div>
 </template>
 
@@ -2692,6 +3117,17 @@ async function handleSessionModelCustomSubmit() {
   cursor: default;
 }
 
+.agent-badge {
+  font-size: 11px;
+  color: $accent-primary;
+  background: rgba(var(--accent-primary-rgb), 0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: default;
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.15);
+}
+
 .header-tool-toggle.active {
   color: var(--accent-primary);
   background: rgba(var(--accent-primary-rgb), 0.1);
@@ -2839,5 +3275,102 @@ async function handleSessionModelCustomSubmit() {
   .chat-tool-resize-handle {
     display: none;
   }
+}
+
+.jobs-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.jobs-split {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.jobs-top {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  min-height: 120px;
+}
+
+.splitter {
+  height: 1px;
+  background: $border-light;
+  flex-shrink: 0;
+}
+
+.jobs-bottom {
+  flex: 1;
+  min-height: 120px;
+  overflow: hidden;
+}
+
+/* 值守模式新布局样式 */
+.session-items--jobs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.guard-content-area {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.job-chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.job-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid $border-light;
+  flex-shrink: 0;
+}
+
+.job-chat-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.job-chat-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: none;
+  background: none;
+  color: $text-muted;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: $radius-sm;
+  transition: all 0.15s;
+
+  &:hover {
+    color: $accent-primary;
+    background: rgba(var(--accent-primary-rgb), 0.06);
+  }
+}
+
+.job-chat-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 </style>
