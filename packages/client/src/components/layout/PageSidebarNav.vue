@@ -1,160 +1,67 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { useSessionSearch } from '@/composables/useSessionSearch'
 
-type ActiveSection = 'chat' | 'history' | 'group'
+type AppMode = 'smartQuery' | 'automation'
 
 const props = defineProps<{
-  active: ActiveSection
-  primaryLabel?: string
-  hideModeSwitch?: boolean
+  appMode: AppMode
 }>()
 
 const emit = defineEmits<{
-  primary: []
+  'update:app-mode': [mode: AppMode]
 }>()
 
 const { t } = useI18n()
-const router = useRouter()
-const { openSessionSearch } = useSessionSearch()
 
-const primaryText = computed(() => props.primaryLabel || t('chat.newChat'))
-const showModeSwitch = computed(() => !props.hideModeSwitch)
-const historyButtonLabel = computed(() =>
-  props.active === 'history' ? t('chat.sessions') : t('sidebar.history'),
-)
-
-function openChat() {
-  if (props.active === 'chat') return
-  void router.push({ name: 'hermes.chat' })
-}
-
-function openHistory() {
-  if (props.active === 'history') {
-    void router.push({ name: 'hermes.chat' })
-    return
+function switchMode(mode: AppMode) {
+  if (mode !== props.appMode) {
+    emit('update:app-mode', mode)
   }
-  void router.push({ name: 'hermes.history' })
-}
-
-function openGroupChat() {
-  if (props.active === 'group') return
-  void router.push({ name: 'hermes.groupChat' })
-}
-
-function openApiRelay() {
-  if (typeof window === 'undefined') return
-  window.open('https://apikey.fun/register?aff=LIBAPI', '_blank', 'noopener,noreferrer')
 }
 </script>
 
 <template>
   <div class="page-sidebar-nav">
-    <div class="page-sidebar-tabs" role="tablist" aria-label="Chat actions">
+    <!-- 品牌标识 -->
+    <div class="sidebar-brand">
+      <div class="logo-icon">数</div>
+      <div>
+        <div class="logo-text">envClaw</div>
+        <div class="logo-tag">数智环保 · envClaw</div>
+      </div>
+    </div>
+
+    <!-- 模块切换 Tab -->
+    <div class="mode-switch-tabs" role="tablist" aria-label="模块切换">
       <button
-        class="page-sidebar-tab"
+        class="mode-tab"
+        :class="{ active: appMode === 'smartQuery' }"
         type="button"
-        @click="emit('primary')"
+        role="tab"
+        :aria-selected="appMode === 'smartQuery'"
+        @click="switchMode('smartQuery')"
       >
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        <span>{{ primaryText }}</span>
-      </button>
-      <button class="page-sidebar-tab" type="button" @click="openSessionSearch">
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3.5-3.5" />
-        </svg>
-        <span>{{ t('sidebar.search') }}</span>
-      </button>
-      <button
-        class="page-sidebar-tab"
-        type="button"
-        @click="openHistory"
-      >
-        <svg
-          v-if="active === 'history'"
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        <svg
-          v-else
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3 2" />
-        </svg>
-        <span>{{ historyButtonLabel }}</span>
-      </button>
-      <button class="page-sidebar-tab" type="button" @click="openApiRelay">
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        >
-          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-          <polyline points="15 3 21 3 21 9" />
-          <line x1="10" y1="14" x2="21" y2="3" />
-        </svg>
-        <span>{{ t('sidebar.apiRelay') }}</span>
-      </button>
-    </div>
-    <div v-if="showModeSwitch" class="conversation-switch" role="tablist" aria-label="Conversation type">
-      <button
-        class="conversation-switch-tab"
-        :class="{ active: active === 'chat' || active === 'history' }"
-        type="button"
-        role="tab"
-        :aria-selected="active === 'chat' || active === 'history'"
-        @click="openChat"
-      >
-        {{ t('sidebar.singleChat') }}
+        <span>智能问数</span>
       </button>
       <button
-        class="conversation-switch-tab"
-        :class="{ active: active === 'group' }"
+        class="mode-tab"
+        :class="{ active: appMode === 'automation' }"
         type="button"
         role="tab"
-        :aria-selected="active === 'group'"
-        @click="openGroupChat"
+        :aria-selected="appMode === 'automation'"
+        @click="switchMode('automation')"
       >
-        {{ t('sidebar.groupChat') }}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        <span>自动化值守</span>
       </button>
     </div>
   </div>
@@ -166,19 +73,57 @@ function openApiRelay() {
 .page-sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 
-.page-sidebar-tabs {
+.sidebar-brand {
+  padding: 13px 10px;
+  border-bottom: 1px solid #e5e5e5;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
+  height: 60px;
+  -webkit-app-region: drag;
 }
 
-.page-sidebar-tab {
-  width: 100%;
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  background: #16a34a;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-family: "Inter", -apple-system, system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.logo-tag {
+  font-size: 11px;
+  color: #6b6b6b;
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  letter-spacing: 0.04em;
+}
+
+.mode-switch-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.mode-tab {
+  flex: 1;
   min-width: 0;
-  height: 34px;
+  height: 36px;
   border: none;
   border-radius: $radius-sm;
   background: transparent;
@@ -186,13 +131,14 @@ function openApiRelay() {
   display: inline-flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
   padding: 7px 10px;
   cursor: pointer;
   transition:
     background-color $transition-fast,
     color $transition-fast;
+  font-size: 13px;
 
   svg {
     flex-shrink: 0;
@@ -203,48 +149,17 @@ function openApiRelay() {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
-    line-height: 18px;
   }
 
-  &:hover,
-  &.active {
+  &:hover {
     background: rgba(var(--accent-primary-rgb), 0.06);
     color: $text-primary;
   }
-}
-
-.conversation-switch {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px;
-  padding: 2px;
-  border-radius: $radius-sm;
-  background: rgba(var(--accent-primary-rgb), 0.05);
-}
-
-.conversation-switch-tab {
-  min-width: 0;
-  height: 28px;
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: $text-secondary;
-  font-size: 12px;
-  line-height: 16px;
-  cursor: pointer;
-  transition:
-    background-color $transition-fast,
-    color $transition-fast;
-
-  &:hover {
-    color: $text-primary;
-  }
 
   &.active {
-    background: $bg-card;
-    color: $text-primary;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    background: rgba(var(--accent-primary-rgb), 0.1);
+    color: var(--accent-primary);
+    font-weight: 500;
   }
 }
 </style>

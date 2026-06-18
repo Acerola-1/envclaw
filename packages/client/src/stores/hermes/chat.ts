@@ -106,6 +106,8 @@ export interface Session {
    * Empty string / undefined = use config.yaml default.
    * Values: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' */
   reasoningEffort?: string
+  /** 待发送的上下文（如运行结果），在用户发送第一条消息时自动前置 */
+  _pendingContext?: string
 }
 
 interface CompressionState {
@@ -1821,6 +1823,15 @@ export const useChatStore = defineStore('chat', () => {
         input = content.trim()
       }
 
+      // 前置待发上下文（如 job/run 的运行结果）
+      if (activeSession.value?._pendingContext) {
+        const ctx = activeSession.value._pendingContext
+        activeSession.value._pendingContext = undefined
+        if (typeof input === 'string') {
+          input = ctx + '\n\n---\n\n' + input
+        }
+      }
+
       const appStore = useAppStore()
       await appStore.waitForModelsForRun()
       const sessionModel = activeSession.value?.model || appStore.selectedModel
@@ -3351,22 +3362,68 @@ export const useChatStore = defineStore('chat', () => {
     return jobSessionMap.value.get(jobId) || null
   }
 
-  async function ensureJobSession(jobId: string, jobPrompt: string): Promise<string> {
+  async function ensureJobSession(
+    jobId: string,
+    jobPrompt: string,
+    options?: {
+      jobName?: string
+      historyRuns?: Array<{ runTime: string; content: string; fileName: string }>
+    }
+  ): Promise<string> {
     const existing = jobSessionMap.value.get(jobId)
     if (existing) {
-      await switchSession(existing)
-      return existing
+      // 直接激活已有 session，不调用 switchSession（避免服务端 resume 覆盖本地注入的消息）
+      const target = sessions.value.find(s => s.id === existing)
+      if (target) {
+        activeSessionId.value = target.id
+        activeSession.value = target
+        setItemBestEffort(storageKey(), target.id)
+        return target.id
+      }
+      // 如果 session 不在 sessions 列表中（异常情况），清除映射，走新建流程
+      jobSessionMap.value.delete(jobId)
     }
     const session = createSession({ source: 'job' })
-    session.title = `Job: ${jobId}`
-    // 将 job prompt 作为系统消息注入，供 AI 回答时参考
-    if (jobPrompt) {
+    session.title = options?.jobName ? `${options.jobName}` : `Job: ${jobId}`
+
+    // 注入历史运行记录作为对话上下文消息
+    const runs = options?.historyRuns
+    if (runs && runs.length > 0) {
+      // 头部：一条 system 消息说明上下文（不设 systemType，走普通 system 渲染分支）
       session.messages.push({
         id: uid(),
-        role: 'system',
-        content: `[任务上下文]\n\n${jobPrompt}`,
+        role: 'system' as const,
+        content: `以下是【${options?.jobName || jobId}】最近 ${runs.length} 次运行记录，您可以基于这些数据进行分析提问。`,
+        timestamp: Date.now() - runs.length * 1000 - 1000,
+      })
+      // 每条运行记录作为一条 assistant 消息
+      runs.forEach((run, i) => {
+        const preview = run.content.length > 1500
+          ? run.content.slice(0, 1500) + '\n\n…（内容已截断，点击左侧子任务查看完整记录）'
+          : run.content
+        session.messages.push({
+          id: uid(),
+          role: 'assistant' as const,
+          content: `**📋 运行记录 · ${run.runTime}**\n\n${preview}`,
+          timestamp: Date.now() - (runs.length - i) * 1000,
+        })
+      })
+    } else {
+      // 没有历史记录时，注入任务说明
+      const noRunsText = jobPrompt
+        ? `当前任务：${jobPrompt}\n\n暂无历史运行记录，任务尚未执行或记录不可用。`
+        : `暂无历史运行记录，任务尚未执行或记录不可用。`
+      session.messages.push({
+        id: uid(),
+        role: 'system' as const,
+        content: noRunsText,
         timestamp: Date.now(),
       })
+    }
+
+    // 存储任务上下文，在用户发送第一条消息时自动前置
+    if (jobPrompt) {
+      session._pendingContext = `[任务上下文]\n\n${jobPrompt}`
     }
     jobSessionMap.value.set(jobId, session.id)
     // 新建 session 不调用 switchSession（避免服务端 resume 覆盖本地注入的消息）
@@ -3381,22 +3438,47 @@ export const useChatStore = defineStore('chat', () => {
     return runSessionMap.value.get(key) || null
   }
 
-  async function ensureRunSession(jobId: string, fileName: string, runContent: string): Promise<string> {
+  async function ensureRunSession(
+    jobId: string,
+    fileName: string,
+    runContent: string,
+    options?: { jobName?: string; runTime?: string }
+  ): Promise<string> {
     const key = `${jobId}/${fileName}`
     const existing = runSessionMap.value.get(key)
     if (existing) {
-      await switchSession(existing)
-      return existing
+      // 直接激活已有 session，不调用 switchSession（避免服务端 resume 覆盖本地注入的消息）
+      const target = sessions.value.find(s => s.id === existing)
+      if (target) {
+        activeSessionId.value = target.id
+        activeSession.value = target
+        setItemBestEffort(storageKey(), target.id)
+        return target.id
+      }
+      // 如果 session 不在 sessions 列表中（异常情况），清除映射，走新建流程
+      runSessionMap.value.delete(key)
     }
     const session = createSession({ source: 'job-run' })
-    session.title = `Run: ${fileName}`
-    // 将运行结果作为系统消息注入，供 AI 回答用户追问时参考
+    const jobName = options?.jobName || jobId
+    const runTime = options?.runTime || fileName
+    session.title = `${jobName} · ${runTime}`
+    // 注入运行记录内容作为可见上下文消息
     session.messages.push({
       id: uid(),
-      role: 'system',
-      content: `[运行结果上下文]\n\n${runContent}`,
+      role: 'system' as const,
+      content: `以下是【${jobName}】在 ${runTime} 的运行记录，您可以基于这些数据进行分析提问。`,
+      timestamp: Date.now() - 1000,
+    })
+    session.messages.push({
+      id: uid(),
+      role: 'assistant' as const,
+      content: runContent.length > 3000
+        ? runContent.slice(0, 3000) + '\n\n…（内容已截断）'
+        : runContent,
       timestamp: Date.now(),
     })
+    // 保留 _pendingContext 用于后续发送消息时的上下文注入
+    session._pendingContext = `[运行结果上下文]\n\n${runContent}`
     runSessionMap.value.set(key, session.id)
     // 新建 session 不调用 switchSession（避免服务端 resume 覆盖本地注入的消息）
     activeSessionId.value = session.id

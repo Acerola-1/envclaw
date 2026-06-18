@@ -327,6 +327,16 @@ function getActiveDraftSessionId() {
   return chatStore.activeSessionId || chatStore.activeSession?.id || ''
 }
 
+/** 供父组件调用，设置输入框文本 */
+function setInputText(text: string) {
+  inputText.value = text
+  nextTick(() => {
+    textareaRef.value?.focus()
+  })
+}
+
+defineExpose({ setInputText })
+
 function loadDraftForActiveSession() {
   const sessionId = getActiveDraftSessionId()
   inputText.value = sessionId ? readDraftMap()[sessionId] || '' : ''
