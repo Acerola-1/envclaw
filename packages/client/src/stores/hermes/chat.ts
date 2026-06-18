@@ -553,6 +553,10 @@ export const useChatStore = defineStore('chat', () => {
   const seenSessionCommandEvents = new WeakSet<RunEvent>()
   const sessions = ref<Session[]>([])
   const activeSessionId = ref<string | null>(null)
+  // Job-Session 绑定：jobId → sessionId
+  const jobSessionMap = ref<Map<string, string>>(new Map())
+  // Run-Session 绑定："jobId/fileName" → sessionId
+  const runSessionMap = ref<Map<string, string>>(new Map())
   const focusMessageId = ref<string | null>(null)
   const streamStates = ref<Map<string, { abort: () => void }>>(new Map())
   /** sessionId → server-reported isWorking status */
@@ -820,7 +824,7 @@ export const useChatStore = defineStore('chat', () => {
     profile?: string
     model?: string
     provider?: string
-    source?: 'api_server' | 'cli' | 'coding_agent'
+    source?: 'api_server' | 'cli' | 'coding_agent' | 'job' | 'job-run'
     agent?: 'hermes' | 'claude' | 'codex'
     codingAgentId?: 'claude-code' | 'codex'
     codingAgentMode?: 'global' | 'scoped'
@@ -1085,7 +1089,7 @@ export const useChatStore = defineStore('chat', () => {
     profile?: string
     model?: string
     provider?: string
-    source?: 'api_server' | 'cli' | 'coding_agent'
+    source?: 'api_server' | 'cli' | 'coding_agent' | 'job' | 'job-run'
     agent?: 'hermes' | 'claude' | 'codex'
     codingAgentId?: 'claude-code' | 'codex'
     codingAgentMode?: 'global' | 'scoped'
@@ -3334,9 +3338,56 @@ export const useChatStore = defineStore('chat', () => {
     window.dispatchEvent(event)
   }
 
+  // --- Job / Run Session 绑定 ---
+
+  function getJobSessionId(jobId: string): string | null {
+    return jobSessionMap.value.get(jobId) || null
+  }
+
+  async function ensureJobSession(jobId: string, jobPrompt: string): Promise<string> {
+    const existing = jobSessionMap.value.get(jobId)
+    if (existing) {
+      await switchSession(existing)
+      return existing
+    }
+    const session = createSession({ source: 'job' })
+    session.title = `Job: ${jobId}`
+    jobSessionMap.value.set(jobId, session.id)
+    await switchSession(session.id)
+    return session.id
+  }
+
+  function getRunSessionId(jobId: string, fileName: string): string | null {
+    const key = `${jobId}/${fileName}`
+    return runSessionMap.value.get(key) || null
+  }
+
+  async function ensureRunSession(jobId: string, fileName: string, runContent: string): Promise<string> {
+    const key = `${jobId}/${fileName}`
+    const existing = runSessionMap.value.get(key)
+    if (existing) {
+      await switchSession(existing)
+      return existing
+    }
+    const session = createSession({ source: 'job-run' })
+    session.title = `Run: ${fileName}`
+    // 将运行结果作为系统消息注入，供 AI 回答用户追问时参考
+    session.messages.push({
+      id: uid(),
+      role: 'system',
+      content: `[运行结果上下文]\n\n${runContent}`,
+      timestamp: Date.now(),
+    })
+    runSessionMap.value.set(key, session.id)
+    await switchSession(session.id)
+    return session.id
+  }
+
   return {
     sessions,
     activeSessionId,
+    jobSessionMap,
+    runSessionMap,
     activeSession,
     focusMessageId,
     messages,
@@ -3382,5 +3433,9 @@ export const useChatStore = defineStore('chat', () => {
     setAutoPlaySpeech,
     playMessageSpeech,
     setSessionReasoningEffort,
+    getJobSessionId,
+    ensureJobSession,
+    getRunSessionId,
+    ensureRunSession,
   }
 })
