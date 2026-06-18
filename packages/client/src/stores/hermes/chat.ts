@@ -3369,7 +3369,10 @@ export const useChatStore = defineStore('chat', () => {
       })
     }
     jobSessionMap.value.set(jobId, session.id)
-    await switchSession(session.id)
+    // 新建 session 不调用 switchSession（避免服务端 resume 覆盖本地注入的消息）
+    activeSessionId.value = session.id
+    activeSession.value = session
+    setItemBestEffort(storageKey(), session.id)
     return session.id
   }
 
@@ -3395,7 +3398,10 @@ export const useChatStore = defineStore('chat', () => {
       timestamp: Date.now(),
     })
     runSessionMap.value.set(key, session.id)
-    await switchSession(session.id)
+    // 新建 session 不调用 switchSession（避免服务端 resume 覆盖本地注入的消息）
+    activeSessionId.value = session.id
+    activeSession.value = session
+    setItemBestEffort(storageKey(), session.id)
     return session.id
   }
 
