@@ -1140,6 +1140,13 @@ export const useChatStore = defineStore('chat', () => {
     const ok = await deleteSessionApi(sessionId, target?.profile)
     if (!ok) return false
     sessions.value = sessions.value.filter(s => s.id !== sessionId)
+    // 清理 job/run session 映射
+    for (const [jobId, sid] of jobSessionMap.value.entries()) {
+      if (sid === sessionId) jobSessionMap.value.delete(jobId)
+    }
+    for (const [key, sid] of runSessionMap.value.entries()) {
+      if (sid === sessionId) runSessionMap.value.delete(key)
+    }
     if (activeSessionId.value === sessionId) {
       if (sessions.value.length > 0) {
         await switchSession(sessions.value[0].id)
@@ -3352,6 +3359,15 @@ export const useChatStore = defineStore('chat', () => {
     }
     const session = createSession({ source: 'job' })
     session.title = `Job: ${jobId}`
+    // 将 job prompt 作为系统消息注入，供 AI 回答时参考
+    if (jobPrompt) {
+      session.messages.push({
+        id: uid(),
+        role: 'system',
+        content: `[任务上下文]\n\n${jobPrompt}`,
+        timestamp: Date.now(),
+      })
+    }
     jobSessionMap.value.set(jobId, session.id)
     await switchSession(session.id)
     return session.id
