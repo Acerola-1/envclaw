@@ -339,8 +339,8 @@ async function handleSelectRunForChat(jobId: string, fileName: string, runTime: 
     const sessionId = await chatStore.ensureRunSession(jobId, fileName, detail.content)
     activeRunSessionId.value = sessionId
     activeRunContext.value = { jobId, fileName, runTime }
-  } catch (e) {
-    console.error('加载运行记录失败:', e)
+  } catch (e: any) {
+    message.error('加载运行记录失败: ' + (e.message || e))
   }
 }
 

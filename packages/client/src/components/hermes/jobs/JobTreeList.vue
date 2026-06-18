@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   selectJob: [jobId: string]
-  selectRun: [jobId: string, fileName: string]
+  selectRun: [jobId: string, fileName: string, runTime: string]
   editJob: [jobId: string]
   createJob: []
 }>()
@@ -83,8 +83,8 @@ function handleJobClick(jobId: string) {
   emit('selectJob', jobId)
 }
 
-function handleRunClick(jobId: string, fileName: string) {
-  emit('selectRun', jobId, fileName)
+function handleRunClick(jobId: string, fileName: string, runTime: string) {
+  emit('selectRun', jobId, fileName, runTime)
 }
 
 function handleEditClick(jobId: string, event: Event) {
@@ -144,7 +144,7 @@ function handleEditClick(jobId: string, event: Event) {
           :key="`${run.jobId}/${run.fileName}`"
           class="tree-run-row"
           :class="{ active: selectedRunKey === `${run.jobId}/${run.fileName}` }"
-          @click="handleRunClick(run.jobId, run.fileName)"
+          @click="handleRunClick(run.jobId, run.fileName, run.runTime)"
         >
           <span class="tree-run-time">{{ run.runTime }}</span>
           <span class="tree-run-size">{{ formatSize(run.size) }}</span>
