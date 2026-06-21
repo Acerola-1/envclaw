@@ -21,6 +21,7 @@ const LEGACY_SHIM_MARKERS = ['HERMES_STUDIO_CLI_SHIM']
 const LEGACY_MCP_SHIM_MARKERS = ['HERMES_STUDIO_MCP_SHIM']
 const PATH_MARKER_START = '# >>> Envclaw CLI shim >>>'
 const PATH_MARKER_END = '# <<< Envclaw CLI shim <<<'
+const WINDOWS_USER_PATH_ENV_B64 = 'ENVCLAW_WINDOWS_USER_PATH_B64'
 
 type ShimInstallStatus = 'installed' | 'updated' | 'unchanged' | 'skipped'
 
