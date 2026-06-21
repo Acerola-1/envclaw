@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
 import {
   appendFileSync,
@@ -34,8 +35,10 @@ interface CliShimInstallOptions {
   env?: NodeJS.ProcessEnv
   executablePath?: string
   homeDir?: string
+  nodePath?: string
   platform?: NodeJS.Platform
   runtimeVersion?: string
+  webUiScriptPath?: string
 }
 
 interface McpShimInstallOptions extends CliShimInstallOptions {
@@ -89,13 +92,29 @@ export function createShimContent(
   platform: NodeJS.Platform = process.platform,
   archName: string = process.arch,
   runtimeVersion = '0.15.2',
+  nodePath = process.execPath,
+  webUiScriptPath = resolve(process.cwd(), 'bin', 'hermes-web-ui.mjs'),
 ): string {
   if (platform === 'win32') {
     const runtimePlatform = windowsRuntimePlatformKey(archName)
+    const cliForwarder = `const cp=require('node:child_process');const args=process.argv.slice(1);if(args[0]&&args[0].toLowerCase()==='cli')args.shift();const r=cp.spawnSync(process.env.PYTHON,['-m','hermes_cli.main',...args],{stdio:'inherit'});if(r.error){console.error(r.error.message);process.exit(127)}process.exit(r.status===null?(r.signal?1:0):r.status)`
+    const webForwarder = `const cp=require('node:child_process');const args=process.argv.slice(1);if(args[0]&&args[0].toLowerCase()==='web')args.shift();const r=cp.spawnSync(process.env.NODE,[process.env.WEBUI_SCRIPT,...args],{stdio:'inherit'});if(r.error){console.error(r.error.message);process.exit(127)}process.exit(r.status===null?(r.signal?1:0):r.status)`
     return [
       '@echo off',
       `rem ${SHIM_MARKER}`,
       `set "APP=${executablePath}"`,
+      `set "NODE=${nodePath}"`,
+      `set "WEBUI_SCRIPT=${webUiScriptPath}"`,
+      'if "%~1"=="" goto openApp',
+      'if /I "%~1"=="help" goto help',
+      'if /I "%~1"=="-h" goto help',
+      'if /I "%~1"=="--help" goto help',
+      'if /I "%~1"=="cli" goto runCli',
+      'if /I "%~1"=="web" goto runWeb',
+      'echo Unknown Envclaw command: %~1 1>&2',
+      'echo Run envclaw --help for usage. 1>&2',
+      'exit /b 2',
+      ':resolveRuntime',
       'set "WEBUI_HOME=%HERMES_WEB_UI_HOME%"',
       'if "%WEBUI_HOME%"=="" set "WEBUI_HOME=%HERMES_WEBUI_STATE_DIR%"',
       'if "%WEBUI_HOME%"=="" set "WEBUI_HOME=%USERPROFILE%\\.envclaw-web-ui"',
@@ -110,8 +129,29 @@ export function createShimContent(
       '  echo Open Envclaw once to finish runtime setup, then retry envclaw. 1>&2',
       '  exit /b 127',
       ')',
+      'goto :eof',
+      ':openApp',
+      'call :resolveRuntime',
+      '"%PYTHON%" -m hermes_cli.main',
+      'exit /b %ERRORLEVEL%',
+      ':runCli',
+      'shift',
+      'call :resolveRuntime',
       '"%PYTHON%" -m hermes_cli.main %*',
       'exit /b %ERRORLEVEL%',
+      ':runWeb',
+      'shift',
+      '"%NODE%" "%WEBUI_SCRIPT%" %*',
+      'exit /b %ERRORLEVEL%',
+      ':help',
+      'echo Usage: envclaw [command] [options]',
+      'echo.',
+      'echo Commands:',
+      'echo   (none)        Open Envclaw desktop app',
+      'echo   cli [args]    Run Hermes CLI',
+      'echo   web [args]    Run Envclaw web UI',
+      'echo   help          Show this help',
+      'exit /b 0',
       '',
     ].join('\r\n')
   }
@@ -120,12 +160,41 @@ export function createShimContent(
     '#!/bin/sh',
     `# ${SHIM_MARKER}`,
     `APP=${shellQuote(executablePath)}`,
+    `NODE=${shellQuote(nodePath)}`,
+    `WEBUI_SCRIPT=${shellQuote(webUiScriptPath)}`,
     'if [ ! -x "$APP" ]; then',
     '  echo "Envclaw executable not found at $APP" >&2',
     '  exit 127',
     'fi',
     'unset ELECTRON_RUN_AS_NODE',
-    `exec "$APP" -- ${HERMES_CLI_ARG} "$@"`,
+    'case "${1:-}" in',
+    '  "")',
+    '    exec "$APP"',
+    '    ;;',
+    '  help|-h|--help)',
+    '    echo "Usage: envclaw [command] [options]"',
+    '    echo ""',
+    '    echo "Commands:"',
+    '    echo "  (none)        Open Envclaw desktop app"',
+    '    echo "  cli [args]    Run Hermes CLI"',
+    '    echo "  web [args]    Run Envclaw web UI"',
+    '    echo "  help          Show this help"',
+    '    exit 0',
+    '    ;;',
+    '  cli)',
+    '    shift',
+    '    exec "$APP" -- ${HERMES_CLI_ARG} "$@"',
+    '    ;;',
+    '  web)',
+    '    shift',
+    '    exec "$NODE" "$WEBUI_SCRIPT" "$@"',
+    '    ;;',
+    '  *)',
+    '    echo "Unknown Envclaw command: $1" >&2',
+    '    echo "Run envclaw --help for usage." >&2',
+    '    exit 2',
+    '    ;;',
+    'esac',
     '',
   ].join('\n')
 }
@@ -254,28 +323,48 @@ function shellPathSnippet(platform: NodeJS.Platform, profilePath: string): strin
   ].join('\n')
 }
 
+function powershellArgs(command: string): string[] {
+  return ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command]
+}
+
+async function readWindowsUserPath(): Promise<string> {
+  const command = [
+    "$value = [Environment]::GetEnvironmentVariable('Path', 'User')",
+    "if ($null -ne $value -and $value.Length -gt 0) { [Console]::Out.Write([Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($value))) }",
+  ].join('; ')
+  const { stdout } = await execFileAsync('powershell.exe', powershellArgs(command), {
+    encoding: 'utf-8',
+    timeout: 3000,
+    windowsHide: true,
+  })
+  const encoded = stdout.trim()
+  return encoded.length > 0 ? Buffer.from(encoded, 'base64').toString('utf-8') : ''
+}
+
+async function writeWindowsUserPath(pathValue: string): Promise<void> {
+  const command = [
+    `$bytes = [Convert]::FromBase64String($env:${WINDOWS_USER_PATH_ENV_B64})`,
+    '$value = [System.Text.Encoding]::UTF8.GetString($bytes)',
+    "[Environment]::SetEnvironmentVariable('Path', $value, 'User')",
+  ].join('; ')
+  await execFileAsync('powershell.exe', powershellArgs(command), {
+    encoding: 'utf-8',
+    env: {
+      ...process.env,
+      [WINDOWS_USER_PATH_ENV_B64]: Buffer.from(pathValue, 'utf-8').toString('base64'),
+    },
+    timeout: 3000,
+    windowsHide: true,
+  })
+}
+
 async function ensureWindowsUserPath(binDir: string): Promise<boolean> {
-  let currentPath = ''
-  try {
-    const { stdout } = await execFileAsync('reg.exe', ['query', 'HKCU\\Environment', '/v', 'Path'], {
-      encoding: 'utf-8',
-      timeout: 1500,
-      windowsHide: true,
-    })
-    const line = stdout.split(/\r?\n/).find(row => /^\s*Path\s+REG_/.test(row))
-    if (line) currentPath = line.replace(/^\s*Path\s+REG_\w+\s+/, '').trim()
-  } catch {
-    currentPath = process.env.Path || process.env.PATH || ''
-  }
+  const currentPath = await readWindowsUserPath()
 
   if (pathContainsDir(currentPath, binDir, 'win32')) return false
 
   const separator = currentPath ? ';' : ''
-  await execFileAsync('reg.exe', ['add', 'HKCU\\Environment', '/v', 'Path', '/t', 'REG_EXPAND_SZ', '/d', `${binDir}${separator}${currentPath}`, '/f'], {
-    encoding: 'utf-8',
-    timeout: 1500,
-    windowsHide: true,
-  })
+  await writeWindowsUserPath(`${binDir}${separator}${currentPath}`)
   return true
 }
 
@@ -315,7 +404,14 @@ export async function installEnvclawCliShim(options: CliShimInstallOptions = {})
   const shimPath = shimPathForPlatform(binDir, platform)
 
   mkdirSync(binDir, { recursive: true })
-  const status = writeShim(shimPath, createShimContent(executablePath, platform, process.arch, options.runtimeVersion), platform)
+  const status = writeShim(shimPath, createShimContent(
+    executablePath,
+    platform,
+    process.arch,
+    options.runtimeVersion,
+    options.nodePath,
+    options.webUiScriptPath,
+  ), platform)
   const pathUpdated = await ensureUserBinOnPath(homeDir, binDir, platform, env).catch((err) => {
     console.warn(`[cli-shim] failed to update PATH: ${err instanceof Error ? err.message : String(err)}`)
     return false
@@ -336,7 +432,7 @@ export async function installEnvclawMcpShim(options: McpShimInstallOptions = {})
   const binDir = resolve(homeDir, 'bin')
   const shimPath = mcpShimPathForPlatform(binDir, platform)
   const nodePath = options.nodePath || process.execPath
-  const scriptPath = options.scriptPath || resolve(process.cwd(), 'bin', 'hermes-web-ui-mcp.mjs')
+  const scriptPath = options.scriptPath || resolve(process.cwd(), 'bin', 'hermes-studio-mcp.mjs')
   const webUiUrl = options.webUiUrl || 'http://127.0.0.1:8748'
 
   mkdirSync(binDir, { recursive: true })

@@ -7,12 +7,14 @@ import { delimiter, dirname, join } from 'path'
 import { promisify } from 'util'
 import { getWebUiHome } from '../config'
 import { PROVIDER_ENV_MAP, readConfigYamlForProfile, safeReadFile } from './config-helpers'
+import { getCompatibleCustomProviders } from './hermes/custom-providers-compat'
 import { registerClaudeCodeProxyTarget } from './agent-runner/proxies/claude-code-proxy'
 import { registerCodexProxyTarget } from './agent-runner/proxies/codex-proxy'
 import type { ApiMode } from './agent-runner/types'
 import { PROVIDER_PRESETS } from '../shared/providers'
 import { getModelContextLength } from './hermes/model-context'
 import { getProfileDir } from './hermes/hermes-profile'
+import { getSystemPrompt } from '../lib/llm-prompt'
 import { codingAgentRunManager } from './agent-runner/coding-agent-run-manager'
 import { getSession, updateSession, type HermesSessionRow } from '../db/hermes/session-store'
 import type { SessionState } from './hermes/run-chat/types'
@@ -29,6 +31,22 @@ const WINDOWS_LAUNCHER_FILE = 'launch.ps1'
 const CODING_AGENT_SCOPED_AUTH_PROVIDERS = new Set(['openai-codex', 'copilot', 'xai-oauth', 'nous', 'google-gemini-cli', 'claude-oauth'])
 const CLAUDE_CODE_SKIP_PERMISSIONS_ARGS = ['--dangerously-skip-permissions']
 const CLAUDE_CODE_ROOT_PERMISSION_ARGS = ['--permission-mode', 'auto']
+const HERMES_MCP_SERVERS = [
+  { name: 'hermes-studio-api', toolset: 'api' },
+  { name: 'hermes-studio-devices', toolset: 'devices' },
+  { name: 'hermes-studio-use', toolset: 'use' },
+] as const
+const HERMES_MCP_SERVER_NAMES: Set<string> = new Set(HERMES_MCP_SERVERS.map(server => server.name))
+const LEGACY_HERMES_MCP_SERVER_NAMES = new Set(['hermes-studio', 'hermes-studio-mcp', 'hermes-web-ui-mcp'])
+const LEGACY_HERMES_MCP_COMMANDS = new Set([
+  'hermes-lan-peer-mcp',
+  'hermes-devices-mcp',
+  'hermes-web-ui-mcp',
+  'hermes-studio-mcp',
+])
+const HERMES_MCP_MANAGED_ENV_KEY = 'HERMES_WEB_UI_MANAGED_MCP'
+const HERMES_PROMPT_BLOCK_BEGIN = '<!-- BEGIN HERMES WEB UI PROMPT -->'
+const HERMES_PROMPT_BLOCK_END = '<!-- END HERMES WEB UI PROMPT -->'
 
 interface CommandExecution {
   command: string
@@ -96,6 +114,7 @@ export interface CodingAgentLaunchInput extends CodingAgentConfigScope {
   agentSessionId?: string
   agentNativeSessionId?: string
   isolateSettings?: boolean
+  sessionSource?: 'global_agent'
 }
 
 export interface CodingAgentLaunchResult {
@@ -145,7 +164,7 @@ const CONFIG_FILE_DEFINITIONS: Record<CodingAgentId, Array<Omit<CodingAgentConfi
   'claude-code': [
     { key: 'settings', path: '~/.claude/settings.json', scopedPath: 'settings.json', language: 'json' },
     { key: 'mcp', path: '~/.claude.json', scopedPath: 'mcp.json', language: 'json' },
-    { key: 'prompt', path: '~/.claude/CLAUDE.md', scopedPath: 'CLAUDE.md', language: 'markdown' },
+    { key: 'prompt', path: '~/.claude/hermes-rules.md', scopedPath: 'hermes-rules.md', language: 'markdown' },
   ],
   codex: [
     { key: 'auth', path: '~/.codex/auth.json', scopedPath: 'auth.json', language: 'json' },
@@ -194,6 +213,10 @@ function getNpmCliPath() {
 
 function getNpmBin() {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm'
+}
+
+function getGlobalConfigHome() {
+  return process.env.HERMES_CODING_AGENT_GLOBAL_HOME?.trim() || homedir()
 }
 
 function compareNodeVersionDesc(left: string, right: string): number {
@@ -471,7 +494,7 @@ async function resolveStoredProviderLaunchInput(
   const preset = PROVIDER_PRESETS.find(item => item.value === normalizedProvider)
   const candidates = providerLookupCandidates(provider)
 
-  const customProviders = Array.isArray(config.custom_providers) ? config.custom_providers as any[] : []
+  const customProviders = getCompatibleCustomProviders(config)
   const customEntry = customProviders.find((entry) => {
     const name = slugProviderName(String(entry?.name || ''))
     return candidates.includes(`custom:${name}`) || candidates.includes(`custom_${name}`) || candidates.includes(name)
@@ -651,9 +674,59 @@ function claudeCodePermissionArgs(): string[] {
 }
 
 function expandHomePath(path: string): string {
-  if (path === '~') return homedir()
-  if (path.startsWith('~/')) return join(homedir(), path.slice(2))
+  if (path === '~') return getGlobalConfigHome()
+  if (path.startsWith('~/')) return join(getGlobalConfigHome(), path.slice(2))
   return path
+}
+
+function hermesPromptDocument(): string {
+  return [
+    HERMES_PROMPT_BLOCK_BEGIN,
+    getSystemPrompt().trim(),
+    HERMES_PROMPT_BLOCK_END,
+    '',
+  ].join('\n')
+}
+
+function upsertManagedMarkdownBlock(existing: string, block: string): string {
+  const normalizedBlock = block.endsWith('\n') ? block : `${block}\n`
+  const start = existing.indexOf(HERMES_PROMPT_BLOCK_BEGIN)
+  const end = existing.indexOf(HERMES_PROMPT_BLOCK_END)
+  if (start >= 0 && end >= start) {
+    const afterEnd = end + HERMES_PROMPT_BLOCK_END.length
+    const before = existing.slice(0, start).replace(/\s*$/, '')
+    const after = existing.slice(afterEnd).replace(/^\s*/, '')
+    return [before, normalizedBlock.trimEnd(), after].filter(Boolean).join('\n\n') + '\n'
+  }
+  const trimmedExisting = existing.replace(/\s*$/, '')
+  if (!trimmedExisting) return normalizedBlock
+  return `${trimmedExisting}\n\n${normalizedBlock}`
+}
+
+async function writeManagedPromptFile(definition: CodingAgentConfigFileDefinition): Promise<{ key: string; path: string; absolutePath: string }> {
+  let existing = ''
+  try {
+    existing = await readFile(definition.absolutePath, 'utf-8')
+  } catch (err: any) {
+    if (err?.code !== 'ENOENT') throw err
+  }
+  const next = upsertManagedMarkdownBlock(existing, hermesPromptDocument())
+  if (next !== existing) {
+    await mkdir(dirname(definition.absolutePath), { recursive: true })
+    await writeFile(definition.absolutePath, next, 'utf-8')
+  }
+  return {
+    key: definition.key,
+    path: definition.path,
+    absolutePath: definition.absolutePath,
+  }
+}
+
+async function ensureGlobalCodingAgentPromptFile(id: CodingAgentId): Promise<Array<{ key: string; path: string; absolutePath: string }>> {
+  if (id !== 'claude-code') return []
+  const definition = getLiveConfigFileDefinition(id, 'prompt')
+  if (!definition) return []
+  return [await writeManagedPromptFile(definition)]
 }
 
 function shellQuote(value: string): string {
@@ -663,6 +736,117 @@ function shellQuote(value: string): string {
 
 function powerShellQuote(value: string): string {
   return `'${value.replace(/'/g, "''")}'`
+}
+
+function tomlString(value: string): string {
+  return JSON.stringify(value)
+}
+
+function tomlMultilineString(value: string): string {
+  const normalized = String(value || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\\/g, '\\\\')
+    .replace(/"""/g, '\\"\\"\\"')
+  return `"""\n${normalized}\n"""`
+}
+
+function tomlStringArray(values: string[]): string {
+  return `[${values.map(tomlString).join(', ')}]`
+}
+
+function tomlInlineStringTable(values: Record<string, string>): string {
+  return `{ ${Object.entries(values).map(([key, value]) => `${key} = ${tomlString(value)}`).join(', ')} }`
+}
+
+function isDesktopRuntime(): boolean {
+  return String(process.env.HERMES_DESKTOP || '').trim().toLowerCase() === 'true'
+}
+
+function candidateBundledMcpScripts(): string[] {
+  return [
+    process.env.HERMES_WEB_UI_MCP_BIN,
+    join(process.cwd(), 'bin/hermes-studio-mcp.mjs'),
+    join(__dirname, '../../bin/hermes-studio-mcp.mjs'),
+    join(__dirname, '../../../../../bin/hermes-studio-mcp.mjs'),
+    join(process.cwd(), 'bin/hermes-web-ui-mcp.mjs'),
+    join(__dirname, '../../bin/hermes-web-ui-mcp.mjs'),
+    join(__dirname, '../../../../../bin/hermes-web-ui-mcp.mjs'),
+  ].filter((value): value is string => !!value)
+}
+
+function bundledMcpScriptPath(): string | null {
+  return candidateBundledMcpScripts().find(candidate => existsSync(candidate)) || null
+}
+
+function hermesMcpCommandConfig(toolset: string): { command: string; args?: string[] } {
+  if (isDesktopRuntime()) return { command: 'hermes-studio-mcp', args: [toolset] }
+  const script = bundledMcpScriptPath()
+  if (script) return { command: process.execPath, args: [script, toolset] }
+  return { command: 'hermes-studio-mcp', args: [toolset] }
+}
+
+function hermesMcpServerConfig(profile: string, serverName: string, toolset: string): { command: string; args?: string[]; env: Record<string, string> } {
+  const appHome = getWebUiHome()
+  return {
+    ...hermesMcpCommandConfig(toolset),
+    env: {
+      HERMES_WEB_UI_URL: `http://127.0.0.1:${process.env.PORT || '8648'}`,
+      HERMES_WEB_UI_HOME: appHome,
+      HERMES_WEBUI_STATE_DIR: appHome,
+      HERMES_WEB_UI_PROFILE: profile,
+      HERMES_MCP_SERVER_NAME: serverName,
+      HERMES_MCP_TOOLSET: toolset,
+      [HERMES_MCP_MANAGED_ENV_KEY]: '1',
+    },
+  }
+}
+
+function isManagedHermesMcpServer(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const server = value as Record<string, any>
+  if (server.env && typeof server.env === 'object' && server.env[HERMES_MCP_MANAGED_ENV_KEY] === '1') return true
+  return typeof server.command === 'string' && LEGACY_HERMES_MCP_COMMANDS.has(server.command)
+}
+
+function parseClaudeMcpServers(existingContent: string | null | undefined = ''): Record<string, unknown> {
+  if (!existingContent?.trim()) return {}
+  try {
+    const parsed = JSON.parse(existingContent)
+    if (!parsed?.mcpServers || typeof parsed.mcpServers !== 'object' || Array.isArray(parsed.mcpServers)) return {}
+    return Object.fromEntries(Object.entries(parsed.mcpServers).filter(([name, server]) => {
+      if (HERMES_MCP_SERVER_NAMES.has(name)) return false
+      if (LEGACY_HERMES_MCP_SERVER_NAMES.has(name)) return false
+      return !isManagedHermesMcpServer(server)
+    }))
+  } catch {
+    return {}
+  }
+}
+
+function claudeMcpConfigJson(profile: string, existingContent: string | null | undefined = ''): string {
+  const mcpServers = parseClaudeMcpServers(existingContent)
+  for (const server of HERMES_MCP_SERVERS) {
+    mcpServers[server.name] = hermesMcpServerConfig(profile, server.name, server.toolset)
+  }
+  return `${JSON.stringify({ mcpServers }, null, 2)}\n`
+}
+
+function codexMcpConfigToml(profile: string): string {
+  const blocks: string[] = []
+  for (const item of HERMES_MCP_SERVERS) {
+    const server = hermesMcpServerConfig(profile, item.name, item.toolset)
+    const lines = [
+      `[mcp_servers.${item.name}]`,
+      `command = ${tomlString(server.command)}`,
+    ]
+    if (server.args?.length) lines.push(`args = ${tomlStringArray(server.args)}`)
+    lines.push('startup_timeout_sec = 120')
+    lines.push(`env = ${tomlInlineStringTable(server.env)}`)
+    lines.push('')
+    blocks.push(lines.join('\n'))
+  }
+  return blocks.join('\n')
 }
 
 function buildLaunchShellCommand(input: {
@@ -1296,8 +1480,15 @@ export async function prepareCodingAgentLaunch(id: string, input: CodingAgentLau
   if (mode === 'global') {
     const scope = normalizeConfigScope({ profile: input.profile, provider: 'global' })
     const workspaceDir = resolveLaunchWorkspaceRoot(scope, input.workspace)
-    const args = tool.id === 'claude-code' ? claudeCodePermissionArgs() : []
     await mkdir(workspaceDir, { recursive: true })
+    const files = await ensureGlobalCodingAgentPromptFile(tool.id)
+    const promptFile = files.find(file => file.key === 'prompt')?.absolutePath || ''
+    const args = tool.id === 'claude-code'
+      ? [
+          ...(promptFile ? ['--append-system-prompt-file', promptFile] : []),
+          ...claudeCodePermissionArgs(),
+        ]
+      : []
     const shellCommand = buildLaunchShellCommand({
       workspaceDir,
       env: {},
@@ -1316,7 +1507,7 @@ export async function prepareCodingAgentLaunch(id: string, input: CodingAgentLau
       args,
       env: {},
       shellCommand,
-      files: [],
+      files,
     }
   }
 
@@ -1385,16 +1576,22 @@ export async function prepareCodingAgentLaunch(id: string, input: CodingAgentLau
     }
     env = settings.env
     await writeScopedFile('settings', `${JSON.stringify(settings, null, 2)}\n`)
-    await writeScopedFile('mcp', `${JSON.stringify({ mcpServers: {} }, null, 2)}\n`)
+    const existingMcpPath = getScopedConfigFileDefinition(tool.id, 'mcp', scope)?.absolutePath
+    const existingMcpConfig = existingMcpPath ? await safeReadFile(existingMcpPath) : ''
+    await writeScopedFile('mcp', claudeMcpConfigJson(scope.profile, existingMcpConfig))
+    await writeScopedFile('prompt', hermesPromptDocument())
 
     const settingsPath = join(rootDir, 'settings.json')
     const mcpPath = join(rootDir, 'mcp.json')
+    const promptPath = join(rootDir, 'hermes-rules.md')
     args = [
       '--settings',
       settingsPath,
       ...(input.isolateSettings ? ['--setting-sources', 'local'] : []),
       '--mcp-config',
       mcpPath,
+      '--append-system-prompt-file',
+      promptPath,
       ...claudeCodePermissionArgs(),
     ]
   } else {
@@ -1425,6 +1622,7 @@ export async function prepareCodingAgentLaunch(id: string, input: CodingAgentLau
       `model_provider = ${JSON.stringify(providerId)}`,
       `model = ${JSON.stringify(model)}`,
       'model_reasoning_summary = "auto"',
+      `developer_instructions = ${tomlMultilineString(getSystemPrompt().trim())}`,
       'disable_response_storage = true',
       '',
       `[model_providers.${providerId}]`,
@@ -1434,6 +1632,7 @@ export async function prepareCodingAgentLaunch(id: string, input: CodingAgentLau
       'requires_openai_auth = false',
       ...(codexApiKey ? [`experimental_bearer_token = ${JSON.stringify(codexApiKey)}`] : []),
       '',
+      codexMcpConfigToml(scope.profile),
     ].join('\n')
     const catalog = buildCodexModelCatalog({
       profile: scope.profile,
@@ -1498,6 +1697,7 @@ export async function startCodingAgentRun(
     throw err
   }
   const existingSession = getSession(sessionId)
+  const sessionSource = input.sessionSource === 'global_agent' ? 'global_agent' : 'coding_agent'
   const existingAgentSessionId = existingSession?.agent_session_id || ''
   const resolvedInput = await resolveStoredProviderLaunchInput(input, existingSession)
   const requestedMode = resolvedInput.mode === 'global' ? 'global' : 'scoped'
@@ -1551,9 +1751,10 @@ export async function startCodingAgentRun(
     workspaceDir: launch.workspaceDir,
     env: runtimeEnv,
     state,
+    sessionSource: sessionSource === 'global_agent' ? 'global_agent' : undefined,
   })
   updateSession(sessionId, {
-    source: 'coding_agent',
+    source: sessionSource,
     agent: launch.agentId === 'codex' ? 'codex' : 'claude',
     agent_mode: launch.mode,
     agent_session_id: agentSessionId,
@@ -1571,8 +1772,8 @@ export async function startCodingAgentRun(
   }
 }
 
-export function sendCodingAgentRunInput(sessionId: string, input: string): { runId: string } {
-  return codingAgentRunManager.send(sessionId, input)
+export function sendCodingAgentRunInput(sessionId: string, input: string, systemPrompt?: string): { runId: string } {
+  return codingAgentRunManager.send(sessionId, input, { systemPrompt })
 }
 
 export function stopCodingAgentRun(sessionId: string): { stopped: boolean } {

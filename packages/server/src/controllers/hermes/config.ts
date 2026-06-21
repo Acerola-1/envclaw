@@ -1,11 +1,12 @@
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { getActiveProfileName, getProfileDir } from '../../services/hermes/hermes-profile'
-import { restartGatewayForProfile } from '../../services/hermes/gateway-autostart'
+import { gatewayAutostartDisabledByEnv, reconcileGatewayManagementTransition, restartGatewayForProfile } from '../../services/hermes/gateway-autostart'
 import { readAppConfig, writeAppConfig, normalizeGatewayAutoStartConfig } from '../../services/app-config'
 import { saveEnvValueForProfile } from '../../services/config-helpers'
 import { logger } from '../../services/logger'
 import { safeFileStore } from '../../services/safe-file-store'
+import { EXCLUSIVE_PLATFORM_CREDENTIAL_KEYS } from '../../services/hermes/profile-credentials'
 
 const PLATFORM_SECTIONS = new Set([
   'telegram', 'discord', 'slack', 'whatsapp', 'matrix',
@@ -38,6 +39,8 @@ const envPlatformMap: Record<string, [string, string]> = {
   MATRIX_HOMESERVER: ['matrix', 'extra.homeserver'],
   FEISHU_APP_ID: ['feishu', 'extra.app_id'],
   FEISHU_APP_SECRET: ['feishu', 'extra.app_secret'],
+  FEISHU_ENCRYPT_KEY: ['feishu', 'extra.encrypt_key'],
+  FEISHU_VERIFICATION_TOKEN: ['feishu', 'extra.verification_token'],
   DINGTALK_CLIENT_ID: ['dingtalk', 'extra.client_id'],
   DINGTALK_CLIENT_SECRET: ['dingtalk', 'extra.client_secret'],
   DINGTALK_APP_KEY: ['dingtalk', 'extra.app_key'],
@@ -182,12 +185,58 @@ async function readConfig(profile: string): Promise<Record<string, any>> {
   return safeFileStore.readYaml(configPath(profile))
 }
 
+function configTruthy(value: unknown): boolean {
+  if (value === true) return true
+  const normalized = String(value || '').trim().toLowerCase()
+  return ['1', 'true', 'yes', 'on'].includes(normalized)
+}
+
+function gatewayManagementFromHermesConfig(config: Record<string, any>): 'per_profile' | 'unified' {
+  return configTruthy(config.multiplex_profiles) || configTruthy(config.gateway?.multiplex_profiles)
+    ? 'unified'
+    : 'per_profile'
+}
+
+async function readGatewayAutoStartForResponse(): Promise<ReturnType<typeof normalizeGatewayAutoStartConfig>> {
+  const appConfig = await readAppConfig()
+  const gatewayAutoStart = normalizeGatewayAutoStartConfig(appConfig.gatewayAutoStart)
+  const defaultConfig = await readConfig('default')
+  gatewayAutoStart.management = gatewayManagementFromHermesConfig(defaultConfig)
+  return gatewayAutoStart
+}
+
+async function writeHermesGatewayManagement(mode: unknown): Promise<'per_profile' | 'unified' | null> {
+  if (mode !== 'per_profile' && mode !== 'unified') return null
+  await safeFileStore.updateYaml(configPath('default'), (config) => {
+    if (mode === 'unified') {
+      config.multiplex_profiles = true
+    } else {
+      delete config.multiplex_profiles
+    }
+    if (config.gateway && typeof config.gateway === 'object' && !Array.isArray(config.gateway)) {
+      delete config.gateway.multiplex_profiles
+      if (Object.keys(config.gateway).length === 0) delete config.gateway
+    }
+    return config
+  }, {
+    backup: true,
+    dumpOptions: {
+      forceQuotes: true,
+    },
+  })
+  return mode
+}
+
+async function gatewayAutoRestartAllowed(): Promise<boolean> {
+  if (gatewayAutostartDisabledByEnv()) return false
+  return normalizeGatewayAutoStartConfig((await readAppConfig()).gatewayAutoStart).enabled !== false
+}
+
 export async function getConfig(ctx: any) {
   try {
     const profile = requestedProfile(ctx)
     const config = await readConfig(profile)
-    const appConfig = await readAppConfig()
-    const gatewayAutoStart = normalizeGatewayAutoStartConfig(appConfig.gatewayAutoStart)
+    const gatewayAutoStart = await readGatewayAutoStartForResponse()
     const envPlatforms = await readEnvPlatforms(profile)
     if (Object.keys(envPlatforms).length > 0) {
       const existing = config.platforms || {}
@@ -229,13 +278,23 @@ export async function updateConfig(ctx: any) {
     if (APP_CONFIG_SECTIONS.has(section)) {
       if (section === 'gatewayAutoStart') {
         const appConfig = await readAppConfig()
+        const previousGatewayAutoStart = await readGatewayAutoStartForResponse()
         const next: Record<string, any> = { ...(appConfig.gatewayAutoStart || {}), ...values }
         if ('include' in values && !Array.isArray(values.include)) delete next.include
         if ('exclude' in values && !Array.isArray(values.exclude)) delete next.exclude
         if ('enabled' in values && typeof values.enabled !== 'boolean') delete next.enabled
+        delete next.management
         const gatewayAutoStart = normalizeGatewayAutoStartConfig(next)
         await writeAppConfig({ gatewayAutoStart })
-        ctx.body = { success: true, gatewayAutoStart }
+        const writtenManagement = await writeHermesGatewayManagement(values.management)
+        if (writtenManagement) gatewayAutoStart.management = writtenManagement
+        else gatewayAutoStart.management = previousGatewayAutoStart.management
+        const body: Record<string, any> = { success: true, gatewayAutoStart }
+        if ('management' in values && gatewayAutoStart.enabled !== false && !gatewayAutostartDisabledByEnv()) {
+          const gatewayManagement = await reconcileGatewayManagementTransition(previousGatewayAutoStart, gatewayAutoStart)
+          if (gatewayManagement.changed) body.gatewayManagement = gatewayManagement
+        }
+        ctx.body = body
         return
       }
     }
@@ -253,7 +312,10 @@ export async function updateConfig(ctx: any) {
 
     // Platform adapters run through Hermes gateway; restart it so channel
     // config changes (Feishu/Weixin/etc.) are applied.
-    if (restart !== false && PLATFORM_SECTIONS.has(section)) {
+    const shouldRestartGateway = restart !== false &&
+      PLATFORM_SECTIONS.has(section) &&
+      await gatewayAutoRestartAllowed()
+    if (shouldRestartGateway) {
       try {
         const restartResult = await restartGatewayForProfile(profile)
         logger.info('[config] gateway restarted after config update section=%s profile=%s result=%j', section, profile, restartResult)
@@ -313,6 +375,38 @@ export async function updateAuxiliaryModels(ctx: any) {
   }
 }
 
+function removeConfigPath(config: any, platform: string, cfgPath: string) {
+  const parts = cfgPath.split('.')
+  const obj: any = config.platforms?.[platform]
+  if (!obj) return
+  if (parts.length === 1) {
+    delete obj[parts[0]]
+  } else {
+    let cur = obj
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!cur?.[parts[i]]) return
+      cur = cur[parts[i]]
+    }
+    delete cur[parts[parts.length - 1]]
+    if (obj.extra && Object.keys(obj.extra).length === 0) delete obj.extra
+  }
+  if (Object.keys(obj).length === 0) {
+    if (!config.platforms) config.platforms = {}
+    delete config.platforms[platform]
+  }
+}
+
+function isSensitiveCredentialPath(cfgPath: string): boolean {
+  const normalized = cfgPath.toLowerCase()
+  const fieldName = normalized.split('.').pop() || normalized
+  return EXCLUSIVE_PLATFORM_CREDENTIAL_KEYS.includes(fieldName) ||
+    normalized.includes('token') ||
+    normalized.includes('secret') ||
+    normalized.includes('key') ||
+    normalized.includes('password') ||
+    normalized.includes('credential')
+}
+
 export async function updateCredentials(ctx: any) {
   const { platform, values } = ctx.request.body as { platform: string; values: Record<string, any> }
   if (!platform || !values) {
@@ -336,20 +430,10 @@ export async function updateCredentials(ctx: any) {
         if (!envVar) continue
         if (val === undefined || val === null || val === '') {
           await saveEnvValueForProfile(profile, envVar, '')
-          const parts = cfgPath.split('.')
-          let obj: any = config.platforms?.[platform]
-          if (obj) {
-            if (parts.length === 1) { delete obj[parts[0]] }
-            else {
-              let cur = obj
-              for (let i = 0; i < parts.length - 1; i++) { if (!cur[parts[i]]) break; cur = cur[parts[i]] }
-              delete cur[parts[parts.length - 1]]
-              if (obj.extra && Object.keys(obj.extra).length === 0) delete obj.extra
-            }
-            if (Object.keys(obj).length === 0) { if (!config.platforms) config.platforms = {}; delete config.platforms[platform] }
-          }
+          removeConfigPath(config, platform, cfgPath)
         } else {
           await saveEnvValueForProfile(profile, envVar, String(val))
+          if (isSensitiveCredentialPath(cfgPath)) removeConfigPath(config, platform, cfgPath)
         }
       }
       return config
@@ -362,14 +446,16 @@ export async function updateCredentials(ctx: any) {
 
     // Platform adapters run through Hermes gateway; restart it so channel
     // credentials are applied.
-    try {
-      const restartResult = await restartGatewayForProfile(profile)
-      logger.info('[config] gateway restarted after credentials update platform=%s profile=%s result=%j', platform, profile, restartResult)
-    } catch (err) {
-      logger.error(err, 'Gateway restart failed')
-      ctx.status = 500
-      ctx.body = { error: err instanceof Error ? err.message : 'Gateway restart failed' }
-      return
+    if (await gatewayAutoRestartAllowed()) {
+      try {
+        const restartResult = await restartGatewayForProfile(profile)
+        logger.info('[config] gateway restarted after credentials update platform=%s profile=%s result=%j', platform, profile, restartResult)
+      } catch (err) {
+        logger.error(err, 'Gateway restart failed')
+        ctx.status = 500
+        ctx.body = { error: err instanceof Error ? err.message : 'Gateway restart failed' }
+        return
+      }
     }
 
     ctx.body = { success: true }

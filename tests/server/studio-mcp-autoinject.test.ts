@@ -128,6 +128,14 @@ describe('studio MCP autoinject', () => {
             HERMES_WEB_UI_URL: 'http://127.0.0.1:8648',
             HERMES_WEB_UI_HOME: '/tmp/hermes-web-ui-home',
             HERMES_WEBUI_STATE_DIR: '/tmp/hermes-web-ui-home',
+            HERMES_WEB_UI_PROFILE: 'default',
+            HERMES_WEB_UI_MANAGED_MCP: '1',
+          },
+          enabled: true,
+        },
+        'hermes-web-ui-mcp': {
+          command: 'hermes-web-ui-mcp',
+          env: {
             HERMES_WEB_UI_MANAGED_MCP: '1',
           },
           enabled: true,

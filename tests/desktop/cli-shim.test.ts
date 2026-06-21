@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createMcpShimContent,
   createShimContent,
@@ -10,7 +10,17 @@ import {
   shimPathForPlatform,
 } from '../../packages/desktop/src/main/cli-shim'
 
+const execFileMock = vi.hoisted(() => vi.fn())
+
+vi.mock('node:child_process', () => ({
+  execFile: execFileMock,
+}))
+
 let tempDirs: string[] = []
+
+beforeEach(() => {
+  execFileMock.mockReset()
+})
 
 afterEach(() => {
   for (const dir of tempDirs) {
