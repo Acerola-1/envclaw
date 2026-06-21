@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { NTag, NTooltip, NButton, NSpin, NEmpty, useMessage } from 'naive-ui'
-import { listCronRuns, readCronRun } from '@/api/hermes/cron-history'
+import { NTag, NTooltip, NSpin, useMessage } from 'naive-ui'
+import { listCronRuns } from '@/api/hermes/cron-history'
 import type { RunEntry } from '@/api/hermes/cron-history'
 import { pauseJob, resumeJob, runJob, deleteJob, scheduleToDisplayText } from '@/api/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
@@ -24,8 +24,6 @@ const jobsStore = useJobsStore()
 const loading = ref(false)
 const runs = ref<RunEntry[]>([])
 const actionLoading = ref<string | null>(null)
-const expandedContent = ref<Record<string, string>>({})
-const loadingContent = ref<Record<string, boolean>>({})
 
 // --- 状态相关 ---
 const statusLabel = computed(() => {
@@ -100,19 +98,6 @@ function formatTime(time: string | null | undefined): string {
   } catch { return time }
 }
 
-function formatRelativeTime(time: string | null | undefined): string {
-  if (!time) return '—'
-  try {
-    const d = new Date(time)
-    const now = Date.now()
-    const diff = now - d.getTime()
-    if (diff < 60_000) return '刚刚'
-    if (diff < 3600_000) return `${Math.floor(diff / 60_000)} 分钟前`
-    if (diff < 86400_000) return `${Math.floor(diff / 3600_000)} 小时前`
-    return `${Math.floor(diff / 86400_000)} 天前`
-  } catch { return '—' }
-}
-
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
@@ -131,23 +116,6 @@ async function fetchRuns() {
     runs.value = []
   } finally {
     loading.value = false
-  }
-}
-
-async function toggleContent(run: RunEntry) {
-  const key = run.fileName
-  if (expandedContent.value[key]) {
-    delete expandedContent.value[key]
-    return
-  }
-  loadingContent.value[key] = true
-  try {
-    const detail = await readCronRun(run.jobId, run.fileName)
-    expandedContent.value[key] = detail.content
-  } catch {
-    expandedContent.value[key] = '(无法加载内容)'
-  } finally {
-    loadingContent.value[key] = false
   }
 }
 
@@ -218,7 +186,6 @@ function handleRunClick(run: RunEntry) {
 }
 
 watch(() => [props.job, props.profileKey], () => {
-  expandedContent.value = {}
   fetchRuns()
 }, { immediate: true })
 </script>

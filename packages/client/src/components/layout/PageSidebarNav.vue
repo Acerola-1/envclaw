@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-
 type AppMode = 'smartQuery' | 'automation'
 
 const props = defineProps<{
-  appMode: AppMode
+  appMode?: AppMode
 }>()
 
 const emit = defineEmits<{
   'update:app-mode': [mode: AppMode]
 }>()
-
-const { t } = useI18n()
 
 function switchMode(mode: AppMode) {
   if (mode !== props.appMode) {
@@ -33,7 +28,7 @@ function switchMode(mode: AppMode) {
     </div>
 
     <!-- 模块切换 Tab -->
-    <div class="mode-switch-tabs" role="tablist" aria-label="模块切换">
+    <div v-if="appMode" class="mode-switch-tabs" role="tablist" aria-label="模块切换">
       <button
         class="mode-tab"
         :class="{ active: appMode === 'smartQuery' }"

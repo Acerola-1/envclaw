@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
-import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   selectedJobId: string | null
@@ -11,7 +9,6 @@ const emit = defineEmits<{
   select: [jobId: string | null]
 }>()
 
-const { t } = useI18n()
 const jobsStore = useJobsStore()
 
 function getStatusLabel(job: any): string {

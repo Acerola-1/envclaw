@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { NModal, NInput, NSelect, NButton, NTimePicker, NSwitch } from 'naive-ui'
-import { useI18n } from 'vue-i18n'
+import { NModal, NInput, NSelect, NButton, NSwitch } from 'naive-ui'
 
 interface GuardRobot {
   id: string
   name: string
   icon: string
   description: string
-  category: 'scheduled' | 'monitoring'
+  category: 'scheduled' | 'monitoring' | 'daily'
   color: string
 }
 
@@ -21,8 +20,6 @@ const emit = defineEmits<{
   close: []
   create: [task: any]
 }>()
-
-const { t } = useI18n()
 
 const taskName = ref('')
 const taskPrompt = ref('')

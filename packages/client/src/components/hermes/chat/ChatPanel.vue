@@ -39,11 +39,9 @@ import type { AgentItem } from "./AgentPanel.vue";
 import AgentMorePanel from "./AgentMorePanel.vue";
 import type { AgentMoreItem } from "./AgentMorePanel.vue";
 import PageSidebarNav from "@/components/layout/PageSidebarNav.vue";
-import JobsPanel from "@/components/hermes/jobs/JobsPanel.vue";
-import JobRunHistory from "@/components/hermes/jobs/JobRunHistory.vue";
 import JobFormModal from "@/components/hermes/jobs/JobFormModal.vue";
 import JobTreeList from "@/components/hermes/jobs/JobTreeList.vue";
-import { readCronRun, listCronRuns } from '@/api/hermes/cron-history'
+import { readCronRun } from '@/api/hermes/cron-history'
 import { useJobsStore } from "@/stores/hermes/jobs";
 import ProfileSelector from "@/components/layout/ProfileSelector.vue";
 import ModelSelector from "@/components/layout/ModelSelector.vue";
@@ -226,12 +224,6 @@ function openPageSidebar() {
   showSessions.value = true;
 }
 
-function openJobs() {
-  currentMode.value = "jobs";
-  appMode.value = "automation";
-  void jobsStore.fetchJobs();
-}
-
 function closeJobs() {
   currentMode.value = "chat";
   appMode.value = "smartQuery";
@@ -277,27 +269,9 @@ function handleCreateGuardTask(task: any) {
   void jobsStore.fetchJobs();
 }
 
-function handleSelectTaskJob(job: any) {
-  selectedTaskJob.value = job;
-  showGuardPanel.value = false;
-}
-
 function handleBackToGuardPanel() {
   selectedJobId.value = null;
   selectedTaskJob.value = null;
-}
-
-function handlePauseJob(jobId: string) {
-  // TODO: 调用API暂停/恢复任务
-  console.log('Toggle pause job:', jobId)
-  if (selectedTaskJob.value) {
-    selectedTaskJob.value.status = selectedTaskJob.value.status === 'active' ? 'paused' : 'active'
-  }
-}
-
-function handleExecuteJob(jobId: string) {
-  // TODO: 调用API立即执行任务
-  console.log('Execute job now:', jobId)
 }
 
 function handleOpenAgentMore() {
@@ -394,24 +368,8 @@ function handleBackToJobChat() {
   }
 }
 
-function handleSelectJob(jobId: string | null) {
-  if (jobId === null || selectedJobId.value === jobId) {
-    selectedJobId.value = null;
-    selectedTaskJob.value = null;
-  } else {
-    selectedJobId.value = jobId;
-    const job = jobsStore.jobs.find(j => (j.job_id || j.id) === jobId);
-    selectedTaskJob.value = job || null;
-  }
-}
-
 function openCreateJobModal() {
   editingJobId.value = null;
-  showJobFormModal.value = true;
-}
-
-function openEditJobModal(jobId: string) {
-  editingJobId.value = jobId;
   showJobFormModal.value = true;
 }
 
@@ -509,17 +467,6 @@ const activeSessionModelLabel = computed(() => {
 const isActiveSessionCodingAgent = computed(() =>
   chatStore.activeSession?.source === "coding_agent",
 );
-
-const activeProfileName = computed(() => profilesStore.activeProfileName || 'default');
-
-const jobNameMap = computed(() => {
-  const map: Record<string, string> = {};
-  for (const job of jobsStore.jobs) {
-    const id = job.job_id || job.id;
-    map[id] = job.name;
-  }
-  return map;
-});
 
 const headerTitle = computed(() =>
   currentMode.value === "live"
@@ -2228,7 +2175,7 @@ async function handleSessionModelCustomSubmit() {
           <div v-else-if="rightPanelMode === 'task-info'" class="task-info-panel">
             <JobCard
               :job="selectedTaskJob"
-              :profile-key="chatStore.activeProfileKey || ''"
+              :profile-key="profilesStore.activeProfileName || 'default'"
               @edit="handleEditJobFromTree"
               @back="handleBackToGuard"
               @select-run="handleSelectRunForChat"
