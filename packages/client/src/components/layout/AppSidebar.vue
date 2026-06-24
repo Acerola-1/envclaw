@@ -12,7 +12,7 @@ import LanguageSwitch from "@/components/layout/LanguageSwitch.vue";
 import ThemeSwitch from "@/components/layout/ThemeSwitch.vue";
 import VersionManagementModal from "@/components/layout/VersionManagementModal.vue";
 import { changelog } from "@/data/changelog";
-import { getStoredUsername, isStoredSuperAdmin } from "@/api/client";
+import { isStoredSuperAdmin } from "@/api/client";
 
 const { t } = useI18n();
 const message = useMessage();
@@ -23,7 +23,6 @@ const selectedKey = computed(() => {
   return route.name as string;
 });
 const isSuperAdmin = computed(() => isStoredSuperAdmin());
-const currentUsername = computed(() => getStoredUsername());
 const isVersionPreview = import.meta.env.VITE_HERMES_PREVIEW === '1';
 const isDesktopShell = computed(() =>
   (window as typeof window & { hermesDesktop?: { isDesktop?: boolean } }).hermesDesktop?.isDesktop === true,
@@ -74,11 +73,6 @@ async function handleUpdate() {
 
 function handleReloadClient() {
   appStore.reloadClient();
-}
-
-function handleLogout() {
-  localStorage.clear();
-  window.location.reload();
 }
 
 function openChangelog() {
@@ -289,15 +283,6 @@ function openVersionManagement() {
     <ModelSelector />
 
     <div class="sidebar-footer">
-      <button class="nav-item logout-item" @click="handleLogout">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
-        <span>{{ t("sidebar.logout") }}</span>
-        <span v-if="currentUsername" class="logout-username" :title="currentUsername">{{ currentUsername }}</span>
-      </button>
       <div class="status-row">
         <div
           class="status-indicator"
@@ -518,31 +503,6 @@ function openVersionManagement() {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.logout-item {
-  color: $text-secondary;
-
-  &:hover {
-    color: $error;
-  }
-
-  > span:not(.logout-username) {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.logout-username {
-  margin-left: auto;
-  max-width: 96px;
-  color: $text-muted;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .status-row {

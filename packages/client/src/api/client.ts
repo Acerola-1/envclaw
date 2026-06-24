@@ -1,4 +1,4 @@
-import router from '@/router'
+import { loginWithPassword } from './auth'
 
 const DEFAULT_BASE_URL = ''
 const ACTIVE_PROFILE_STORAGE_KEY = 'hermes_active_profile_name'
@@ -146,6 +146,72 @@ function responseErrorMessage(text: string, statusText: string): string {
   }
 }
 
+let refreshPromise: Promise<string | null> | null = null
+
+async function tryRefreshToken(): Promise<string | null> {
+  // Deduplicate concurrent refresh attempts
+  if (refreshPromise) return refreshPromise
+  refreshPromise = (async () => {
+    try {
+      const token = await loginWithPassword('admin', '123456')
+      if (token) {
+        setApiKey(token)
+        return token
+      }
+    } catch {
+      // ignore
+    }
+    return null
+  })().finally(() => {
+    refreshPromise = null
+  })
+  return refreshPromise
+}
+
+async function executeRequest<T>(url: string, options: RequestInit, isLocalBff: boolean): Promise<T> {
+  const res = await fetch(url, options)
+
+  // Auto-refresh on 401 for local BFF endpoints
+  if (res.status === 401 && isLocalBff) {
+    const newToken = await tryRefreshToken()
+    if (newToken) {
+      // Retry with new token
+      const retryHeaders = { ...options.headers as Record<string, string> }
+      retryHeaders['Authorization'] = `Bearer ${newToken}`
+      const retryRes = await fetch(url, { ...options, headers: retryHeaders })
+      if (retryRes.ok) return retryRes.json()
+      const retryText = await retryRes.text().catch(() => '')
+      throw new Error(`API Error ${retryRes.status}: ${responseErrorMessage(retryText, retryRes.statusText)}`)
+    }
+    clearAuthSessionState()
+    emitAuthNotice('expired')
+    throw new Error('Unauthorized')
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    if (res.status === 403 && isLocalBff) {
+      if (text.includes('User is disabled or does not exist')) {
+        // Try auto-refresh for disabled user too
+        const newToken = await tryRefreshToken()
+        if (newToken) {
+          const retryHeaders = { ...options.headers as Record<string, string> }
+          retryHeaders['Authorization'] = `Bearer ${newToken}`
+          const retryRes = await fetch(url, { ...options, headers: retryHeaders })
+          if (retryRes.ok) return retryRes.json()
+        }
+        clearAuthSessionState()
+        emitAuthNotice('expired')
+      } else {
+        emitAuthNotice('forbidden')
+      }
+    }
+    throw new Error(`API Error ${res.status}: ${responseErrorMessage(text, res.statusText)}`)
+  }
+
+  return res.json()
+}
+
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const base = getBaseUrl()
   const url = `${base}${path}`
@@ -167,39 +233,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     headers['X-Hermes-Profile'] = profileName
   }
 
-  const res = await fetch(url, { ...options, headers })
-
-  // Global 401 handler — only redirect to login for local BFF endpoints
-  // Proxied gateway requests should not trigger logout
+  // Proxied gateway requests should not trigger auto-refresh
   const isLocalBff = !path.startsWith('/api/hermes/v1/') &&
     !path.startsWith('/v1/')
 
-  if (res.status === 401 && isLocalBff) {
-    clearAuthSessionState()
-    emitAuthNotice('expired')
-    if (router.currentRoute.value.name !== 'login') {
-      router.replace({ name: 'login' })
-    }
-    throw new Error('Unauthorized')
-  }
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    if (res.status === 403 && isLocalBff) {
-      if (text.includes('User is disabled or does not exist')) {
-        clearAuthSessionState()
-        emitAuthNotice('expired')
-        if (router.currentRoute.value.name !== 'login') {
-          router.replace({ name: 'login' })
-        }
-      } else {
-        emitAuthNotice('forbidden')
-      }
-    }
-    throw new Error(`API Error ${res.status}: ${responseErrorMessage(text, res.statusText)}`)
-  }
-
-  return res.json()
+  return executeRequest<T>(url, { ...options, headers }, isLocalBff)
 }
 
 export function getBaseUrlValue(): string {

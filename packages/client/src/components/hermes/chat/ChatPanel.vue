@@ -114,25 +114,6 @@ const isDesktopShell = computed(() => {
   return (window as any).hermesDesktop?.isDesktop === true;
 });
 
-// Current username
-const currentUsername = computed(() => {
-  try {
-    const stored = localStorage.getItem('hermes_user');
-    if (stored) {
-      const user = JSON.parse(stored);
-      return user.username || user.name || '';
-    }
-  } catch {}
-  return '';
-});
-
-// Logout
-function handleLogout() {
-  localStorage.removeItem('hermes_api_key');
-  localStorage.removeItem('hermes_user');
-  router.push({ name: 'login' });
-}
-
 // Client reload
 function handleReloadClient() {
   window.location.reload();
@@ -1398,18 +1379,6 @@ async function handleSessionModelCustomSubmit() {
                 <line x1="4" y1="18" x2="20" y2="18" />
               </svg>
               <span>{{ t("sidebar.settings") }}</span>
-            </button>
-            <button class="page-sidebar-logout-btn" type="button" @click="handleLogout">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              <span>{{ t("sidebar.logout") }}</span>
-              <span v-if="currentUsername" class="page-sidebar-logout-user" :title="currentUsername">
-                {{ currentUsername }}
-              </span>
             </button>
             <NButton v-if="isDesktopShell" type="primary" size="tiny" block @click="openVersionManagement">
               {{ t("sidebar.versionManagement") }}
