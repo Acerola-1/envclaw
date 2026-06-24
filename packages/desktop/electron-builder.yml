@@ -6,9 +6,6 @@ directories:
   output: release
   buildResources: build
 
-publish:
-  provider: generic
-  url: https://download.ekkolearnai.com
 
 # Don't auto-prune our root node_modules; we curate `files` and `extraResources` ourselves.
 buildDependenciesFromSource: false
