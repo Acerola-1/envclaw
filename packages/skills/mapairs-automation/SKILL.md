@@ -1,8 +1,8 @@
 ---
 name: mapairs-automation
-description: "Automate mapairs.com (空气质量监测平台) with Playwright — login, navigation, screenshot capture, and data extraction. Covers concentration ranking workflows, one-map views, and city-specific IPP-AIR configurations."
-tags: [playwright, automation, mapairs, screenshot, air-quality, el-cascader, cdp]
-related_skills: [browser-automation]
+description: "Mapairs.com (数智大气/IPP-AIR) 空气质量监测平台操作指南。包含页面结构、登录流程、功能入口、数据查询等完整操作手册，使用 agent-browser 进行网页交互。当用户提到 mapairs.com、数智大气、IPP-AIR、空气质量监测平台、大气数据可视化时，应加载此技能。"
+tags: ["mapairs", "mapairs.com", "数智大气", "ipp-air", "空气质量", "大气数据", "环境监测", "agent-browser", "playwright", "website-guide", "air-quality", "screenshot", "automation"]
+related_skills: ["mapairs-automation"]
 ---
 
 # Mapairs.com Automation

@@ -10,7 +10,6 @@ interface GuardRobot {
   color: string
   iconClass: string
   typeName: string
-  schedule: string
 }
 
 const emit = defineEmits<{
@@ -20,6 +19,16 @@ const emit = defineEmits<{
 
 const robots = ref<GuardRobot[]>([
   {
+    id: 'city-ranking',
+    name: '城市排名分析专家',
+    icon: '📊',
+    description: '从数智大气平台截取全省地市排名和市各区排名，标注异常数据和关注城市，推送至工作群。',
+    category: 'scheduled',
+    color: '#d97706',
+    iconClass: 'icon-rank',
+    typeName: '排名分析推送 · 定时任务'
+  },
+  {
     id: 'digital-broadcast',
     name: '数字播报专家',
     icon: '📡',
@@ -27,8 +36,7 @@ const robots = ref<GuardRobot[]>([
     category: 'scheduled',
     color: '#059669',
     iconClass: 'icon-broadcast',
-    typeName: '数据动态播报 · 定时任务',
-    schedule: '每小时整点触发'
+    typeName: '数据动态播报 · 定时任务'
   },
   {
     id: 'screenshot',
@@ -38,19 +46,7 @@ const robots = ref<GuardRobot[]>([
     category: 'scheduled',
     color: '#2563eb',
     iconClass: 'icon-screenshot',
-    typeName: '分钟数据截图 · 定时任务',
-    schedule: '每小时25分触发'
-  },
-  {
-    id: 'city-ranking',
-    name: '城市排名分析专家',
-    icon: '📊',
-    description: '从数智大气平台截取全省地市排名和市各区排名，标注异常数据和关注城市，推送至工作群。',
-    category: 'scheduled',
-    color: '#d97706',
-    iconClass: 'icon-rank',
-    typeName: '排名分析推送 · 定时任务',
-    schedule: '每小时45分触发'
+    typeName: '分钟数据截图 · 定时任务'
   },
   {
     id: 'high-value-alert',
@@ -60,8 +56,7 @@ const robots = ref<GuardRobot[]>([
     category: 'monitoring',
     color: '#dc2626',
     iconClass: 'icon-high-value',
-    typeName: '高值分析及提醒 · 持续监控',
-    schedule: '工作时段持续运行'
+    typeName: '高值分析及提醒 · 持续监控'
   },
   {
     id: 'target-calc',
@@ -71,8 +66,7 @@ const robots = ref<GuardRobot[]>([
     category: 'monitoring',
     color: '#7c3aed',
     iconClass: 'icon-target',
-    typeName: '保良达标测算 · 持续监控',
-    schedule: '工作时段持续运行'
+    typeName: '保良达标测算 · 持续监控'
   },
   {
     id: 'daily-report',
@@ -82,8 +76,7 @@ const robots = ref<GuardRobot[]>([
     category: 'daily',
     color: '#16a34a',
     iconClass: 'icon-daily',
-    typeName: '昨日空气质量回顾 · 每日任务',
-    schedule: '每日 09:00 触发'
+    typeName: '昨日空气质量回顾 · 每日任务'
   }
 ])
 
@@ -129,10 +122,6 @@ function handleCreateTask(robot: GuardRobot, event: Event) {
           </div>
           <div class="robot-card-desc">{{ robot.description }}</div>
           <div class="robot-card-footer">
-            <div class="robot-card-schedule">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              {{ robot.schedule }}
-            </div>
             <button class="btn-create-task" @click="handleCreateTask(robot, $event)">创建任务</button>
           </div>
         </div>
@@ -302,15 +291,7 @@ function handleCreateTask(robot: GuardRobot, event: Event) {
 .robot-card-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-
-.robot-card-schedule {
-  font-size: 11px;
-  color: var(--text-muted, #9ca3b8);
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  justify-content: flex-end;
 }
 
 .btn-create-task {
