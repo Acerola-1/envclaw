@@ -146,7 +146,7 @@ onUnmounted(() => {
         </span>
         <span class="session-item-time">{{ formatTimestampMs(session.createdAt) }}</span>
       </span>
-      <span class="session-item-agent-row">
+      <!-- <span class="session-item-agent-row">
         <span class="session-item-agent-logo-wrap" :class="{ streaming }">
           <img
             class="session-item-agent-logo"
@@ -158,7 +158,7 @@ onUnmounted(() => {
           <ProfileAvatar class="session-item-profile-avatar" :name="profileName" :avatar="profileAvatar" :size="16" />
           <span class="session-item-profile-name">{{ profileName }}</span>
         </span>
-      </span>
+      </span> -->
     </div>
     <svg
       v-if="isGlobalAgentSession"

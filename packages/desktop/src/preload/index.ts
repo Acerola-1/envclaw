@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   getWindowState: (): Promise<{ isMaximized: boolean }> => ipcRenderer.invoke('hermes-desktop:get-window-state'),
   windowControl: (action: 'minimize' | 'toggle-maximize' | 'close'): Promise<{ isMaximized: boolean }> => ipcRenderer.invoke('hermes-desktop:window-control', action),
   platform: process.platform,
-  isDesktop: true,
+  isDesktop: false,
 })
 
 const API_KEY_LS = 'hermes_api_key'

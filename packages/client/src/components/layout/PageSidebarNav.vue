@@ -1,9 +1,11 @@
 <script setup lang="ts">
 type AppMode = 'smartQuery' | 'automation'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   appMode?: AppMode
-}>()
+}>(), {
+  appMode: 'smartQuery'
+})
 
 const emit = defineEmits<{
   'update:app-mode': [mode: AppMode]

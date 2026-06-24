@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { renameSession, setSessionWorkspace, batchDeleteSessions, exportSession } from "@/api/hermes/sessions";
+import { renameSession, setSessionWorkspace, exportSession } from "@/api/hermes/sessions";
 import type { AvailableModelGroup } from "@/api/hermes/system";
 import { fetchCodingAgentsStatus, inferCodingAgentApiMode, normalizeCodingAgentApiMode, type CodingAgentApiMode, type CodingAgentId } from "@/api/coding-agents";
 import { useChatStore, type Session } from "@/stores/hermes/chat";
@@ -15,7 +15,7 @@ import {
   NModal,
   NSelect,
   NTooltip,
-  NPopconfirm,
+  NPopover,
   NRadioButton,
   NRadioGroup,
   useMessage,
@@ -38,7 +38,7 @@ import type { AgentItem } from "./AgentPanel.vue";
 import AgentMorePanel from "./AgentMorePanel.vue";
 import type { AgentMoreItem } from "./AgentMorePanel.vue";
 import PageSidebarNav from "@/components/layout/PageSidebarNav.vue";
-import JobFormModal from "@/components/hermes/jobs/JobFormModal.vue";
+
 import JobTreeList from "@/components/hermes/jobs/JobTreeList.vue";
 import { readCronRun } from '@/api/hermes/cron-history'
 import { useJobsStore } from "@/stores/hermes/jobs";
@@ -80,6 +80,19 @@ const activeAgentId = ref<string | null>(null);
 const showAgentPanel = ref(true);
 const showAgentMorePanel = ref(false);
 
+// 侧边栏折叠/展开状态
+const historyCollapsed = ref(false);
+const historyExpanded = ref(false);
+const jobsCollapsed = ref(false);
+const jobsExpanded = ref(false);
+const MAX_VISIBLE_ITEMS = 5;
+const visibleSessions = computed(() =>
+  historyExpanded.value ? unpinnedSessions.value : unpinnedSessions.value.slice(0, MAX_VISIBLE_ITEMS)
+);
+const visibleJobs = computed(() =>
+  jobsExpanded.value ? jobsStore.jobs : jobsStore.jobs.slice(0, MAX_VISIBLE_ITEMS)
+);
+
 // Batch selection mode
 const isBatchMode = ref(false);
 const selectedSessionKeys = ref<Set<string>>(new Set());
@@ -105,7 +118,6 @@ const selectedJobName = computed(() => {
   const job = jobsStore.jobs.find(j => (j.job_id || j.id) === selectedJobId.value)
   return job?.name || ''
 })
-const showJobFormModal = ref(false);
 const editingJobId = ref<string | null>(null);
 
 // Guard mode (值守模式)
@@ -130,7 +142,7 @@ const selectedTaskJob = ref<any>(null)
 // moment" — that was the race).
 const showSessions = ref(
   typeof window === "undefined" ||
-    !window.matchMedia("(max-width: 768px)").matches,
+  !window.matchMedia("(max-width: 768px)").matches,
 );
 let mobileQuery: MediaQueryList | null = null;
 const isMobile = ref(false);
@@ -253,6 +265,7 @@ function handleChatDrop(event: DragEvent) {
 }
 
 async function handleSessionClick(sessionId: string) {
+  currentMode.value = 'chat';
   chatStore.clearSessionCompletedUnread(sessionId);
   await router.push({
     name: chatStore.runtimeMode === "global_agent" ? "hermes.globalAgentSession" : "hermes.session",
@@ -311,11 +324,10 @@ function handleRobotSelect(robot: GuardRobot) {
   showCreateGuardModal.value = true;
 }
 
-function handleCreateGuardTask(task: any) {
-  // TODO: 调用API创建任务
-  console.log('Create guard task:', task);
+function handleCreateGuardTask() {
   showCreateGuardModal.value = false;
   selectedRobot.value = null;
+  editingJobId.value = null;
   // 刷新任务列表
   void jobsStore.fetchJobs();
 }
@@ -362,6 +374,7 @@ async function handleFillPrompt(text: string) {
 }
 
 function handleSelectJobForInfo(jobId: string) {
+  currentMode.value = 'jobs';
   selectedJobId.value = jobId
   activeJobSessionId.value = null
   activeRunSessionId.value = null
@@ -371,6 +384,7 @@ function handleSelectJobForInfo(jobId: string) {
 }
 
 async function handleSelectRunForChat(jobId: string, fileName: string, runTime: string) {
+  currentMode.value = 'jobs';
   selectedJobId.value = jobId
   selectedTaskJob.value = null  // 清除任务信息面板
   activeJobSessionId.value = null
@@ -385,7 +399,7 @@ async function handleSelectRunForChat(jobId: string, fileName: string, runTime: 
     activeRunSessionId.value = sessionId
     activeRunContext.value = { jobId, fileName, runTime }
     console.log(activeRunContext.value, detail.content);
-    
+
   } catch (e: any) {
     message.error('加载运行记录失败: ' + (e.message || e))
   }
@@ -393,7 +407,8 @@ async function handleSelectRunForChat(jobId: string, fileName: string, runTime: 
 
 function handleEditJobFromTree(jobId: string) {
   editingJobId.value = jobId
-  showJobFormModal.value = true
+  selectedRobot.value = null
+  showCreateGuardModal.value = true
 }
 
 function handleBackToGuard() {
@@ -421,17 +436,8 @@ function handleBackToJobChat() {
 
 function openCreateJobModal() {
   editingJobId.value = null;
-  showJobFormModal.value = true;
-}
-
-function handleJobFormClose() {
-  showJobFormModal.value = false;
-  editingJobId.value = null;
-}
-
-async function handleJobFormSave() {
-  await jobsStore.fetchJobs();
-  handleJobFormClose();
+  selectedRobot.value = null;
+  showCreateGuardModal.value = true;
 }
 
 onMounted(() => {
@@ -444,6 +450,7 @@ onMounted(() => {
   if (profilesStore.profiles.length === 0) {
     void profilesStore.fetchProfiles();
   }
+  void jobsStore.fetchJobs();
 });
 
 onUnmounted(() => {
@@ -462,20 +469,6 @@ const showRenameModal = ref(false);
 const renameValue = ref("");
 const renameSessionId = ref<string | null>(null);
 const renameInputRef = ref<InstanceType<typeof NInput> | null>(null);
-const sessionProfileFilter = computed(() => chatStore.sessionProfileFilter);
-const profileFilterOptions = computed(() => [
-  { label: t("chat.allProfiles"), value: "__all__" },
-  ...profilesStore.profiles.map((profile) => ({
-    label: profile.name,
-    value: profile.name,
-  })),
-]);
-
-async function handleProfileFilterChange(value: string) {
-  chatStore.sessionProfileFilter = value === "__all__" ? null : value;
-  await chatStore.loadSessions(chatStore.sessionProfileFilter);
-}
-
 function sortSessionsForSidebar(items: Session[]): Session[] {
   return [...items].sort((a, b) => {
     const aLive = chatStore.isSessionLive(a.id);
@@ -821,15 +814,6 @@ async function handleDeleteSession(id: string) {
   message.success(t("chat.sessionDeleted"));
 }
 
-function toggleBatchMode() {
-  if (isBatchDeleting.value) return;
-  isBatchMode.value = !isBatchMode.value;
-  if (!isBatchMode.value) {
-    selectedSessionKeys.value.clear();
-    showBatchDeleteConfirm.value = false;
-  }
-}
-
 function sessionSelectionKey(session: Pick<Session, "id" | "profile">): string {
   return `${session.profile || "default"}\u0000${session.id}`;
 }
@@ -851,66 +835,6 @@ function toggleSessionSelection(session: Session) {
 function isSessionSelected(session: Session): boolean {
   return selectedSessionKeys.value.has(sessionSelectionKey(session));
 }
-
-async function handleBatchDelete() {
-  if (selectedSessionKeys.value.size === 0 || isBatchDeleting.value) return;
-
-  const sessionsByKey = new Map(chatStore.sessions.map((session) => [sessionSelectionKey(session), session]));
-  const targets = Array.from(selectedSessionKeys.value)
-    .map((key) => sessionsByKey.get(key))
-    .filter((session): session is Session => Boolean(session))
-    .map((session) => ({ id: session.id, profile: session.profile || null }));
-  if (targets.length === 0) return;
-  isBatchDeleting.value = true;
-  try {
-    const result = await batchDeleteSessions(targets);
-    if (result.deleted > 0) {
-      // Remove from pinned sessions
-      for (const target of targets) {
-        sessionBrowserPrefsStore.removePinned(target.id);
-      }
-
-      // Remove deleted sessions from local store (without calling API again)
-      // Use loadSessions to refresh from server instead of manual filtering
-      await chatStore.loadSessions(chatStore.sessionProfileFilter);
-
-      message.success(t("chat.batchDeleteSuccess", { count: result.deleted }));
-      if (result.failed > 0) {
-        message.warning(t("chat.batchDeletePartial", { failed: result.failed }));
-      }
-    } else {
-      message.error(t("chat.batchDeleteFailed"));
-    }
-  } catch (err: any) {
-    message.error(t("chat.batchDeleteFailed"));
-  } finally {
-    isBatchDeleting.value = false;
-    showBatchDeleteConfirm.value = false;
-    isBatchMode.value = false;
-    selectedSessionKeys.value.clear();
-  }
-}
-
-function handleBatchDeleteConfirm() {
-  void handleBatchDelete();
-  return false;
-}
-
-function selectAllSessions() {
-  if (isBatchDeleting.value) return;
-  selectedSessionKeys.value.clear();
-  for (const session of chatStore.sessions) {
-    if (session.id !== chatStore.activeSessionId) {
-      selectedSessionKeys.value.add(sessionSelectionKey(session));
-    }
-  }
-  selectedSessionKeys.value = new Set(selectedSessionKeys.value);
-}
-
-const selectedCount = computed(() => selectedSessionKeys.value.size);
-const canSelectAll = computed(() => {
-  return chatStore.sessions.some(s => s.id !== chatStore.activeSessionId);
-});
 
 const contextSessionId = ref<string | null>(null);
 const contextSessionPinned = computed(() =>
@@ -1206,30 +1130,17 @@ async function handleSessionModelCustomSubmit() {
 
 <template>
   <div class="chat-panel">
-    <div
-      v-if="currentMode !== 'live'"
-      class="session-backdrop"
-      :class="{ active: showSessions }"
-      @click="showSessions = false"
-    />
-    <aside
-      v-if="currentMode !== 'live'"
-      class="session-list"
-      :class="{ collapsed: !showSessions }"
-    >
+    <div v-if="currentMode !== 'live'" class="session-backdrop" :class="{ active: showSessions }"
+      @click="showSessions = false" />
+    <aside v-if="currentMode !== 'live'" class="session-list" :class="{ collapsed: !showSessions }">
       <div v-if="showSessions" class="page-sidebar-top">
         <!-- 顶部：品牌标识 + 模块切换Tab -->
-        <PageSidebarNav
-          :app-mode="appMode"
-          @update:app-mode="handleAppModeChange"
-        />
+        <PageSidebarNav :app-mode="appMode" @update:app-mode="handleAppModeChange" />
 
         <!-- 中部：新建对话/新建任务按钮 -->
         <div class="sidebar-action-bar">
-          <button
-            class="sidebar-primary-btn"
-            @click="appMode === 'smartQuery' ? openNewChatModal() : openCreateJobModal()"
-          >
+          <button class="sidebar-primary-btn"
+            @click="appMode === 'smartQuery' ? openNewChatModal() : openCreateJobModal()">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -1238,7 +1149,7 @@ async function handleSessionModelCustomSubmit() {
           </button>
         </div>
 
-        <div v-if="currentMode !== 'jobs'" class="session-list-toolbar">
+        <!-- <div v-if="currentMode !== 'jobs'" class="session-list-toolbar">
           <NSelect
             class="session-profile-filter"
             :value="sessionProfileFilter || '__all__'"
@@ -1281,16 +1192,10 @@ async function handleSessionModelCustomSubmit() {
                   <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                 </svg>
               </template>
-            </NButton>
-            <NButton
-              v-if="isBatchMode"
-              quaternary
-              size="tiny"
-              @click="selectAllSessions"
-              :disabled="!canSelectAll || isBatchDeleting"
-              :title="t('chat.selectAll')"
-            >
-              <template #icon>
+</NButton>
+<NButton v-if="isBatchMode" quaternary size="tiny" @click="selectAllSessions"
+  :disabled="!canSelectAll || isBatchDeleting" :title="t('chat.selectAll')">
+  <template #icon>
                 <svg
                   width="14"
                   height="14"
@@ -1303,15 +1208,11 @@ async function handleSessionModelCustomSubmit() {
                   <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                 </svg>
               </template>
-            </NButton>
-            <NPopconfirm
-              v-if="isBatchMode && selectedCount > 0"
-              v-model:show="showBatchDeleteConfirm"
-              :positive-button-props="{ loading: isBatchDeleting, disabled: isBatchDeleting }"
-              :negative-button-props="{ disabled: isBatchDeleting }"
-              @positive-click="handleBatchDeleteConfirm"
-            >
-              <template #trigger>
+</NButton>
+<NPopconfirm v-if="isBatchMode && selectedCount > 0" v-model:show="showBatchDeleteConfirm"
+  :positive-button-props="{ loading: isBatchDeleting, disabled: isBatchDeleting }"
+  :negative-button-props="{ disabled: isBatchDeleting }" @positive-click="handleBatchDeleteConfirm">
+  <template #trigger>
                 <NButton quaternary size="tiny" type="error" :loading="isBatchDeleting" :disabled="isBatchDeleting">
                   <template #icon>
                     <svg
@@ -1326,18 +1227,12 @@ async function handleSessionModelCustomSubmit() {
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                     </svg>
                   </template>
-                </NButton>
-              </template>
-              {{ t('chat.confirmBatchDelete', { count: selectedCount }) }}
-            </NPopconfirm>
-            <NButton
-              v-if="isBatchMode"
-              quaternary
-              size="tiny"
-              @click="toggleBatchMode"
-              :disabled="isBatchDeleting"
-            >
-              <template #icon>
+  </NButton>
+  </template>
+  {{ t('chat.confirmBatchDelete', { count: selectedCount }) }}
+</NPopconfirm>
+<NButton v-if="isBatchMode" quaternary size="tiny" @click="toggleBatchMode" :disabled="isBatchDeleting">
+  <template #icon>
                 <svg
                   width="14"
                   height="14"
@@ -1350,214 +1245,242 @@ async function handleSessionModelCustomSubmit() {
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </template>
-            </NButton>
+</NButton>
+</div>
+</div> -->
+      </div>
+      <!-- 中间可滚动区域：历史对话 + 定时任务 -->
+      <div v-if="showSessions" class="session-sections-scroll">
+        <!-- 历史对话（折叠区域） -->
+        <div class="session-section">
+          <div class="session-group-header" @click="historyCollapsed = !historyCollapsed">
+            <span class="session-group-label">历史对话</span>
+            <span class="session-group-count">({{ chatStore.sessions.length }})</span>
+            <svg class="group-chevron" :class="{ collapsed: historyCollapsed }" width="12" height="12"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </div>
-        </div>
-      </div>
-      <!-- 值守模式：定时任务列表 -->
-      <div v-if="showSessions && currentMode === 'jobs'" class="session-items session-items--jobs">
-        <div class="session-group-header session-group-header--static">
-          <span class="session-group-label">定时任务</span>
-          <span class="session-group-count">{{ jobsStore.jobs.length }}</span>
-        </div>
-        <JobTreeList
-          :selected-job-id="selectedJobId"
-          :selected-run-key="activeRunContext ? `${activeRunContext.jobId}/${activeRunContext.fileName}` : null"
-          @select-job="handleSelectJobForInfo"
-          @select-run="handleSelectRunForChat"
-          @edit-job="handleEditJobFromTree"
-          @create-job="openCreateJobModal"
-        />
-      </div>
-      <!-- 智能问数模式：对话历史列表 -->
-      <div v-if="showSessions && currentMode !== 'jobs'" class="session-items">
-        <div
-          v-if="chatStore.isLoadingSessions && chatStore.sessions.length === 0"
-          class="session-loading"
-        >
-          {{ t("common.loading") }}
-        </div>
-        <div v-else-if="chatStore.sessions.length === 0" class="session-empty">
-          {{ t("chat.noSessions") }}
+          <template v-if="!historyCollapsed">
+            <div v-if="chatStore.isLoadingSessions && chatStore.sessions.length === 0" class="session-loading">
+              {{ t("common.loading") }}
+            </div>
+            <div v-else-if="chatStore.sessions.length === 0" class="session-empty">
+              {{ t("chat.noSessions") }}
+            </div>
+
+            <template v-if="pinnedSessions.length > 0">
+              <div class="session-group-header session-group-header--static">
+                <span class="session-group-label">{{ t("chat.pinned") }}</span>
+                <span class="session-group-count">{{ pinnedSessions.length }}</span>
+              </div>
+              <SessionListItem v-for="s in pinnedSessions" :key="`pinned-${s.id}`" :session="s"
+                :active="s.id === chatStore.activeSessionId" :pinned="true" :can-delete="s.id !== chatStore.activeSessionId ||
+                  chatStore.sessions.length > 1
+                  " :streaming="chatStore.isSessionLive(s.id)" :completed-unread="chatStore.isSessionCompletedUnread(s.id)"
+                :selectable="isBatchMode" :selected="isSessionSelected(s)" :show-profile="true" :to="sessionHref(s.id)"
+                @select="handleSessionClick(s.id)" @contextmenu="handleContextMenu($event, s.id)"
+                @delete="handleDeleteSession(s.id)" @toggle-select="toggleSessionSelection(s)" />
+            </template>
+
+            <SessionListItem v-for="s in visibleSessions" :key="s.id" :session="s"
+              :active="s.id === chatStore.activeSessionId" :pinned="false" :can-delete="s.id !== chatStore.activeSessionId ||
+                chatStore.sessions.length > 1
+                " :streaming="chatStore.isSessionLive(s.id)" :completed-unread="chatStore.isSessionCompletedUnread(s.id)"
+              :selectable="isBatchMode" :selected="isSessionSelected(s)" :show-profile="true" :to="sessionHref(s.id)"
+              @select="handleSessionClick(s.id)" @contextmenu="handleContextMenu($event, s.id)"
+              @delete="handleDeleteSession(s.id)" @toggle-select="toggleSessionSelection(s)" />
+            <button v-if="unpinnedSessions.length > MAX_VISIBLE_ITEMS" class="session-more-btn"
+              @click="historyExpanded = !historyExpanded">
+              {{ historyExpanded ? '收起' : `查看更多（${unpinnedSessions.length - MAX_VISIBLE_ITEMS}）` }}
+            </button>
+          </template>
         </div>
 
-        <template v-if="pinnedSessions.length > 0">
-          <div class="session-group-header session-group-header--static">
-            <span class="session-group-label">{{ t("chat.pinned") }}</span>
-            <span class="session-group-count">{{ pinnedSessions.length }}</span>
+        <!-- 定时任务（折叠区域） -->
+        <div v-if="showSessions" class="session-section">
+          <div class="session-group-header" @click="jobsCollapsed = !jobsCollapsed">
+            <span class="session-group-label">定时任务</span>
+            <span class="session-group-count">({{ jobsStore.jobs.length }})</span>
+            <svg class="group-chevron" :class="{ collapsed: jobsCollapsed }" width="12" height="12" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </div>
-          <SessionListItem
-            v-for="s in pinnedSessions"
-            :key="`pinned-${s.id}`"
-            :session="s"
-            :active="s.id === chatStore.activeSessionId"
-            :pinned="true"
-            :can-delete="
-              s.id !== chatStore.activeSessionId ||
-              chatStore.sessions.length > 1
-            "
-            :streaming="chatStore.isSessionLive(s.id)"
-            :completed-unread="chatStore.isSessionCompletedUnread(s.id)"
-            :selectable="isBatchMode"
-            :selected="isSessionSelected(s)"
-            :show-profile="true"
-            :to="sessionHref(s.id)"
-            @select="handleSessionClick(s.id)"
-            @contextmenu="handleContextMenu($event, s.id)"
-            @delete="handleDeleteSession(s.id)"
-            @toggle-select="toggleSessionSelection(s)"
-          />
-        </template>
-
-        <SessionListItem
-          v-for="s in unpinnedSessions"
-          :key="s.id"
-          :session="s"
-          :active="s.id === chatStore.activeSessionId"
-          :pinned="false"
-          :can-delete="
-            s.id !== chatStore.activeSessionId ||
-            chatStore.sessions.length > 1
-          "
-          :streaming="chatStore.isSessionLive(s.id)"
-          :completed-unread="chatStore.isSessionCompletedUnread(s.id)"
-          :selectable="isBatchMode"
-          :selected="isSessionSelected(s)"
-          :show-profile="true"
-          :to="sessionHref(s.id)"
-          @select="handleSessionClick(s.id)"
-          @contextmenu="handleContextMenu($event, s.id)"
-          @delete="handleDeleteSession(s.id)"
-          @toggle-select="toggleSessionSelection(s)"
-        />
+          <template v-if="!jobsCollapsed">
+            <JobTreeList :selected-job-id="selectedJobId"
+              :selected-run-key="activeRunContext ? `${activeRunContext.jobId}/${activeRunContext.fileName}` : null"
+              :max-items="MAX_VISIBLE_ITEMS" :expanded="jobsExpanded" @select-job="handleSelectJobForInfo"
+              @select-run="handleSelectRunForChat" @edit-job="handleEditJobFromTree" @create-job="openCreateJobModal" />
+            <button v-if="jobsStore.jobs.length > MAX_VISIBLE_ITEMS" class="session-more-btn"
+              @click="jobsExpanded = !jobsExpanded">
+              {{ jobsExpanded ? '收起' : `查看更多（${jobsStore.jobs.length - MAX_VISIBLE_ITEMS}）` }}
+            </button>
+          </template>
+        </div>
       </div>
       <div v-if="showSessions" class="page-sidebar-bottom">
-        <button class="page-sidebar-menu-btn" type="button" @click="openSettingsPage">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-          <span>{{ t("sidebar.settings") }}</span>
-          <!-- <SettingsCircuitBadge /> -->
-        </button>
+        <NPopover :show="showSettingsPopover" trigger="click" placement="top-start" :show-arrow="false" raw
+          @update:show="handleSettingsPopoverShowChange">
+          <template #trigger>
+            <button class="page-sidebar-menu-btn" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span>{{ t("sidebar.settings") }}</span>
+            </button>
+          </template>
+          <div class="page-sidebar-popover">
+            <ProfileSelector @modal-show-change="profileModalOpen = $event" />
+            <ModelSelector @modal-show-change="modelModalOpen = $event" />
+            <div class="page-sidebar-popover-row">
+              <div class="status-indicator" :class="{
+                connected: appStore.connected,
+                disconnected: !appStore.connected,
+              }">
+                <span class="status-dot"></span>
+                <span class="status-text">{{
+                  appStore.connected
+                    ? t("sidebar.connected")
+                    : t("sidebar.disconnected")
+                }}</span>
+              </div>
+              <LanguageSwitch />
+            </div>
+            <div class="page-sidebar-version-row">
+              <div class="page-sidebar-version-links">
+                <a class="page-sidebar-link" href="https://github.com/EKKOLearnAI/hermes-studio" target="_blank"
+                  rel="noopener noreferrer" title="GitHub">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                      d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                  </svg>
+                </a>
+                <a class="page-sidebar-link" href="https://hermes-studio.ai/" target="_blank" rel="noopener noreferrer"
+                  title="Website">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path
+                      d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                </a>
+              </div>
+              <span class="page-sidebar-version-text" role="button" tabindex="0" @click="openChangelog"
+                @keydown.enter="openChangelog" @keydown.space.prevent="openChangelog">
+                Studio v{{ appStore.serverVersion || "0.1.0" }}
+              </span>
+              <ThemeSwitch />
+            </div>
+            <button class="page-sidebar-nav-btn" type="button" @click="openSettingsPage">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="18" x2="20" y2="18" />
+              </svg>
+              <span>{{ t("sidebar.settings") }}</span>
+            </button>
+            <button class="page-sidebar-logout-btn" type="button" @click="handleLogout">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>{{ t("sidebar.logout") }}</span>
+              <span v-if="currentUsername" class="page-sidebar-logout-user" :title="currentUsername">
+                {{ currentUsername }}
+              </span>
+            </button>
+            <NButton v-if="isDesktopShell" type="primary" size="tiny" block @click="openVersionManagement">
+              {{ t("sidebar.versionManagement") }}
+            </NButton>
+            <NButton v-if="appStore.clientOutdated" type="warning" size="tiny" block @click="handleReloadClient">
+              {{ t("sidebar.reloadClientVersion", { version: appStore.serverVersion }) }}
+            </NButton>
+            <NButton v-if="appStore.updateAvailable" type="primary" size="tiny" block :loading="appStore.updating"
+              @click="handleUpdate">
+              {{ appStore.updating ? t("sidebar.updating") : t("sidebar.updateVersion", {
+                version:
+                  appStore.latestVersion })
+              }}
+            </NButton>
+          </div>
+        </NPopover>
+        <NModal v-model:show="showChangelog" preset="dialog" :title="t('sidebar.changelog')" style="width: 520px;">
+          <div class="changelog-list">
+            <div v-for="entry in changelog" :key="entry.version" class="changelog-version-block">
+              <div class="changelog-version-header">
+                <span class="changelog-version-tag">v{{ entry.version }}</span>
+                <span class="changelog-date">{{ entry.date }}</span>
+              </div>
+              <ul class="changelog-changes">
+                <li v-for="(change, idx) in entry.changes" :key="idx">{{ t(change) }}</li>
+              </ul>
+            </div>
+          </div>
+        </NModal>
+        <VersionManagementModal v-if="isDesktopShell" v-model:show="showVersionManagement" />
       </div>
     </aside>
 
-    <NDropdown
-      placement="bottom-start"
-      trigger="manual"
-      :x="contextMenuX"
-      :y="contextMenuY"
-      :options="contextMenuOptions"
-      :show="showContextMenu"
-      @select="handleContextMenuSelect"
-      @clickoutside="handleClickOutside"
-    />
+    <NDropdown placement="bottom-start" trigger="manual" :x="contextMenuX" :y="contextMenuY"
+      :options="contextMenuOptions" :show="showContextMenu" @select="handleContextMenuSelect"
+      @clickoutside="handleClickOutside" />
 
-    <NModal
-      v-model:show="showRenameModal"
-      preset="dialog"
-      :title="t('chat.renameSession')"
-      :positive-text="t('common.ok')"
-      :negative-text="t('common.cancel')"
-      @positive-click="handleRenameConfirm"
-    >
-      <NInput
-        ref="renameInputRef"
-        v-model:value="renameValue"
-        :placeholder="t('chat.enterNewTitle')"
-        @keydown.enter="handleRenameConfirm"
-      />
+    <NModal v-model:show="showRenameModal" preset="dialog" :title="t('chat.renameSession')"
+      :positive-text="t('common.ok')" :negative-text="t('common.cancel')" @positive-click="handleRenameConfirm">
+      <NInput ref="renameInputRef" v-model:value="renameValue" :placeholder="t('chat.enterNewTitle')"
+        @keydown.enter="handleRenameConfirm" />
     </NModal>
 
-    <NModal
-      v-model:show="showWorkspaceModal"
-      preset="dialog"
-      :title="t('chat.setWorkspaceTitle')"
-      :positive-text="t('common.ok')"
-      :negative-text="t('common.cancel')"
-      style="width: 520px"
-      @positive-click="handleWorkspaceConfirm"
-    >
+    <NModal v-model:show="showWorkspaceModal" preset="dialog" :title="t('chat.setWorkspaceTitle')"
+      :positive-text="t('common.ok')" :negative-text="t('common.cancel')" style="width: 520px"
+      @positive-click="handleWorkspaceConfirm">
       <FolderPicker v-model="workspaceValue" />
     </NModal>
 
-    <NModal
-      v-model:show="showSessionModelModal"
-      preset="card"
-      :title="t('chat.setModelTitle')"
-      :style="{ width: 'min(480px, calc(100vw - 32px))' }"
-      :mask-closable="true"
-    >
-      <NInput
-        v-model:value="sessionModelSearch"
-        :placeholder="t('models.searchPlaceholder')"
-        clearable
-        size="small"
-        class="session-model-search"
-      />
+    <NModal v-model:show="showSessionModelModal" preset="card" :title="t('chat.setModelTitle')"
+      :style="{ width: 'min(480px, calc(100vw - 32px))' }" :mask-closable="true">
+      <NInput v-model:value="sessionModelSearch" :placeholder="t('models.searchPlaceholder')" clearable size="small"
+        class="session-model-search" />
       <div class="session-model-list">
         <div v-for="group in filteredSessionModelGroups" :key="group.provider" class="session-model-group">
           <div class="session-model-group-header" @click="toggleSessionModelGroup(group.provider)">
-            <svg
-              class="session-model-group-arrow"
-              :class="{ collapsed: isSessionModelGroupCollapsed(group.provider) }"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
+            <svg class="session-model-group-arrow" :class="{ collapsed: isSessionModelGroupCollapsed(group.provider) }"
+              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9" />
             </svg>
             <span class="session-model-group-label">{{ group.label }}</span>
             <span class="session-model-group-count">{{ group.models.length }}</span>
           </div>
           <div v-show="!isSessionModelGroupCollapsed(group.provider)" class="session-model-group-items">
-            <div
-              v-for="model in group.models"
-              :key="model"
-              class="session-model-item"
-              :class="{
-                active: model === sessionModelValue && group.provider === sessionModelProvider,
-                disabled: !!group.model_meta?.[model]?.disabled,
-              }"
-              :title="group.model_meta?.[model]?.disabled ? t('models.disabledTooltip') : ''"
-              @click="selectSessionModel(model, group.provider)"
-            >
+            <div v-for="model in group.models" :key="model" class="session-model-item" :class="{
+              active: model === sessionModelValue && group.provider === sessionModelProvider,
+              disabled: !!group.model_meta?.[model]?.disabled,
+            }" :title="group.model_meta?.[model]?.disabled ? t('models.disabledTooltip') : ''"
+              @click="selectSessionModel(model, group.provider)">
               <span class="session-model-item-label">
                 <span class="session-model-item-name">{{ sessionModelDisplayName(model, group.provider) }}</span>
                 <span v-if="sessionModelAlias(model, group.provider)" class="session-model-item-id">
                   {{ t('models.aliasCanonical', { model }) }}
                 </span>
               </span>
-              <span v-if="group.model_meta?.[model]?.preview" class="session-model-badge-preview">{{ t('models.previewBadge') }}</span>
-              <span v-if="group.model_meta?.[model]?.disabled" class="session-model-badge-disabled">{{ t('models.disabledBadge') }}</span>
-              <span v-if="isCustomSessionModel(model, group.provider)" class="session-model-badge-custom">{{ t('models.customBadge') }}</span>
-              <svg
-                v-if="model === sessionModelValue && group.provider === sessionModelProvider"
-                class="session-model-check"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
+              <span v-if="group.model_meta?.[model]?.preview" class="session-model-badge-preview">{{
+                t('models.previewBadge') }}</span>
+              <span v-if="group.model_meta?.[model]?.disabled" class="session-model-badge-disabled">{{
+                t('models.disabledBadge') }}</span>
+              <span v-if="isCustomSessionModel(model, group.provider)" class="session-model-badge-custom">{{
+                t('models.customBadge') }}</span>
+              <svg v-if="model === sessionModelValue && group.provider === sessionModelProvider"
+                class="session-model-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
@@ -1568,19 +1491,10 @@ async function handleSessionModelCustomSubmit() {
         </div>
         <div class="session-model-custom">
           <div class="session-model-custom-row">
-            <NSelect
-              v-model:value="sessionModelCustomProvider"
-              :options="sessionModelProviderOptions"
-              size="small"
-              class="session-model-custom-provider"
-            />
-            <NInput
-              v-model:value="sessionModelCustomInput"
-              :placeholder="t('models.customModelPlaceholder')"
-              size="small"
-              class="session-model-custom-input"
-              @keydown.enter="handleSessionModelCustomSubmit"
-            />
+            <NSelect v-model:value="sessionModelCustomProvider" :options="sessionModelProviderOptions" size="small"
+              class="session-model-custom-provider" />
+            <NInput v-model:value="sessionModelCustomInput" :placeholder="t('models.customModelPlaceholder')"
+              size="small" class="session-model-custom-input" @keydown.enter="handleSessionModelCustomSubmit" />
           </div>
           <div class="session-model-custom-hint">
             {{ t('models.customModelHint') }}
@@ -1589,85 +1503,49 @@ async function handleSessionModelCustomSubmit() {
       </div>
     </NModal>
 
-    <NDrawer
-      v-model:show="showNewChatModal"
-      class="new-chat-drawer"
-      placement="right"
-      width="min(440px, 100vw)"
-      :mask-closable="true"
-    >
+    <NDrawer v-model:show="showNewChatModal" class="new-chat-drawer" placement="right" width="min(440px, 100vw)"
+      :mask-closable="true">
       <NDrawerContent :title="t('chat.newChat')" closable>
         <div class="new-chat-form">
           <label class="new-chat-field">
             <span class="new-chat-label">{{ t("chat.agent") }}</span>
-            <NSelect
-              v-model:value="newChatAgent"
-              :options="newChatAgentOptions"
-              :disabled="newChatLoading"
-            />
+            <NSelect v-model:value="newChatAgent" :options="newChatAgentOptions" :disabled="newChatLoading" />
           </label>
           <label v-if="isNewChatCodingAgent" class="new-chat-field">
             <span class="new-chat-label">{{ t("codingAgents.launchModeScope") }}</span>
             <NRadioGroup v-model:value="newChatAgentMode" name="new-chat-coding-agent-mode">
-              <NRadioButton
-                v-for="option in newChatAgentModeOptions"
-                :key="option.value"
-                :value="option.value"
-              >
+              <NRadioButton v-for="option in newChatAgentModeOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
               </NRadioButton>
             </NRadioGroup>
           </label>
           <label class="new-chat-field">
             <span class="new-chat-label">{{ t("sidebar.profiles") }}</span>
-            <NSelect
-              :value="newChatProfile"
-              :options="newChatProfileOptions"
-              :loading="newChatLoading || profilesStore.loading"
-              @update:value="handleNewChatProfileChange"
-            />
+            <NSelect :value="newChatProfile" :options="newChatProfileOptions"
+              :loading="newChatLoading || profilesStore.loading" @update:value="handleNewChatProfileChange" />
           </label>
           <label v-if="newChatUsesProviderModel" class="new-chat-field">
             <span class="new-chat-label">{{ t("models.provider") }}</span>
-            <NSelect
-              :value="newChatProvider"
-              :options="newChatProviderOptions"
-              :disabled="newChatLoading"
-              @update:value="handleNewChatProviderChange"
-            />
+            <NSelect :value="newChatProvider" :options="newChatProviderOptions" :disabled="newChatLoading"
+              @update:value="handleNewChatProviderChange" />
           </label>
           <label v-if="newChatUsesProviderModel" class="new-chat-field">
             <span class="new-chat-label">{{ t("models.models") }}</span>
-            <NSelect
-              v-model:value="newChatModel"
-              :options="newChatModelOptions"
-              :disabled="newChatLoading || !newChatProvider"
-              filterable
-            />
+            <NSelect v-model:value="newChatModel" :options="newChatModelOptions"
+              :disabled="newChatLoading || !newChatProvider" filterable />
           </label>
           <label v-if="isNewChatCodingAgent && newChatAgentMode === 'scoped'" class="new-chat-field">
             <span class="new-chat-label">{{ t("codingAgents.protocolScope") }}</span>
-            <NSelect
-              v-model:value="newChatApiMode"
-              :options="newChatApiModeOptions"
-              :disabled="newChatLoading"
-            />
+            <NSelect v-model:value="newChatApiMode" :options="newChatApiModeOptions" :disabled="newChatLoading" />
           </label>
           <label v-if="newChatNeedsBaseUrl" class="new-chat-field">
             <span class="new-chat-label">{{ t("models.baseUrl") }}</span>
-            <NInput
-              v-model:value="newChatBaseUrl"
-              :placeholder="t('models.baseUrlPlaceholder')"
-            />
+            <NInput v-model:value="newChatBaseUrl" :placeholder="t('models.baseUrlPlaceholder')" />
           </label>
           <label v-if="newChatNeedsApiKey" class="new-chat-field">
             <span class="new-chat-label">{{ t("models.apiKey") }}</span>
-            <NInput
-              v-model:value="newChatApiKey"
-              type="password"
-              show-password-on="click"
-              :placeholder="t('models.apiKeyPlaceholder')"
-            />
+            <NInput v-model:value="newChatApiKey" type="password" show-password-on="click"
+              :placeholder="t('models.apiKeyPlaceholder')" />
           </label>
           <div class="new-chat-field">
             <span class="new-chat-label">{{ t("chat.workspace") }}</span>
@@ -1677,11 +1555,7 @@ async function handleSessionModelCustomSubmit() {
         <template #footer>
           <div class="new-chat-actions">
             <NButton @click="showNewChatModal = false">{{ t("common.cancel") }}</NButton>
-            <NButton
-              type="primary"
-              :disabled="!canConfirmNewChat"
-              @click="confirmNewChat"
-            >
+            <NButton type="primary" :disabled="!canConfirmNewChat" @click="confirmNewChat">
               {{ t("chat.newChat") }}
             </NButton>
           </div>
@@ -1692,23 +1566,10 @@ async function handleSessionModelCustomSubmit() {
     <div class="chat-main">
       <header class="chat-header">
         <div class="header-left">
-          <NButton
-            v-if="currentMode === 'chat'"
-            class="header-sidebar-toggle"
-            quaternary
-            size="small"
-            @click="showSessions = !showSessions"
-            circle
-          >
+          <NButton v-if="currentMode === 'chat'" class="header-sidebar-toggle" quaternary size="small"
+            @click="showSessions = !showSessions" circle>
             <template #icon>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <rect x="3" y="3" width="7" height="7" />
                 <rect x="14" y="3" width="7" height="7" />
                 <rect x="3" y="14" width="7" height="7" />
@@ -1716,23 +1577,10 @@ async function handleSessionModelCustomSubmit() {
               </svg>
             </template>
           </NButton>
-          <NButton
-            v-if="currentMode === 'jobs'"
-            class="header-sidebar-toggle"
-            quaternary
-            size="small"
-            @click="closeJobs"
-            circle
-          >
+          <NButton v-if="currentMode === 'jobs'" class="header-sidebar-toggle" quaternary size="small"
+            @click="closeJobs" circle>
             <template #icon>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </template>
@@ -1745,43 +1593,28 @@ async function handleSessionModelCustomSubmit() {
               {{ headerTitle }}
             </template>
           </span>
-          <span
-            v-if="activeAgentId && currentMode === 'chat' && appMode === 'smartQuery'"
-            class="agent-badge"
-          >
-            {{ activeAgentId === 'status' ? '📊 问现状' : activeAgentId === 'future' ? '🔮 问将来' : activeAgentId === 'rootcause' ? '🔍 问根因' : activeAgentId === 'hourly-broadcast' ? '⏰ 小时播报' : activeAgentId === 'ratio-analysis' ? '📈 综合占比分析' : activeAgentId === 'daily-report' ? '📋 日报总结' : activeAgentId === 'alert-check' ? '🚨 预警检查' : activeAgentId === 'compare-analysis' ? '📉 同比环比分析' : activeAgentId === 'anomaly-detect' ? '🎯 异常检测' : '🤖 ' + activeAgentId }}
+          <span v-if="activeAgentId && currentMode === 'chat' && appMode === 'smartQuery'" class="agent-badge">
+            {{ activeAgentId === 'status' ? '📊 问现状' : activeAgentId === 'future' ? '🔮 问将来' : activeAgentId ===
+              'rootcause'
+              ? '🔍 问根因' : activeAgentId === 'hourly-broadcast' ? '⏰ 小时播报' : activeAgentId === 'ratio-analysis' ? '📈综合占比分析'
+            : activeAgentId === 'daily-report' ? '📋 日报总结' : activeAgentId === 'alert-check' ? '🚨 预警检查' : activeAgentId
+              ===
+              'compare-analysis' ? '📉 同比环比分析' : activeAgentId === 'anomaly-detect' ? '🎯 异常检测' : '🤖 ' + activeAgentId }}
           </span>
-          <span
-            v-if="chatStore.activeSession?.workspace"
-            class="workspace-badge"
-            :title="chatStore.activeSession.workspace"
-            >📁
+          <span v-if="chatStore.activeSession?.workspace" class="workspace-badge"
+            :title="chatStore.activeSession.workspace">📁
             {{
               chatStore.activeSession.workspace.split("/").pop() ||
               chatStore.activeSession.workspace
-            }}</span
-          >
+            }}</span>
         </div>
         <div class="header-actions">
           <!-- 值守模式：返回值守方案按钮 -->
           <NTooltip v-if="currentMode === 'jobs' && selectedTaskJob" trigger="hover">
             <template #trigger>
-              <NButton
-                class="header-tool-toggle"
-                quaternary
-                size="small"
-                @click="handleBackToGuardPanel"
-                circle
-              >
+              <NButton class="header-tool-toggle" quaternary size="small" @click="handleBackToGuardPanel" circle>
                 <template #icon>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                  >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M19 12H5M12 19l-7-7 7-7" />
                   </svg>
                 </template>
@@ -1793,23 +1626,11 @@ async function handleSessionModelCustomSubmit() {
           <template v-if="currentMode === 'chat'">
             <NTooltip v-if="appMode === 'smartQuery'" trigger="hover">
               <template #trigger>
-                <NButton
-                  class="header-tool-toggle"
-                  :class="{ active: showAgentPanel }"
-                  quaternary
-                  size="small"
-                  @click="showAgentPanel = !showAgentPanel"
-                  circle
-                >
+                <NButton class="header-tool-toggle" :class="{ active: showAgentPanel }" quaternary size="small"
+                  @click="showAgentPanel = !showAgentPanel" circle>
                   <template #icon>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="1.5">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                       <circle cx="9" cy="7" r="4" />
                       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -1822,23 +1643,11 @@ async function handleSessionModelCustomSubmit() {
             </NTooltip>
             <NTooltip v-if="isSuperAdmin" trigger="hover">
               <template #trigger>
-                <NButton
-                  class="header-tool-toggle"
-                  :class="{ active: showToolPanel }"
-                  quaternary
-                  size="small"
-                  @click="showToolPanel = !showToolPanel"
-                  circle
-                >
+                <NButton class="header-tool-toggle" :class="{ active: showToolPanel }" quaternary size="small"
+                  @click="showToolPanel = !showToolPanel" circle>
                   <template #icon>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="1.5">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                       <line x1="9" y1="3" x2="9" y2="21" />
                       <line x1="15" y1="3" x2="15" y2="21" />
@@ -1850,21 +1659,10 @@ async function handleSessionModelCustomSubmit() {
             </NTooltip>
             <NTooltip trigger="hover">
               <template #trigger>
-                <NButton
-                  quaternary
-                  size="small"
-                  @click="showOutline = !showOutline"
-                  circle
-                >
+                <NButton quaternary size="small" @click="showOutline = !showOutline" circle>
                   <template #icon>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="1.5">
                       <path d="M3 12h18M3 6h18M3 18h18" />
                     </svg>
                   </template>
@@ -1874,50 +1672,24 @@ async function handleSessionModelCustomSubmit() {
             </NTooltip>
             <NTooltip trigger="hover">
               <template #trigger>
-                <NButton
-                  quaternary
-                  size="small"
-                  @click="copySessionId()"
-                  circle
-                >
+                <NButton quaternary size="small" @click="copySessionId()" circle>
                   <template #icon>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="1.5">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path
-                        d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                      />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
                   </template>
                 </NButton>
               </template>
               {{ t("chat.copySessionId") }}
             </NTooltip>
-            <NButton
-              class="header-model-button"
-              :class="{ 'header-model-button--readonly': isActiveSessionCodingAgent }"
-              size="small"
-              :circle="isMobile"
-              :title="activeSessionModelLabel"
-              @click="handleHeaderModelClick"
-            >
+            <NButton class="header-model-button"
+              :class="{ 'header-model-button--readonly': isActiveSessionCodingAgent }" size="small" :circle="isMobile"
+              :title="activeSessionModelLabel" @click="handleHeaderModelClick">
               <template #icon>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="3" />
                   <path d="M12 1v4" />
                   <path d="M12 19v4" />
@@ -1935,7 +1707,10 @@ async function handleSessionModelCustomSubmit() {
           <template v-if="currentMode === 'jobs'">
             <NButton type="primary" size="small" @click="openCreateJobModal">
               <template #icon>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
               </template>
               {{ t('jobs.createJob') }}
             </NButton>
@@ -1944,89 +1719,44 @@ async function handleSessionModelCustomSubmit() {
       </header>
 
       <template v-if="currentMode === 'chat'">
-        <div
-          ref="chatContentWrapperRef"
-          class="chat-content-wrapper"
-          :class="{ 'chat-content-wrapper--drop-active': isChatDropActive }"
-          @dragover="handleChatDragOver"
-          @dragenter="handleChatDragEnter"
-          @dragleave="handleChatDragLeave"
-          @drop="handleChatDrop"
-        >
-          <AgentPanel
-            v-if="showAgentPanel && appMode === 'smartQuery'"
-            :active-agent-id="activeAgentId"
-            @select="handleAgentSelect"
-            @fill-prompt="handleFillPrompt"
-            @open-more="handleOpenAgentMore"
-          />
-          <AgentMorePanel
-            v-if="showAgentMorePanel"
-            @select="handleAgentMoreSelect"
-            @close="showAgentMorePanel = false"
-          />
+        <div ref="chatContentWrapperRef" class="chat-content-wrapper">
+          <AgentPanel v-if="showAgentPanel && appMode === 'smartQuery'" :active-agent-id="activeAgentId"
+            @select="handleAgentSelect" @fill-prompt="handleFillPrompt" @open-more="handleOpenAgentMore" />
+          <AgentMorePanel v-if="showAgentMorePanel" @select="handleAgentMoreSelect"
+            @close="showAgentMorePanel = false" />
           <template v-if="!showAgentMorePanel">
             <div class="chat-main-content">
               <MessageList ref="messageListRef" />
               <ChatInput ref="chatInputRef" />
             </div>
-            <OutlinePanel
-              v-if="showOutline"
-              :messages="chatStore.messages"
-              @navigate="handleOutlineNavigate"
-            />
-            <aside
-              v-if="showToolPanel"
-              class="chat-tool-panel"
-              :style="toolPanelStyle"
-          >
-            <div
-              class="chat-tool-resize-handle"
-              @pointerdown="startToolResize"
-            />
-            <div class="chat-tool-panel-inner">
-              <div class="chat-tool-tabs" role="tablist">
-                <button
-                  class="chat-tool-tab"
-                  :class="{ active: activeToolPanel === 'files' }"
-                  type="button"
-                  role="tab"
-                  :aria-selected="activeToolPanel === 'files'"
-                  @click="activeToolPanel = 'files'"
-                >
-                  {{ t("drawer.files") }}
-                </button>
-                <button
-                  class="chat-tool-tab"
-                  :class="{ active: activeToolPanel === 'terminal' }"
-                  type="button"
-                  role="tab"
-                  :aria-selected="activeToolPanel === 'terminal'"
-                  @click="activeToolPanel = 'terminal'"
-                >
-                  {{ t("drawer.terminal") }}
-                </button>
+            <OutlinePanel v-if="showOutline" :messages="chatStore.messages" @navigate="handleOutlineNavigate" />
+            <aside v-if="showToolPanel" class="chat-tool-panel" :style="toolPanelStyle">
+              <div class="chat-tool-resize-handle" @pointerdown="startToolResize" />
+              <div class="chat-tool-panel-inner">
+                <div class="chat-tool-tabs" role="tablist">
+                  <button class="chat-tool-tab" :class="{ active: activeToolPanel === 'files' }" type="button"
+                    role="tab" :aria-selected="activeToolPanel === 'files'" @click="activeToolPanel = 'files'">
+                    {{ t("drawer.files") }}
+                  </button>
+                  <button class="chat-tool-tab" :class="{ active: activeToolPanel === 'terminal' }" type="button"
+                    role="tab" :aria-selected="activeToolPanel === 'terminal'" @click="activeToolPanel = 'terminal'">
+                    {{ t("drawer.terminal") }}
+                  </button>
+                </div>
+                <div class="chat-tool-content">
+                  <FilesPanel v-show="activeToolPanel === 'files'" />
+                  <TerminalPanel v-show="activeToolPanel === 'terminal'"
+                    :visible="showToolPanel && activeToolPanel === 'terminal'" />
+                </div>
               </div>
-              <div class="chat-tool-content">
-                <FilesPanel v-show="activeToolPanel === 'files'" />
-                <TerminalPanel
-                  v-show="activeToolPanel === 'terminal'"
-                  :visible="showToolPanel && activeToolPanel === 'terminal'"
-                />
-              </div>
-            </div>
-          </aside>
+            </aside>
           </template>
         </div>
       </template>
       <template v-else-if="currentMode === 'jobs'">
         <div class="guard-content-area">
           <!-- GuardPanel：未选中任何 Job 时展示 -->
-          <GuardPanel
-            v-if="rightPanelMode === 'guard'"
-            @select="handleRobotSelect"
-            @create-task="handleRobotSelect"
-          />
+          <GuardPanel v-if="rightPanelMode === 'guard'" @select="handleRobotSelect" @create-task="handleRobotSelect" />
 
           <!-- Job 对话：选中 Job 时展示 -->
           <div v-else-if="rightPanelMode === 'chat'" class="job-chat-panel">
@@ -2034,7 +1764,7 @@ async function handleSessionModelCustomSubmit() {
               <span class="job-chat-title">{{ selectedJobName }}</span>
               <button class="job-chat-back" @click="handleBackToGuard">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="15 18 9 12 15 6"/>
+                  <polyline points="15 18 9 12 15 6" />
                 </svg>
                 返回
               </button>
@@ -2051,7 +1781,7 @@ async function handleSessionModelCustomSubmit() {
               <span class="job-chat-title">{{ activeRunContext?.runTime }} 运行分析</span>
               <button class="job-chat-back" @click="handleBackToJobChat">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="15 18 9 12 15 6"/>
+                  <polyline points="15 18 9 12 15 6" />
                 </svg>
                 返回
               </button>
@@ -2064,36 +1794,19 @@ async function handleSessionModelCustomSubmit() {
 
           <!-- 任务信息：选中 Job 行时展示 -->
           <div v-else-if="rightPanelMode === 'task-info'" class="task-info-panel">
-            <JobCard
-              :job="selectedTaskJob"
-              :profile-key="profilesStore.activeProfileName || 'default'"
-              @edit="handleEditJobFromTree"
-              @back="handleBackToGuard"
-              @select-run="handleSelectRunForChat"
-              @deleted="handleJobDeleted"
-            />
+            <JobCard :job="selectedTaskJob" :profile-key="profilesStore.activeProfileName || ''"
+              @edit="handleEditJobFromTree" @back="handleBackToGuard" @select-run="handleSelectRunForChat"
+              @deleted="handleJobDeleted" />
           </div>
         </div>
       </template>
-      <ConversationMonitorPane
-        v-else
-        :human-only="sessionBrowserPrefsStore.humanOnly"
-      />
+      <ConversationMonitorPane v-else :human-only="sessionBrowserPrefsStore.humanOnly" />
     </div>
 
-    <JobFormModal
-      v-if="showJobFormModal"
-      :job-id="editingJobId"
-      @close="handleJobFormClose"
-      @saved="handleJobFormSave"
-    />
 
-    <CreateGuardTaskModal
-      :robot="selectedRobot"
-      :visible="showCreateGuardModal"
-      @close="showCreateGuardModal = false"
-      @create="handleCreateGuardTask"
-    />
+
+    <CreateGuardTaskModal :robot="selectedRobot" :visible="showCreateGuardModal" :job-id="editingJobId"
+      @close="showCreateGuardModal = false; editingJobId = null" @create="handleCreateGuardTask" />
   </div>
 </template>
 
@@ -2597,8 +2310,19 @@ async function handleSessionModelCustomSubmit() {
   align-items: center;
   gap: 4px;
   padding: 6px 10px 4px;
+  margin-bottom: 4px;
   cursor: pointer;
   user-select: none;
+
+  &:hover {
+    background-color: rgba(var(--accent-primary-rgb), 0.06);
+    color: $text-primary;
+  }
+
+  &.active {
+    color: $accent-primary;
+    font-weight: 500;
+  }
 }
 
 .session-group-header--static {
@@ -2606,27 +2330,57 @@ async function handleSessionModelCustomSubmit() {
 }
 
 .group-chevron {
+  color: var(--text-muted);
   flex-shrink: 0;
   transition: transform 0.15s ease;
-  transform: rotate(90deg);
+  transform: rotate(0deg);
 
   &.collapsed {
-    transform: rotate(0deg);
+    transform: rotate(180deg);
   }
 }
 
 .session-group-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   color: $text-muted;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-bottom: 2px;
 }
 
 .session-group-count {
-  font-size: 10px;
+  font-size: 12px;
   color: $text-muted;
   font-weight: 400;
+}
+
+.session-sections-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.session-section {
+  padding: 0 6px;
+}
+
+.session-more-btn {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  color: $accent-primary;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  border-radius: $radius-sm;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(var(--accent-primary-rgb), 0.06);
+  }
 }
 
 .session-items {
@@ -2637,7 +2391,8 @@ async function handleSessionModelCustomSubmit() {
 
 .page-sidebar-bottom {
   flex-shrink: 0;
-  padding: 10px 12px;
+  padding: 6px 12px;
+  border-top: 1px solid $border-color;
 }
 
 .page-sidebar-menu-btn {
@@ -2949,7 +2704,7 @@ async function handleSessionModelCustomSubmit() {
   overflow: hidden;
 }
 
-.chat-tool-content > * {
+.chat-tool-content>* {
   height: 100%;
   min-height: 0;
 }
