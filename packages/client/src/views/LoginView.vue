@@ -64,7 +64,8 @@ async function handlePasswordLogin() {
       <div class="login-logo">
         <img src="/logo.png" alt="Hermes" width="80" height="80" />
       </div>
-      <h1 class="login-title">{{ t("login.title") }}</h1>
+      <h1 class="login-title">数智大气 EnvClaw</h1>
+      <!-- <h1 class="login-title">{{ t("login.title") }}</h1> -->
       <p class="login-desc">{{ t("login.description") }}</p>
       <p class="login-default-hint">{{ t("login.defaultCredentialsHint") }}</p>
 

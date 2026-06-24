@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { NModal, NInput, NInputNumber, NSelect, NButton, NTimePicker, NTabs, NTabPane, NDatePicker } from 'naive-ui'
+import { NModal, NInput, NInputNumber, NSelect, NButton, NTimePicker, NTabs, NTabPane } from 'naive-ui'
 import { fetchSkills } from '@/api/hermes/skills'
 import type { SkillInfo } from '@/api/hermes/skills'
 import { useSettingsStore } from '@/stores/hermes/settings'
@@ -92,6 +92,8 @@ const platformOptions = computed(() =>
         h('span', { class: `platform-option-status${configured ? ' configured' : ''}` }, configured ? '已配置' : '未配置'),
       ]),
       value: p.key,
+      // 未配置的平台禁用，不允许勾选
+      disabled: !configured,
     }
   })
 )
@@ -197,13 +199,6 @@ const isOnceDateValid = computed(() => {
   today.setHours(0, 0, 0, 0)
   const selected = new Date(onceDate.value)
   return selected >= today
-})
-
-// 5.4 生效日期区间验证
-const isEffectiveDateValid = computed(() => {
-  if (!effectiveDateRange.value) return true
-  const [start, end] = effectiveDateRange.value
-  return new Date(start) <= new Date(end)
 })
 
 // 6.1 周期模式 cron 表达式生成
@@ -551,6 +546,25 @@ onMounted(() => {
 .dark .platform-option-status.configured {
   color: #66bb6a;
   background: rgba(102, 187, 106, 0.12);
+}
+
+/* 未配置的平台选项禁用样式 */
+.platform-option-label:has(.platform-option-status:not(.configured)) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Naive UI 禁用选项的额外样式 */
+:deep(.n-base-select__option-disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+:deep(.n-base-select__option-disabled .platform-option-name) {
+  color: #a0a0a0;
+}
+:deep(.n-base-select__option-disabled .platform-option-status) {
+  color: #96a5ac;
+  background: rgba(120, 144, 156, 0.1);
 }
 </style>
 <style scoped lang="scss">

@@ -4,8 +4,6 @@ import { NPopconfirm, NCheckbox, NTooltip } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { Session } from '@/stores/hermes/chat'
 import { useAppStore } from '@/stores/hermes/app'
-import { useProfilesStore } from '@/stores/hermes/profiles'
-import ProfileAvatar from '@/components/hermes/profiles/ProfileAvatar.vue'
 import { formatTimestampMs } from '@/shared/session-display'
 
 const props = withDefaults(defineProps<{
@@ -32,9 +30,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const appStore = useAppStore()
-const profilesStore = useProfilesStore()
 const profileName = computed(() => props.session.profile || 'default')
-const profileAvatar = computed(() => profilesStore.profiles.find(profile => profile.name === profileName.value)?.avatar)
 const profileHasModels = computed(() => {
   const profileModels = appStore.profileModelGroups.find(profile => profile.profile === profileName.value)
   return !!profileModels?.groups?.some(group => group.models.length > 0)
@@ -42,15 +38,6 @@ const profileHasModels = computed(() => {
 const profileModelsMissing = computed(() =>
   appStore.profileModelGroups.length > 0 && !profileHasModels.value,
 )
-const sessionAgentLogo = computed(() => {
-  if (props.session.source === 'coding_agent') {
-    if (props.session.codingAgentId === 'codex' || props.session.agent === 'codex') {
-      return { label: 'Codex', src: '/coding-agents/codex-openai.png' }
-    }
-    return { label: 'Claude Code', src: '/coding-agents/claude-code.svg' }
-  }
-  return { label: 'Hermes', src: '/coding-agents/hermes.png' }
-})
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
 const longPressTriggered = ref(false)

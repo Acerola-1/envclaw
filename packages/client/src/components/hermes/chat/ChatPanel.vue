@@ -96,9 +96,6 @@ const MAX_VISIBLE_ITEMS = 5;
 const visibleSessions = computed(() =>
   historyExpanded.value ? unpinnedSessions.value : unpinnedSessions.value.slice(0, MAX_VISIBLE_ITEMS)
 );
-const visibleJobs = computed(() =>
-  jobsExpanded.value ? jobsStore.jobs : jobsStore.jobs.slice(0, MAX_VISIBLE_ITEMS)
-);
 
 // Batch selection mode
 const isBatchMode = ref(false);
@@ -2349,6 +2346,10 @@ async function handleSessionModelCustomSubmit() {
 
 .session-section {
   padding: 0 6px;
+  min-height: 230px;
+  &:last-child {
+    margin-top: 16px;
+  }
 }
 
 .session-more-btn {
