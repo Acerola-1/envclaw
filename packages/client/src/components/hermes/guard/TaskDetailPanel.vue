@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { NSpin, NEmpty, NTag, NTooltip } from 'naive-ui'
 import { listCronRuns, readCronRun } from '@/api/hermes/cron-history'
-import type { RunEntry, RunDetail } from '@/api/hermes/cron-history'
+import type { RunEntry } from '@/api/hermes/cron-history'
 
 interface JobInfo {
   id: string

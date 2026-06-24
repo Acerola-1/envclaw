@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
-import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   selectedJobId: string | null
@@ -11,40 +9,20 @@ const emit = defineEmits<{
   select: [jobId: string | null]
 }>()
 
-const { t } = useI18n()
 const jobsStore = useJobsStore()
 
 function getStatusLabel(job: any): string {
-  // 优先使用 state 字段，兼容 status 字段
-  const status = job.state || job.status || ''
+  if (job.state === 'running') return '运行中'
+  if (job.state === 'paused') return '已暂停'
   if (job.enabled === false) return '已禁用'
-  const map: Record<string, string> = {
-    active: '运行中',
-    running: '运行中',
-    paused: '已暂停',
-    error: '异常',
-    completed: '已完成',
-    ready: '待执行',
-    idle: '待执行',
-    disabled: '已禁用',
-    scheduled: '已调度',
-  }
-  return map[status] || '待执行'
+  return '已调度'
 }
 
 function getStatusClass(job: any): string {
-  const status = job.state || job.status || ''
-  if (job.enabled === false) return 'status-paused'
-  const map: Record<string, string> = {
-    active: 'status-active',
-    running: 'status-running',
-    paused: 'status-paused',
-    error: 'status-error',
-    completed: 'status-completed',
-    ready: 'status-idle',
-    idle: 'status-idle',
-  }
-  return map[status] || 'status-idle'
+  if (job.state === 'running') return 'info'
+  if (job.state === 'paused') return 'warning'
+  if (job.enabled === false) return 'error'
+  return 'success'
 }
 
 function handleSelect(jobId: string) {
@@ -141,30 +119,24 @@ function handleSelect(jobId: string) {
   padding: 1px 6px;
   border-radius: 4px;
 
-  &.status-active,
-  &.status-running {
-    background: #dcfce7;
-    color: #166534;
+  &.success {
+    background: rgba(var(--success-rgb), 0.12);
+    color: $success;
   }
 
-  &.status-paused {
-    background: #fef9c3;
-    color: #854d0e;
+  &.info {
+    background: rgba(var(--accent-primary-rgb), 0.12);
+    color: $accent-primary;
   }
 
-  &.status-error {
-    background: #fee2e2;
-    color: #991b1b;
+  &.warning {
+    background: rgba(var(--warning-rgb), 0.12);
+    color: $warning;
   }
 
-  &.status-completed {
-    background: #dbeafe;
-    color: #1e40af;
-  }
-
-  &.status-idle {
-    background: #f3f4f6;
-    color: #6b7280;
+  &.error {
+    background: rgba(var(--error-rgb), 0.12);
+    color: $error;
   }
 }
 </style>

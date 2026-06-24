@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { NTag, NTooltip, NButton, NSpin, NEmpty, useMessage } from 'naive-ui'
-import { listCronRuns, readCronRun } from '@/api/hermes/cron-history'
+import { NTag, NTooltip, NSpin, useMessage } from 'naive-ui'
+import { listCronRuns } from '@/api/hermes/cron-history'
 import type { RunEntry } from '@/api/hermes/cron-history'
 import { pauseJob, resumeJob, runJob, deleteJob, scheduleToDisplayText } from '@/api/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
@@ -25,31 +25,22 @@ const loading = ref(false)
 const runs = ref<RunEntry[]>([])
 const actionLoading = ref<string | null>(null)
 const expandedContent = ref<Record<string, string>>({})
-const loadingContent = ref<Record<string, boolean>>({})
 
 // --- 状态相关 ---
 const statusLabel = computed(() => {
   if (!props.job) return ''
-  const job = props.job
-  if (job.enabled === false) return '已禁用'
-  const s = job.state || ''
-  const map: Record<string, string> = {
-    active: '运行中', running: '运行中', paused: '已暂停',
-    error: '异常', completed: '已完成', ready: '待执行',
-    idle: '待执行', disabled: '已禁用', scheduled: '已调度',
-  }
-  return map[s] || '待执行'
+  if (props.job.state === 'running') return '运行中'
+  if (props.job.state === 'paused') return '已暂停'
+  if (!props.job.enabled) return '已禁用'
+  return '已调度'
 })
 
 const statusType = computed(() => {
   if (!props.job) return 'default'
-  const job = props.job
-  if (job.enabled === false) return 'warning'
-  const s = job.state || ''
-  if (s === 'active' || s === 'running') return 'success'
-  if (s === 'error') return 'error'
-  if (s === 'paused') return 'warning'
-  return 'default'
+  if (props.job.state === 'running') return 'info' as const
+  if (props.job.state === 'paused') return 'warning' as const
+  if (!props.job.enabled) return 'error' as const
+  return 'success' as const
 })
 
 const isPaused = computed(() => {
@@ -100,19 +91,6 @@ function formatTime(time: string | null | undefined): string {
   } catch { return time }
 }
 
-function formatRelativeTime(time: string | null | undefined): string {
-  if (!time) return '—'
-  try {
-    const d = new Date(time)
-    const now = Date.now()
-    const diff = now - d.getTime()
-    if (diff < 60_000) return '刚刚'
-    if (diff < 3600_000) return `${Math.floor(diff / 60_000)} 分钟前`
-    if (diff < 86400_000) return `${Math.floor(diff / 3600_000)} 小时前`
-    return `${Math.floor(diff / 86400_000)} 天前`
-  } catch { return '—' }
-}
-
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
@@ -131,23 +109,6 @@ async function fetchRuns() {
     runs.value = []
   } finally {
     loading.value = false
-  }
-}
-
-async function toggleContent(run: RunEntry) {
-  const key = run.fileName
-  if (expandedContent.value[key]) {
-    delete expandedContent.value[key]
-    return
-  }
-  loadingContent.value[key] = true
-  try {
-    const detail = await readCronRun(run.jobId, run.fileName)
-    expandedContent.value[key] = detail.content
-  } catch {
-    expandedContent.value[key] = '(无法加载内容)'
-  } finally {
-    loadingContent.value[key] = false
   }
 }
 
@@ -229,7 +190,9 @@ watch(() => [props.job, props.profileKey], () => {
       <!-- 顶部操作栏 -->
       <div class="card-topbar">
         <button class="topbar-back" @click="emit('back')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
           返回
         </button>
         <div class="topbar-actions">
@@ -237,8 +200,13 @@ watch(() => [props.job, props.profileKey], () => {
             <template #trigger>
               <button class="action-btn" :disabled="!!actionLoading" @click="handleTogglePause">
                 <NSpin v-if="actionLoading === 'pause'" :size="14" />
-                <svg v-else-if="isPaused" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                <svg v-else-if="isPaused" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
               </button>
             </template>
             {{ isPaused ? '恢复任务' : '暂停任务' }}
@@ -247,7 +215,11 @@ watch(() => [props.job, props.profileKey], () => {
             <template #trigger>
               <button class="action-btn" :disabled="!!actionLoading" @click="handleRunNow">
                 <NSpin v-if="actionLoading === 'run'" :size="14" />
-                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2">
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
               </button>
             </template>
             立即执行
@@ -255,7 +227,10 @@ watch(() => [props.job, props.profileKey], () => {
           <NTooltip trigger="hover">
             <template #trigger>
               <button class="action-btn" @click="handleEdit">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
               </button>
             </template>
             编辑任务
@@ -264,7 +239,11 @@ watch(() => [props.job, props.profileKey], () => {
             <template #trigger>
               <button class="action-btn action-btn--danger" :disabled="!!actionLoading" @click="handleDelete">
                 <NSpin v-if="actionLoading === 'delete'" :size="14" />
-                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
               </button>
             </template>
             删除任务
@@ -289,7 +268,10 @@ watch(() => [props.job, props.profileKey], () => {
           <div class="info-item">
             <span class="info-label">调度规则</span>
             <span class="info-value">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
               {{ scheduleText }}
             </span>
           </div>
@@ -317,7 +299,8 @@ watch(() => [props.job, props.profileKey], () => {
             <span class="info-label">上次执行</span>
             <span class="info-value">
               {{ formatTime(job.last_run_at) }}
-              <NTag v-if="job.last_status" :type="job.last_status === 'success' ? 'success' : 'error'" size="tiny" round>
+              <NTag v-if="job.last_status" :type="job.last_status === 'success' ? 'success' : 'error'" size="tiny"
+                round>
                 {{ job.last_status === 'success' ? '成功' : '失败' }}
               </NTag>
             </span>
@@ -330,7 +313,11 @@ watch(() => [props.job, props.profileKey], () => {
 
         <!-- 上次错误 -->
         <div v-if="job.last_error" class="error-banner">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           <span class="error-text">{{ job.last_error }}</span>
         </div>
 
@@ -354,17 +341,15 @@ watch(() => [props.job, props.profileKey], () => {
             <span class="empty-text">暂无运行记录</span>
           </div>
           <div v-else class="runs-list">
-            <div
-              v-for="run in recentRuns"
-              :key="run.fileName"
-              class="run-row"
-              @click="handleRunClick(run)"
-            >
+            <div v-for="run in recentRuns" :key="run.fileName" class="run-row" @click="handleRunClick(run)">
               <div class="run-left">
                 <span class="run-time">{{ formatTime(run.runTime) }}</span>
                 <span class="run-size">{{ formatSize(run.size) }}</span>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="run-arrow"><polyline points="9 18 15 12 9 6"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                class="run-arrow">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </div>
           </div>
         </NSpin>
@@ -374,8 +359,11 @@ watch(() => [props.job, props.profileKey], () => {
     <!-- 空状态 -->
     <template v-else>
       <div class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
         <p>请从左侧选择一个任务查看详情</p>
       </div>
@@ -694,7 +682,13 @@ watch(() => [props.job, props.profileKey], () => {
   gap: 16px;
   color: $text-muted;
 
-  svg { opacity: 0.3; }
-  p { font-size: 14px; margin: 0; }
+  svg {
+    opacity: 0.3;
+  }
+
+  p {
+    font-size: 14px;
+    margin: 0;
+  }
 }
 </style>

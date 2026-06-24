@@ -1,13 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import { listCronRuns } from '@/api/hermes/cron-history'
 import type { RunEntry } from '@/api/hermes/cron-history'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   selectedJobId: string | null
   selectedRunKey: string | null  // 格式："jobId/fileName"
-}>()
+  maxItems?: number
+  expanded?: boolean
+}>(), {
+  maxItems: Infinity,
+  expanded: true,
+})
+
+const visibleJobs = computed(() =>
+  props.expanded ? jobsStore.jobs : jobsStore.jobs.slice(0, props.maxItems)
+)
 
 const emit = defineEmits<{
   selectJob: [jobId: string]
@@ -30,23 +39,17 @@ function getJobId(job: any): string {
 }
 
 function getStatusLabel(job: any): string {
-  const status = job.state || job.status || ''
+  if (job.state === 'running') return '运行中'
+  if (job.state === 'paused') return '已暂停'
   if (job.enabled === false) return '已禁用'
-  const map: Record<string, string> = {
-    active: '运行中', running: '执行中', paused: '已暂停',
-    error: '异常', completed: '已完成', ready: '待执行', idle: '待执行',
-  }
-  return map[status] || '待执行'
+  return '已调度'
 }
 
 function getStatusClass(job: any): string {
-  const status = job.state || job.status || ''
-  if (job.enabled === false) return 'status-paused'
-  const map: Record<string, string> = {
-    active: 'status-active', running: 'status-running', paused: 'status-paused',
-    error: 'status-error', completed: 'status-completed', ready: 'status-idle', idle: 'status-idle',
-  }
-  return map[status] || 'status-idle'
+  if (job.state === 'running') return 'info'
+  if (job.state === 'paused') return 'warning'
+  if (job.enabled === false) return 'error'
+  return 'success'
 }
 
 function formatSize(bytes: number): string {
@@ -95,11 +98,11 @@ function handleEditClick(jobId: string, event: Event) {
 
 <template>
   <div class="job-tree-list">
-    <div v-if="jobsStore.jobs.length === 0" class="tree-empty">
+    <div v-if="visibleJobs.length === 0" class="tree-empty">
       <span>暂无定时任务</span>
     </div>
 
-    <div v-for="job in jobsStore.jobs" :key="getJobId(job)" class="tree-job-group">
+    <div v-for="job in visibleJobs" :key="getJobId(job)" class="tree-job-group">
       <!-- Job 行 -->
       <div
         class="tree-job-row"
@@ -234,12 +237,25 @@ function handleEditClick(jobId: string, event: Event) {
   padding: 1px 6px;
   border-radius: 4px;
   width: fit-content;
+  &.success {
+    background: rgba(var(--success-rgb), 0.12);
+    color: $success;
+  }
 
-  &.status-active, &.status-running { background: #dcfce7; color: #166534; }
-  &.status-paused { background: #fef9c3; color: #854d0e; }
-  &.status-error { background: #fee2e2; color: #991b1b; }
-  &.status-completed { background: #dbeafe; color: #1e40af; }
-  &.status-idle { background: #f3f4f6; color: #6b7280; }
+  &.info {
+    background: rgba(var(--accent-primary-rgb), 0.12);
+    color: $accent-primary;
+  }
+
+  &.warning {
+    background: rgba(var(--warning-rgb), 0.12);
+    color: $warning;
+  }
+
+  &.error {
+    background: rgba(var(--error-rgb), 0.12);
+    color: $error;
+  }
 }
 
 .tree-job-settings {

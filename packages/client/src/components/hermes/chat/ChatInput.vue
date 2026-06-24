@@ -139,8 +139,7 @@ function insertVoiceTranscriptIntoInput(text: string) {
     textarea.setSelectionRange(nextCursorPosition, nextCursorPosition)
 
     if (textareaHeight.value === null) {
-      textarea.style.height = 'auto'
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 100)}px`
+      autoResizeTextarea(textarea)
     }
   })
 }
@@ -331,6 +330,7 @@ function getActiveDraftSessionId() {
 function setInputText(text: string) {
   inputText.value = text
   nextTick(() => {
+    autoResizeTextarea()
     textareaRef.value?.focus()
   })
 }
@@ -340,6 +340,7 @@ defineExpose({ setInputText })
 function loadDraftForActiveSession() {
   const sessionId = getActiveDraftSessionId()
   inputText.value = sessionId ? readDraftMap()[sessionId] || '' : ''
+  nextTick(() => autoResizeTextarea())
 }
 
 function saveDraftForActiveSession(value: string) {
@@ -681,9 +682,10 @@ function handleSend() {
   attachments.value = []
   slashActive.value = false
 
-  if (textareaRef.value) {
-    textareaRef.value.style.height = 'auto'
-  }
+  textareaHeight.value = null
+  nextTick(() => {
+    autoResizeTextarea()
+  })
 }
 
 async function startVoiceCapture() {
@@ -821,13 +823,22 @@ function handleKeydown(e: KeyboardEvent) {
   handleSend()
 }
 
+// 4行 ≈ 21px × 4 = 84px（font-size 14px × line-height 1.5）
+const MAX_AUTO_HEIGHT = 86
+
+function autoResizeTextarea(el?: HTMLTextAreaElement | null) {
+  const ta = el || textareaRef.value
+  if (!ta) return
+  ta.style.height = 'auto'
+  ta.style.height = Math.min(ta.scrollHeight, MAX_AUTO_HEIGHT) + 'px'
+}
+
 function handleInput(e: Event) {
   const el = e.target as HTMLTextAreaElement
   if (!isComposing.value) updateSlashState()
   // 用户手动拖拽自定义高度时，不覆盖
   if (textareaHeight.value !== null) return
-  el.style.height = 'auto'
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px'
+  autoResizeTextarea(el)
 }
 
 function handleCommandHover(index: number) {
@@ -1436,7 +1447,7 @@ function isImage(type: string): boolean {
   font-size: 14px;
   line-height: 1.5;
   resize: none;
-  max-height: 400px;
+  max-height: 86px; /* 4 行: 14px × 1.5 × 4 ≈ 84px + 2px padding */
   min-height: 20px;
   overflow-y: auto;
 

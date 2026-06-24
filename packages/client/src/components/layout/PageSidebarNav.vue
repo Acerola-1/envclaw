@@ -1,18 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-
 type AppMode = 'smartQuery' | 'automation'
 
-const props = defineProps<{
-  appMode: AppMode
-}>()
+const props = withDefaults(defineProps<{
+  appMode?: AppMode
+}>(), {
+  appMode: 'smartQuery'
+})
 
 const emit = defineEmits<{
   'update:app-mode': [mode: AppMode]
 }>()
-
-const { t } = useI18n()
 
 function switchMode(mode: AppMode) {
   if (mode !== props.appMode) {
