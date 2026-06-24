@@ -205,3 +205,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 export function getBaseUrlValue(): string {
   return getBaseUrl()
 }
+
+/**
+ * 获取各平台的联系人列表（从 channel_directory.json）
+ */
+export async function getChannelContacts(): Promise<Record<string, Array<{ id: string; name: string; type: string }>>> {
+  const data = await request<{ platforms: Record<string, Array<{ id: string; name: string; type: string }>> }>('/api/hermes/channel-contacts')
+  return data.platforms || {}
+}

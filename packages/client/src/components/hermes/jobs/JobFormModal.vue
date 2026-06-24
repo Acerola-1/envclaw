@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { NModal, NForm, NFormItem, NInput, NButton, NSelect, NInputNumber, NTimePicker, NTabs, NTabPane, NDatePicker, useMessage } from 'naive-ui'
+import { NModal, NForm, NFormItem, NInput, NButton, NSelect, NInputNumber, useMessage } from 'naive-ui'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import { useSettingsStore } from '@/stores/hermes/settings'
 import {
@@ -13,7 +13,9 @@ import {
 import type { CreateJobRequest, Job } from '@/api/hermes/jobs'
 import { fetchSkills } from '@/api/hermes/skills'
 import type { SkillInfo } from '@/api/hermes/skills'
+import { getChannelContacts } from '@/api/client'
 import { useI18n } from 'vue-i18n'
+import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
 
 const { t } = useI18n()
 
@@ -34,146 +36,18 @@ const showModal = ref(true)
 const loading = ref(false)
 const skillsLoading = ref(false)
 const skillOptions = ref<Array<{ label: string; value: string }>>([])
+const channelContacts = ref<Record<string, Array<{ id: string; name: string; type: string }>>>({})
 
 const formData = ref({
   name: '',
-  schedule: '',
   prompt: '',
   deliver: 'origin',
   skills: [] as string[],
   repeat_times: null as number | null,
 })
 
+const schedule = ref('0 9 * * *')  // 默认每天 9:00
 const isEdit = computed(() => !!props.jobId)
-
-// 执行频率调度配置
-const scheduleMode = ref<'period' | 'interval' | 'once'>('period')
-
-// 周期模式
-const periodType = ref<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily')
-const periodTime = ref<number | null>(new Date().setHours(9, 0, 0, 0))
-const periodWeekDays = ref<number[]>([1])
-
-// 间隔模式
-const intervalHours = ref(2)
-const intervalDays = ref<number[]>([1, 2, 3, 4, 5])
-
-// 单次模式
-const onceTime = ref<number | null>(new Date().setHours(9, 0, 0, 0))
-const onceDate = ref<number | null>(null)
-
-// 生效日期区间
-const effectiveDateRange = ref<[number, number] | null>(null)
-
-const periodOptions = computed(() => [
-  { label: '每天', value: 'daily' },
-  { label: '每周', value: 'weekly' },
-  { label: '每月', value: 'monthly' },
-  { label: '每年', value: 'yearly' },
-])
-
-const weekDayOptions = computed(() => [
-  { label: '周一', value: 1 },
-  { label: '周二', value: 2 },
-  { label: '周三', value: 3 },
-  { label: '周四', value: 4 },
-  { label: '周五', value: 5 },
-  { label: '周六', value: 6 },
-  { label: '周日', value: 0 },
-])
-
-function toggleIntervalDay(day: number) {
-  const index = intervalDays.value.indexOf(day)
-  if (index === -1) {
-    intervalDays.value.push(day)
-  } else {
-    intervalDays.value.splice(index, 1)
-  }
-}
-
-function formatTime(timestamp: number | null): string {
-  if (!timestamp) return '09:00'
-  const date = new Date(timestamp)
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-}
-
-const isIntervalValid = computed(() => intervalHours.value >= 1 && intervalHours.value <= 24)
-const isIntervalDaysValid = computed(() => intervalDays.value.length > 0)
-
-const isOnceDateValid = computed(() => {
-  if (!onceDate.value) return true
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return new Date(onceDate.value) >= today
-})
-
-const isEffectiveDateValid = computed(() => {
-  if (!effectiveDateRange.value) return true
-  const [start, end] = effectiveDateRange.value
-  return new Date(start) <= new Date(end)
-})
-
-function generatePeriodCron(): string {
-  const time = formatTime(periodTime.value)
-  const [hour, minute] = time.split(':').map(Number)
-  switch (periodType.value) {
-    case 'daily': return `${minute} ${hour} * * *`
-    case 'weekly': {
-      const days = periodWeekDays.value.length > 0 ? periodWeekDays.value.sort().join(',') : '1'
-      return `${minute} ${hour} * * ${days}`
-    }
-    case 'monthly': return `${minute} ${hour} 1 * *`
-    case 'yearly': return `${minute} ${hour} 1 1 *`
-    default: return `${minute} ${hour} * * *`
-  }
-}
-
-function generateIntervalCron(): string {
-  const days = intervalDays.value.sort().join(',')
-  return `0 */${intervalHours.value} * * ${days}`
-}
-
-function generateScheduleCron(): string {
-  if (scheduleMode.value === 'period') return generatePeriodCron()
-  if (scheduleMode.value === 'interval') return generateIntervalCron()
-  return ''
-}
-
-/** 从 cron 表达式反向解析调度 UI 状态（用于编辑模式） */
-function parseScheduleFromCron(schedule: string) {
-  if (!schedule) return
-  const parts = schedule.trim().split(/\s+/)
-  if (parts.length < 5) return
-
-  const [minuteStr, hourStr, dom, month, dow] = parts
-  const minute = parseInt(minuteStr)
-  const hour = parseInt(hourStr)
-
-  // 间隔模式: 0 */N * * days
-  if (minuteStr === '0' && hourStr.startsWith('*/')) {
-    scheduleMode.value = 'interval'
-    intervalHours.value = parseInt(hourStr.slice(2)) || 2
-    if (dow !== '*') {
-      intervalDays.value = dow.split(',').map(Number).filter(n => !isNaN(n))
-    }
-    return
-  }
-
-  // 周期模式
-  scheduleMode.value = 'period'
-  periodTime.value = new Date().setHours(hour, minute, 0, 0)
-
-  if (dom === '1' && month === '1') {
-    periodType.value = 'yearly'
-  } else if (dom === '1' && month === '*') {
-    periodType.value = 'monthly'
-  } else if (dow !== '*') {
-    periodType.value = 'weekly'
-    periodWeekDays.value = dow.split(',').map(Number).filter(n => !isNaN(n))
-  } else {
-    periodType.value = 'daily'
-  }
-}
 
 // 投递目标平台列表（与 CreateGuardTaskModal 一致）
 const router = useRouter()
@@ -210,13 +84,17 @@ function isPlatformConfigured(key: string): boolean {
 const platformOptions = computed(() =>
   platformList.map(p => {
     const configured = isPlatformConfigured(p.key)
+    const contacts = channelContacts.value[p.key] || []
+    const hasContacts = contacts.length > 0
+    // 如果平台有联系人，使用完整的 deliver 值（platform:chat_id）
+    const deliverValue = hasContacts ? `${p.key}:${contacts[0].id}` : p.key
     return {
       label: () => h('span', { class: 'platform-option-label' }, [
         h('span', { class: 'platform-option-icon' }, p.icon),
         h('span', { class: 'platform-option-name' }, p.name),
         h('span', { class: `platform-option-status${configured ? ' configured' : ''}` }, configured ? '已配置' : '未配置'),
       ]),
-      value: p.key,
+      value: deliverValue,
     }
   })
 )
@@ -256,20 +134,25 @@ onMounted(async () => {
   }
   await loadSkillOptions()
 
+  // 加载平台联系人
+  try {
+    channelContacts.value = await getChannelContacts()
+  } catch {
+    channelContacts.value = {}
+  }
+
   if (props.jobId) {
     try {
       const job = await getJob(props.jobId)
       originalJob.value = job
       formData.value = {
         name: job.name,
-        schedule: scheduleToEditableInput(job.schedule, job.schedule_display || ''),
         prompt: job.prompt,
-        deliver: (job.deliver || 'origin').split(':')[0],
+        deliver: job.deliver || 'origin',
         skills: job.skills || (job.skill ? [job.skill] : []),
         repeat_times: jobRepeatToEditValue(job.repeat),
       }
-      // 解析已有 cron 表达式到调度 UI
-      parseScheduleFromCron(formData.value.schedule)
+      schedule.value = scheduleToEditableInput(job.schedule, job.schedule_display || '')
     } catch (e: any) {
       message.error(t('jobs.loadFailed') + ': ' + e.message)
     }
@@ -282,21 +165,10 @@ async function handleSave() {
     return
   }
 
-  // 校验调度配置
-  if (scheduleMode.value === 'interval') {
-    if (!isIntervalValid.value) { message.warning('请输入 1-24 之间的间隔小时数'); return }
-    if (!isIntervalDaysValid.value) { message.warning('请至少选择一天'); return }
-  }
-  if (scheduleMode.value === 'once' && !isOnceDateValid.value) {
-    message.warning('请选择今天或之后的日期')
+  if (!schedule.value) {
+    message.warning('请选择执行频率')
     return
   }
-  if (scheduleMode.value !== 'once' && effectiveDateRange.value && !isEffectiveDateValid.value) {
-    message.warning('结束日期必须晚于开始日期')
-    return
-  }
-
-  const schedule = generateScheduleCron()
 
   loading.value = true
   try {
@@ -305,9 +177,7 @@ async function handleSave() {
         message.error(t('jobs.loadFailed'))
         return
       }
-      // 将调度 cron 同步到 formData 供 buildJobUpdateRequest 对比
-      formData.value.schedule = schedule
-      const payload = buildJobUpdateRequest(originalJob.value, formData.value)
+      const payload = buildJobUpdateRequest(originalJob.value, { ...formData.value, schedule: schedule.value })
       if (Object.keys(payload).length === 0) {
         message.success(t('jobs.jobUpdated'))
         emit('saved')
@@ -318,7 +188,7 @@ async function handleSave() {
     } else {
       const payload: CreateJobRequest = {
         name: formData.value.name,
-        schedule,
+        schedule: schedule.value,
         prompt: formData.value.prompt,
         deliver: formData.value.deliver,
         skills: formData.value.skills,
@@ -372,47 +242,7 @@ function handleClose() {
       </NFormItem>
 
       <NFormItem :label="t('jobs.schedule')" required>
-        <NTabs v-model:value="scheduleMode" type="segment" animated style="width: 100%">
-          <NTabPane name="period" tab="周期">
-            <div class="schedule-content">
-              <div class="schedule-row">
-                <NSelect v-model:value="periodType" :options="periodOptions" style="width: 120px" />
-                <NSelect v-if="periodType === 'weekly'" v-model:value="periodWeekDays" multiple
-                  :options="weekDayOptions" placeholder="选择周几" style="width: 240px" />
-                <NTimePicker v-model:value="periodTime" format="HH:mm" style="width: 120px" />
-              </div>
-            </div>
-          </NTabPane>
-          <NTabPane name="interval" tab="按间隔">
-            <div class="schedule-content">
-              <div class="interval-row">
-                <span>每</span>
-                <NInputNumber v-model:value="intervalHours" :min="1" :max="24" style="width: 80px"
-                  :status="!isIntervalValid ? 'error' : undefined" />
-                <span>小时</span>
-              </div>
-              <div v-if="!isIntervalValid" class="error-tip">请输入 1-24 之间的数字</div>
-              <div class="week-days-btn-group">
-                <NButton v-for="day in weekDayOptions" :key="day.value"
-                  :type="intervalDays.includes(day.value) ? 'primary' : 'default'" size="small"
-                  @click="toggleIntervalDay(day.value)">
-                  {{ day.label }}
-                </NButton>
-              </div>
-              <div v-if="!isIntervalDaysValid" class="error-tip">请至少选择一天</div>
-            </div>
-          </NTabPane>
-          <NTabPane name="once" tab="单次">
-            <div class="schedule-content">
-              <div class="once-row">
-                <NDatePicker v-model:value="onceDate" type="date" placeholder="选择日期" style="width: 200px"
-                  :is-date-disabled="(timestamp: number) => timestamp < Date.now() - 86400000" />
-                <NTimePicker v-model:value="onceTime" format="HH:mm" style="width: 120px" />
-              </div>
-              <div v-if="!isOnceDateValid" class="error-tip">请选择今天或之后的日期</div>
-            </div>
-          </NTabPane>
-        </NTabs>
+        <SchedulePicker v-model="schedule" />
       </NFormItem>
 
       <!-- <NFormItem v-if="scheduleMode === 'period' || scheduleMode === 'interval'" label="生效日期区间">
@@ -478,41 +308,6 @@ function handleClose() {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.schedule-content {
-  padding: 12px 0;
-}
-
-.schedule-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.interval-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.week-days-btn-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.once-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.error-tip {
-  color: $error;
-  font-size: 12px;
-  margin-top: 4px;
 }
 
 .platform-select-row {

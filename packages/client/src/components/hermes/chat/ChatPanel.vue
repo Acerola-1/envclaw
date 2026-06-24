@@ -68,8 +68,6 @@ const TOOL_PANEL_DEFAULT_WIDTH = 560;
 const TOOL_PANEL_STORAGE_KEY = "hermes.chat.toolPanelWidth";
 const toolPanelWidth = ref(loadToolPanelWidth());
 const toolResizeStart = ref<{ x: number; width: number } | null>(null);
-const chatDropCounter = ref(0);
-const isChatDropActive = ref(false);
 
 const currentMode = ref<"chat" | "live" | "jobs">("chat");
 
@@ -89,9 +87,63 @@ const MAX_VISIBLE_ITEMS = 5;
 const visibleSessions = computed(() =>
   historyExpanded.value ? unpinnedSessions.value : unpinnedSessions.value.slice(0, MAX_VISIBLE_ITEMS)
 );
-const visibleJobs = computed(() =>
-  jobsExpanded.value ? jobsStore.jobs : jobsStore.jobs.slice(0, MAX_VISIBLE_ITEMS)
-);
+
+// Settings popover
+const showSettingsPopover = ref(false);
+function handleSettingsPopoverShowChange(show: boolean) {
+  showSettingsPopover.value = show;
+}
+const profileModalOpen = ref(false);
+const modelModalOpen = ref(false);
+
+// Changelog
+const showChangelog = ref(false);
+const changelog = ref<Array<{ version: string; date: string; changes: string[] }>>([]);
+function openChangelog() {
+  showChangelog.value = true;
+}
+
+// Version management
+const showVersionManagement = ref(false);
+function openVersionManagement() {
+  showVersionManagement.value = true;
+}
+
+// Desktop shell detection
+const isDesktopShell = computed(() => {
+  return (window as any).hermesDesktop?.isDesktop === true;
+});
+
+// Current username
+const currentUsername = computed(() => {
+  try {
+    const stored = localStorage.getItem('hermes_user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      return user.username || user.name || '';
+    }
+  } catch {}
+  return '';
+});
+
+// Logout
+function handleLogout() {
+  localStorage.removeItem('hermes_api_key');
+  localStorage.removeItem('hermes_user');
+  router.push({ name: 'login' });
+}
+
+// Client reload
+function handleReloadClient() {
+  window.location.reload();
+}
+
+// Update
+async function handleUpdate() {
+  try {
+    await appStore.doUpdate();
+  } catch {}
+}
 
 // Batch selection mode
 const isBatchMode = ref(false);
@@ -224,44 +276,6 @@ function startToolResize(event: PointerEvent) {
   window.addEventListener("pointerup", stopToolResize);
   document.body.style.userSelect = "none";
   document.body.style.cursor = "col-resize";
-}
-
-function hasDraggedFiles(event: DragEvent) {
-  return Array.from(event.dataTransfer?.types || []).includes("Files");
-}
-
-function resetChatDropState() {
-  chatDropCounter.value = 0;
-  isChatDropActive.value = false;
-}
-
-function handleChatDragOver(event: DragEvent) {
-  if (!hasDraggedFiles(event)) return;
-  event.preventDefault();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
-}
-
-function handleChatDragEnter(event: DragEvent) {
-  if (!hasDraggedFiles(event)) return;
-  event.preventDefault();
-  chatDropCounter.value += 1;
-  isChatDropActive.value = true;
-}
-
-function handleChatDragLeave(event: DragEvent) {
-  if (!hasDraggedFiles(event)) return;
-  chatDropCounter.value -= 1;
-  if (chatDropCounter.value <= 0) resetChatDropState();
-}
-
-function handleChatDrop(event: DragEvent) {
-  if (!hasDraggedFiles(event)) return;
-  event.preventDefault();
-  const files = Array.from(event.dataTransfer?.files || []);
-  const target = event.target instanceof Element ? event.target : null;
-  resetChatDropState();
-  if (!files.length || target?.closest(".chat-input-area")) return;
-  chatInputRef.value?.addFiles?.(files);
 }
 
 async function handleSessionClick(sessionId: string) {

@@ -24,7 +24,6 @@ const jobsStore = useJobsStore()
 const loading = ref(false)
 const runs = ref<RunEntry[]>([])
 const actionLoading = ref<string | null>(null)
-const expandedContent = ref<Record<string, string>>({})
 
 // --- 状态相关 ---
 const statusLabel = computed(() => {
