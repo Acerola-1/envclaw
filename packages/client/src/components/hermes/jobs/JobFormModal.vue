@@ -82,21 +82,26 @@ function isPlatformConfigured(key: string): boolean {
 }
 
 const platformOptions = computed(() =>
-  platformList.map(p => {
-    const configured = isPlatformConfigured(p.key)
-    const contacts = channelContacts.value[p.key] || []
-    const hasContacts = contacts.length > 0
-    // 如果平台有联系人，使用完整的 deliver 值（platform:chat_id）
-    const deliverValue = hasContacts ? `${p.key}:${contacts[0].id}` : p.key
-    return {
-      label: () => h('span', { class: 'platform-option-label' }, [
-        h('span', { class: 'platform-option-icon' }, p.icon),
-        h('span', { class: 'platform-option-name' }, p.name),
-        h('span', { class: `platform-option-status${configured ? ' configured' : ''}` }, configured ? '已配置' : '未配置'),
-      ]),
-      value: deliverValue,
-    }
-  })
+  [...platformList]
+    .sort((a, b) => {
+      const aConfigured = isPlatformConfigured(a.key) ? 0 : 1
+      const bConfigured = isPlatformConfigured(b.key) ? 0 : 1
+      return aConfigured - bConfigured
+    })
+    .map(p => {
+      const configured = isPlatformConfigured(p.key)
+      const contacts = channelContacts.value[p.key] || []
+      const hasContacts = contacts.length > 0
+      const deliverValue = hasContacts ? `${p.key}:${contacts[0].id}` : p.key
+      return {
+        label: () => h('span', { class: 'platform-option-label' }, [
+          h('span', { class: 'platform-option-icon' }, p.icon),
+          h('span', { class: 'platform-option-name' }, p.name),
+          h('span', { class: `platform-option-status${configured ? ' configured' : ''}` }, configured ? '已配置' : '未配置'),
+        ]),
+        value: deliverValue,
+      }
+    })
 )
 
 function goToChannels() {
