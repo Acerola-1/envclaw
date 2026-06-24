@@ -21,6 +21,7 @@ import { GroupChatServer } from './services/hermes/group-chat'
 import { ChatRunSocket } from './services/hermes/run-chat'
 import { getAgentBridgeManager, startAgentBridgeManager } from './services/hermes/agent-bridge'
 import { HermesSkillInjector } from './services/hermes/skill-injector'
+import { HermesSoulInjector } from './services/hermes/soul-injector'
 import { injectBundledMcpServer } from './services/hermes/studio-mcp-autoinject'
 import { ensureProfileGatewaysRunning } from './services/hermes/gateway-autostart'
 import { refreshConfiguredProviderModelCatalogsInBackground } from './services/hermes/model-catalog-cache'
@@ -265,6 +266,22 @@ export async function bootstrap() {
       logger.warn(err, '[bootstrap] failed to inject bundled skills')
       console.warn('[bootstrap] failed to inject bundled skills:', err instanceof Error ? err.message : err)
     }
+  }
+
+  try {
+    const soulInjector = new HermesSoulInjector()
+    const soulResult = await soulInjector.injectMissingSoul()
+    const soulInjected = soulResult.targets.filter(t => t.action === 'injected').length
+    const soulUpdated = soulResult.targets.filter(t => t.action === 'updated').length
+    if (soulInjected > 0) {
+      logger.info({ injected: soulInjected, targetCount: soulResult.targets.length }, '[bootstrap] bundled soul injected')
+    }
+    if (soulUpdated > 0) {
+      logger.info({ updated: soulUpdated, targetCount: soulResult.targets.length }, '[bootstrap] bundled soul updated')
+    }
+  } catch (err) {
+    logger.warn(err, '[bootstrap] failed to inject bundled soul')
+    console.warn('[bootstrap] failed to inject bundled soul:', err instanceof Error ? err.message : err)
   }
 
   try {
