@@ -1,15 +1,13 @@
 ---
 name: mapairs-automation
-description: "Mapairs.com (数智大气/IPP-AIR) 空气质量监测平台操作指南。包含页面结构、登录流程、功能入口、数据查询等完整操作手册，使用 agent-browser 进行网页交互。当用户提到 mapairs.com、数智大气、IPP-AIR、空气质量监测平台、大气数据可视化时，应加载此技能。"
-tags: ["mapairs", "mapairs.com", "数智大气", "ipp-air", "空气质量", "大气数据", "环境监测", "agent-browser", "playwright", "website-guide", "air-quality", "screenshot", "automation"]
-related_skills: ["mapairs-automation"]
+description: "Mapairs.com (数智大气/IPP-AIR) 空气质量监测平台操作指南。包含页面结构、登录流程、功能入口、数据查询等完整操作手册，支持 agent-browser CLI 和浏览器工具两种交互方式。当用户提到 mapairs.com、数智大气、IPP-AIR、空气质量监测平台、大气数据可视化时，应加载此技能。"
+tags: [mapairs, "mapairs.com", 数智大气, ipp-air, 空气质量, 大气数据, 环境监测, "agent-browser", "website-guide", "air-quality", screenshot, automation]
+related_skills: [mapairs-automation]
 ---
 
 # Mapairs.com Automation
 
-Use this skill when automating https://www.mapairs.com/ — the air quality monitoring platform. Covers login, page navigation, Element Plus UI interaction, CDP screenshots, and data extraction for any city or region.
-
-For general Playwright patterns (element finding, form filling, SPA pitfalls), see `browser-automation` skill. This skill focuses on mapairs.com-specific knowledge.
+Use this skill when automating https://www.mapairs.com/ — the air quality monitoring platform. Covers login, page navigation, Element Plus UI interaction, agent-browser CLI screenshots, and data extraction for any city or region.
 
 ## Site Overview
 
@@ -34,43 +32,112 @@ For general Playwright patterns (element finding, form filling, SPA pitfalls), s
 | 一张图 | `https://www.mapairs.com/onemap/default` | `http://192.168.4.25:8090/onemap/default` |
 | 浓度排名 | `https://www.mapairs.com/dataStatistics/concentrationranking` | `http://192.168.4.25:8090/dataStatistics/concentrationranking` |
 
+## Prerequisites
+
+### agent-browser CLI（必需）
+
+截图脚本 `scripts/pingdingshan_ranking.py` 使用 **agent-browser CLI** 操作浏览器截图。
+
+**安装命令：**
+```bash
+npm install -g agent-browser
+```
+
+**脚本自动检测：** 脚本启动时会自动检测 agent-browser 是否安装。如果未安装，会输出明确错误提示并退出，不会静默失败。
+
+### 检查 agent-browser 是否已安装
+```bash
+agent-browser --version
+```
+
+当 agent-browser 未安装时，可用 Hermes 浏览器工具直接操作：
+- `browser_navigate` — 打开页面
+- `browser_console` — 执行 JS（**注意：必须用单行表达式，多行会返回 null**）
+- `browser_click` — 点击元素（通过 ref ID）
+- `browser_type` — 输入文本（通过 ref ID）
+- `browser_vision` — 截图 + AI 分析
+- `browser_press` — 按键（如 Escape）
+
+⚠️ **browser_console 关键陷阱**：多行 JS 表达式会返回 `null`！必须用分号分隔的单行表达式：
+```javascript
+// ❌ 多行 — 返回 null
+var nodes = document.querySelectorAll('.el-cascader-node');
+for (var i = 0; i < nodes.length; i++) { ... }
+result;
+
+// ✅ 单行 — 正常返回
+var nodes = document.querySelectorAll('.el-cascader-node'); var result = []; for (var i = 0; i < nodes.length; i++) { result.push(nodes[i].textContent.trim()); } result;
+```
+
 ## Login Flow
 
-The login entry is **NOT a labeled "登录" button**. It is a **user icon** (circular silhouette) at the far top-right corner. Use `browser_vision(annotate=True)` to find it, or click `.loginBg` via JS.
+The login entry is **NOT a labeled "登录" button**. It is a **user icon** (circular silhouette) at the far top-right corner. Click `.loginBg` via JS:
 
-### Playwright Login (for scripts)
+### agent-browser Login (scripts)
 
-Vue 3 reactive inputs require native value setter + event dispatch:
+The `pingdingshan_ranking.py` script logs in via `agent-browser evaluate` with Vue-native value setter:
 
 ```python
-safe_eval(page, """() => {
+# agent-browser evaluate executes JS in the page context
+subprocess.run(["agent-browser", "evaluate", js_code])
+
+# Vue 3 reactive input value setter (paste into evaluate or browser_console):
+js_fill = """() => {
     const s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
     for (const i of document.querySelectorAll('input')) {
-        if (i.placeholder?.includes('账号')) { 
+        if (i.placeholder?.includes('账号')) {
             i.removeAttribute('readonly'); i.focus();
-            s.call(i, 'zhangn');
+            s.call(i, 'X-mojl');
             i.dispatchEvent(new Event('input', {bubbles: true}));
             i.dispatchEvent(new Event('change', {bubbles: true}));
         }
         if (i.placeholder?.includes('密码')) {
             i.removeAttribute('readonly'); i.focus();
-            s.call(i, 'yutu@124');
+            s.call(i, 'yutu@889');
             i.dispatchEvent(new Event('input', {bubbles: true}));
             i.dispatchEvent(new Event('change', {bubbles: true}));
         }
     }
-}""")
+    return 'done';
+}()"""
 ```
 
-### Browser Tool Login (interactive sessions)
+Then click login button and verify token:
 
+```python
+subprocess.run(["agent-browser", "evaluate", """() => {
+    const buttons = document.querySelectorAll('button');
+    for (const btn of buttons) {
+        if (btn.textContent?.trim() === '登录') { btn.click(); return true; }
+    }
+    return false;
+}()"""])
+# Verify: localStorage.getItem('saber-token')
 ```
-1. browser_console: document.querySelector('.loginBg').click()
-2. Wait for dialog (check snapshot has dialog element)
-3. browser_type: username ref → "zhangn"
-4. browser_type: password ref → "yutu@124"
-5. browser_click: login button ref
-6. browser_console: localStorage.getItem('saber-token') — verify token exists
+
+### Hermes Browser Console Login (interactive)
+
+**方法1: browser_type（推荐，最简单）**
+
+```javascript
+// 1. 点击登录图标
+document.querySelector('.loginBg').click()
+// 2. 等待对话框出现，用 browser_snapshot 找到 ref
+// 3. 用 browser_type 直接输入（会自动清空并输入）
+//    browser_type ref=e44 text="X-mojl"    // 账号
+//    browser_type ref=e45 text="yutu@889"   // 密码
+// 4. 用 browser_click 点击登录按钮
+// 5. 验证: localStorage.getItem('saber-token')
+```
+
+**方法2: browser_console + Vue value setter（复杂场景）**
+
+```javascript
+// 1. Click login icon
+document.querySelector('.loginBg').click()
+// 2. Fill username/password via Vue value setter (see JS above)
+// 3. Click login button
+// 4. Verify: localStorage.getItem('saber-token')
 ```
 
 ### Post-Login State
@@ -81,400 +148,236 @@ safe_eval(page, """() => {
 
 ## City Switching via localStorage
 
-The default city depends on the account (e.g., "保定市" for zhangn). Switch by modifying `localStorage('regionList')`:
+```javascript
+// Get province/city data first:
+JSON.parse(localStorage.getItem('yesprovinces') || '[]')
 
-```python
-def switch_city(page, province_name, city_name):
-    """Switch city via localStorage modification."""
-    safe_eval(page, f"""() => {{
-        const provinces = JSON.parse(localStorage.getItem('yesprovinces') || '[]');
-        const province = provinces.find(p => p.fullName === '{province_name}');
-        if (!province) return 'province not found';
-        const city = province.children?.find(c => c.fullName?.includes('{city_name}'));
-        if (!city) return 'city not found';
-        const newRegionList = {{
-            provinceShortCode: province.provinceCodeVO,
-            provinceName: province.fullName,
-            parentShortCode: province.provinceCodeVO,
-            parentName: province.fullName,
-            currentShortCode: city.regionKeyVO,
-            currentRegionName: city.fullName,
-            currentRegionLevel: 1,
-            virtualCode: "-"
-        }};
-        localStorage.setItem('regionList', JSON.stringify(newRegionList));
-        localStorage.setItem('is_province', '0');
-    }}""")
-    # Refresh page to apply
-    page.goto(url, timeout=60000, wait_until="domcontentloaded")
-    time.sleep(15)
+// Then set new region:
+const newRegionList = {
+    provinceShortCode: "41",        // province code
+    provinceName: "河南省",
+    parentShortCode: "41",
+    parentName: "河南省",
+    currentShortCode: "410400",     // city regionKeyVO
+    currentRegionName: "平顶山市",
+    currentRegionLevel: 1,
+    virtualCode: "-"
+};
+localStorage.setItem('regionList', JSON.stringify(newRegionList));
+localStorage.setItem('is_province', '0');
+// Refresh page to apply
 ```
 
-**Key**: `yesprovinces` contains all province/city `regionKeyVO` codes. After modification, refresh the page.
+## Screenshots via agent-browser CLI
 
-## CDP Screenshots (Required for Mapbox pages)
+`agent-browser screenshot <path>` uses CDP under the hood — no special handling needed for Mapbox.
 
-`page.screenshot()` fails on Mapbox pages — always use CDP:
-
-```python
-def cdp_ss(page, context, path):
-    cdp = None
-    try:
-        cdp = context.new_cdp_session(page)
-        r = cdp.send("Page.captureScreenshot", {"format": "png"})
-        with open(path, "wb") as f:
-            f.write(base64.b64decode(r["data"]))
-        return os.path.getsize(path)
-    finally:
-        if cdp:
-            try: cdp.detach()
-            except: pass
-```
-
-## Element Plus UI Patterns
-
-### el-cascader (级联选择器)
-
-**Critical**: `input[type="checkbox"]` is hidden — click `.el-checkbox__inner` instead:
+### From Python script
 
 ```python
-# ✅ Correct
-checkbox_inner = node.locator('.el-checkbox__inner').first
-checkbox_inner.click()
-
-# ❌ Wrong — "Element is outside of the viewport"
-node.locator('input[type="checkbox"]').click()
+import subprocess
+result = subprocess.run(["agent-browser", "screenshot", "/path/to/output.png"],
+    capture_output=True, text=True, timeout=20)
 ```
 
-**Clearing selections** before opening the cascader (multi-select mode causes data mixing):
+### From shell / cron
 
-```python
-def clear_all_selections(page):
-    """Remove all selected tags and panel checkboxes."""
-    for _ in range(5):
-        cleared = safe_eval(page, """() => {
-            const tags = document.querySelectorAll('.el-cascader .el-tag .el-tag__close');
-            if (tags.length > 0) { tags[0].click(); return true; }
-            return false;
-        }""")
-        if not cleared:
-            break
-        time.sleep(0.5)
-    safe_eval(page, """() => {
-        const checked = document.querySelectorAll('.el-cascader-node.is-checked');
-        for (const node of checked) {
-            const box = node.querySelector('.el-checkbox__inner');
-            if (box) box.click();
-        }
-    }""")
-    time.sleep(1)
+```bash
+agent-browser screenshot ~/Desktop/mapairs_screenshots/rank_province_$(date +%Y%m%d_%H%M%S).png
 ```
 
-**After selection**, press Escape to close the panel before clicking query.
+### Safe file size
+
+- Screenshots < 200 KB → page not fully loaded
+- Screenshots > 250 KB → normal
+
+## Browser-based Data Extraction (替代截图)
+
+When screenshots fail (agent-browser not installed, timeout, etc.), extract table data directly via JS:
+
+```javascript
+// Extract all table rows
+const rows = document.querySelectorAll('.el-table__body tr');
+const result = [];
+for (const row of rows) {
+    const cells = row.querySelectorAll('td');
+    result.push(Array.from(cells).map(c => c.textContent?.trim()));
+}
+return result;
+```
+
+### Table Structure (浓度排名)
+
+Each row = a rank position. Column pairs show (city_name, value) for the city holding that rank:
+
+```
+[排名, 综指城市, 综指值, PM2.5城市, PM2.5值, PM10城市, PM10值,
+ SO2城市, SO2值, NO2城市, NO2值, CO城市, CO值, O3城市, O3值,
+ AQI城市, AQI值, 等级, 首要污染物]
+```
+
+**To find a specific city's values**, scan each metric column pair for the target city name (e.g., `col[1]` = 综指 city, `col[2]` = its value). A city may rank differently across metrics.
+
+## 城市/站点 Mode
+
+| Mode | Shows | Cascader Panels | Use Case |
+|------|-------|-----------------|----------|
+| **城市** | Province-level city ranking | 省 → 市 (2 panels, panel 2+ empty) | 全省地市排名 |
+| **站点** | City-level district/station ranking | 省 → 市 → 区县 (4 panels total: 0=省, 1=市, 2=区县, 3=empty) | 各区县/站点排名 |
+
+**Critical**: In "城市" mode the third panel is empty. Switch to "站点" for districts.
+
+⚠️ **Panel index pitfall**: "站点" mode has **4 panels** (not 3). Panel index 3 is always empty. When selecting "全部" for districts, target **panel index 2** (not the last panel). Use `document.querySelectorAll('.el-cascader-menu')[2]` to access the districts panel.
+
+### Switching Mode
+
+```javascript
+const radios = document.querySelectorAll('.el-radio, .el-radio-button');
+for (const r of radios) {
+    if (r.textContent?.trim() === '站点') { r.click(); break; }
+}
+```
+
+### el-cascader (级联选择器) — Vue 3 Tricks
+
+- **Hidden checkbox**: `input[type="checkbox"]` is invisible. Click `.el-checkbox__inner` instead.
+- **Opening the cascader (reliable method)**: 点击 textbox "请选择" 的 ref 有时不生效。更可靠的方式是用 JS 直接点击 cascader 内部的 input：
+  ```javascript
+  document.querySelector('.el-cascader').querySelector('input').click()
+  ```
+  如果还不行，尝试点击 cascader 父容器：`document.querySelector('.el-cascader').click()`
+- **Clearing selections** before reopening the cascader:
+
+```javascript
+// Close tags
+for (let i = 0; i < 5; i++) {
+    const tags = document.querySelectorAll('.el-cascader .el-tag .el-tag__close');
+    if (tags.length > 0) { tags[0].click(); }
+}
+// Uncheck nodes
+const checked = document.querySelectorAll('.el-cascader-node.is-checked');
+for (const node of checked) {
+    const box = node.querySelector('.el-checkbox__inner');
+    if (box) box.click();
+}
+```
+
+- **After selection**, press Escape to close panel before clicking 查询.
+- **Critical**: Do NOT select the province/city itself — only select its children (下一级). Selecting both adds a spurious "汇总" row.
 
 ### el-radio-group (时间类型)
 
-Select "日累计" (daily cumulative):
+Select "日累计" (daily cumulative) — NOT 实时:
 
-```python
-safe_eval(page, """() => {
-    const radios = document.querySelectorAll('.el-radio, .el-radio-button');
-    for (const r of radios) {
-        if (r.textContent?.trim() === '日累计') { r.click(); return true; }
-    }
-    return false;
-}""")
+```javascript
+const radios = document.querySelectorAll('.el-radio, .el-radio-button');
+for (const r of radios) {
+    if (r.textContent?.trim() === '日累计') { r.click(); break; }
+}
 ```
 
 ## State Reset Between Screenshots
 
-**Critical**: Navigate to the target page fresh between screenshots — cascader/map state accumulates and causes timeouts:
+**Navigate fresh** between screenshots — cascader/map state accumulates:
 
-```python
-def reset_and_navigate(page, url):
-    try:
-        page.goto(url, timeout=60000, wait_until="domcontentloaded")
-    except: pass
-    time.sleep(15-20)
-    safe_eval(page, """() => { for (const b of document.querySelectorAll('button')) { 
-        if (b.textContent?.trim() === '取消') { b.click(); break; } } }""")
-    time.sleep(2)
-    for _ in range(2):
-        page.keyboard.press("Escape")
-        time.sleep(0.3)
+```javascript
+// Navigate via agent-browser
+subprocess.run(["agent-browser", "open", "https://www.mapairs.com/dataStatistics/concentrationranking"])
+// Wait 15-20s for page load
+time.sleep(15)
 ```
 
 ## Workflows
 
-### Concentration Ranking (浓度排名)
+### Concentration Ranking — 双截图
 
-See `references/concentration-ranking.md` for the dual-screenshot workflow (province-level + city-level rankings).
+1. **Screenshot 1 (全省地市排名)**: Use "城市" mode. Open cascader, deselect all, navigate to province, select all cities (not province itself), switch to 日累计, click 查询, screenshot.
+2. **Screenshot 2 (各区排名)**: Navigate fresh, switch to "站点" mode. Open cascader (3 panels), navigate 省→市, select all districts, switch to 日累计, click 查询, screenshot.
 
 **Quick run**:
 ```bash
-python3 ~/.hermes/skills/web-automation/mapairs-automation/scripts/mapairs_dual_screenshot.py
+python3 ~/.hermes/skills/mapairs-automation/scripts/pingdingshan_ranking.py
 ```
-Edit `CITY_NAME` variable for different cities.
 
 ### One-Map View (一张图)
 
-Used for geographic air quality visualization. Mapbox GL JS map instance is hidden in Vue 3 component tree — cannot access `flyTo()`. Use zoom buttons instead:
+Mapbox GL JS map instance is hidden in Vue 3 — cannot `flyTo()`. Use zoom buttons instead:
 
-```python
-def click_zoom_button(page, text):
-    """Click right-side zoom button (全国/河南省/平顶山市)."""
-    safe_eval(page, f"""() => {{
-        const allEls = document.querySelectorAll('*');
-        for (const el of allEls) {{
-            if (el.textContent?.trim() === '{text}' && el.children.length === 0) {{
-                el.click();
-                return true;
-            }}
-        }}
-        return false;
-    }}""")
-    time.sleep(12)  # Wait for map tiles to load
-```
-
-### Pingdingshan IPP-AIR (三截图)
-
-See `references/pingdingshan-workflow.md` for the three-screenshot workflow (河南省 map + 平顶山市 map + concentration ranking).
-
-**Quick run**:
-```bash
-python3 ~/.hermes/skills/web-automation/mapairs-automation/scripts/pingdingshan_screenshot.py
-```
-
-## Province Mapping
-
-```python
-PROVINCE_MAP = {
-    "杭州市": "浙江省", "宁波市": "浙江省", "温州市": "浙江省",
-    "郑州市": "河南省", "洛阳市": "河南省", "平顶山市": "河南省",
-    "成都市": "四川省", "广州市": "广东省", "武汉市": "湖北省",
-    "南京市": "江苏省", "苏州市": "江苏省", "济南市": "山东省",
-    # ... extend as needed
+```javascript
+const allEls = document.querySelectorAll('*');
+for (const el of allEls) {
+    if (el.textContent?.trim() === '平顶山市' && el.children.length === 0) {
+        el.click(); break;
+    }
 }
+// Wait 12s for tiles
 ```
-
-## DOM Structure
-
-### 一张图页面
-```
-#__nuxt
-  .top (顶部导航)
-  [Map] (Mapbox 地图区域)
-  .right_l (右侧面板)
-  .map-control-zoom (缩放按钮)
-```
-
-### 浓度排名页面
-```
-#__nuxt
-  .menuBox (侧边栏)
-  .data-content
-    .right-side
-      .choice_list (筛选栏: 行政区 cascader + 时间 radio)
-      .data_list (.el-table 排名表格)
-```
-
-## Pitfalls
-
-- **CDP required** — `page.screenshot()` fails on Mapbox pages
-- **URL navigation most reliable** — don't use sidebar menus
-- **Safe file size** — screenshots <200K = page not loaded, >250K = normal
-- **safe_eval wrapper** — prevents JS execution hanging the script
-- **Script timeout** — keep under 90-120s to avoid EPIPE
-- **Close panel before query** — must press Escape after cascader selection
-- **Mapbox flyTo unavailable** — map instance hidden in Vue 3 tree, use zoom buttons
-- **agent-browser empty snapshot** — `browser_snapshot` returns empty on mapairs.com because Hermes browser tools and `agent-browser` CLI use different browser instances. Use `agent-browser` CLI via `terminal()` instead — its snapshot works:
-  ```bash
-  agent-browser open http://192.168.4.25:8090/lock
-  agent-browser snapshot        # Full accessibility tree
-  agent-browser click @e8       # Click by ref
-  agent-browser screenshot /tmp/result.png
-  ```
-  See `browser-automation` skill for the "Hermes vs CLI different instances" section.
 
 ## 截图发送格式
 
 **重要**：在输出截图时，必须使用 `MEDIA:` 标签格式，否则微信/QQ 会显示文件路径而不是图片。
 
-### 正确格式
+### ⚠️ Windows 平台路径处理
 
-```
-截图已保存：
+Windows 上 Python `os.path.join()` 生成的是反斜杠路径（`\`），但 **微信 `MEDIA:` 标签只支持正斜杠（`/`）**。
 
-MEDIA:/Users/acerola/Desktop/mapairs_screenshots/rank_province_20260624_160107.png
-MEDIA:/Users/acerola/Desktop/mapairs_screenshots/rank_city_20260624_160107.png
-```
-
-### 错误格式（会显示文件路径）
-
-```
-截图已保存：
-~/Desktop/mapairs_screenshots/rank_province_20260624_160107.png
-```
-
-### 在 Playwright 脚本中输出
+**正确做法**：在脚本输出 `MEDIA:` 标签前，将路径中的 `\` 替换为 `/`：
 
 ```python
-# 截图完成后，打印 MEDIA: 标签
-print(f"\nMEDIA:{province_screenshot_path}")
-print(f"\nMEDIA:{city_screenshot_path}")
+def to_media_path(p):
+    """Windows 路径转正斜杠（微信 MEDIA: 标签只支持正斜杠）"""
+    return p.replace("\\", "/") if p else p
+
+# 输出时
+print(f"\nMEDIA:{to_media_path(screenshot_path)}")
 ```
 
-### 在 agent 响应中输出
-
-如果 agent 使用 `vision_analyze` 分析截图后，在最终响应中包含：
-
-```
-MEDIA:/path/to/screenshot1.png
-MEDIA:/path/to/screenshot2.png
+### 正确格式
+MEDIA:/path/to/rank_province_20260625_090000.png
+MEDIA:/path/to/rank_city_20260625_090000.png
 ```
 
-系统会自动下载并作为图片发送到微信/QQ。
+系统自动下载并作为图片发送到微信/QQ。
 
 ## Cron Debugging
 
-When a cron job appears not to execute, see `references/concentration-ranking.md` § Debugging Cron Runs for the diagnostic sequence: check `jobs.json` status fields → trace `agent.log` → verify output files → identify failure mode.
+### Diagnostic Sequence
 
-Key fields in `~/.hermes/cron/jobs.json`: `last_status` ("ok"/null), `last_run_at`, `last_delivery_error`, `repeat.completed`.
+1. **Check `last_run_at`**: If null, the scheduler hasn't picked up the job — start with `hermes cron status`, not model debugging.
+2. **Check `last_status`**: "ok" means the agent completed its loop. Does NOT mean screenshots succeeded — verify output files exist on disk.
+3. **Critical: don't repeat model diagnosis** — if the user says they already fixed the provider/config, **accept it** and move on to checking scheduler, runtime, and prerequisites. Repeating the same diagnosis frustrates the user.
 
-See `references/wechat-cron-delivery.md` for delivery format details.
+### Common Failure Modes
 
-## 浓度排名模块操作要点
-
-### ⚠️ 级联选择器勾选规则（重要）
-
-**核心原则：不勾选当前级别，只勾选下一级**
-
-| 查询目标 | 不要勾选 | 应该勾选 | 示例 |
-|----------|----------|----------|------|
-| 河南省城市排名 | 河南省 | 河南省下的所有城市（郑州市、洛阳市、平顶山市...） | 去掉省级勾选 |
-| 杭州市区县排名 | 杭州市 | 杭州市下的所有区县（西湖区、上城区、萧山区...） | 去掉市级勾选 |
-| 全省排名 | 不选任何城市 | 只选省级 | 但要确保没有重复 |
-
-### 为什么？
-
-如果勾选了当前级别，会出现：
-- 排名列表中多出一行"汇总"或"全省"数据
-- 数据不准确，混淆了层级
-
-### 正确操作流程
-
-```python
-# 1. 清空所有已选
-clear_all_selections(page)
-
-# 2. 打开级联选择器
-page.click('.el-cascader')
-
-# 3. 展开省 → 选择下一级城市（不勾选省本身）
-# 例如：查河南省排名，展开"河南省"，勾选所有城市
-
-# 4. 按 Escape 关闭面板
-page.keyboard.press("Escape")
-time.sleep(1)
-
-# 5. 点击查询按钮
-page.click('button:has-text("查询")')
-```
-
-### clear_all_selections 函数
-
-```python
-def clear_all_selections(page):
-    """清除所有已选的级联选择器选项"""
-    for _ in range(5):
-        cleared = safe_eval(page, """() => {
-            const tags = document.querySelectorAll('.el-cascader .el-tag .el-tag__close');
-            if (tags.length > 0) { tags[0].click(); return true; }
-            return false;
-        }""")
-        if not cleared:
-            break
-        time.sleep(0.5)
-    safe_eval(page, """() => {
-        const checked = document.querySelectorAll('.el-cascader-node.is-checked');
-        for (const node of checked) {
-            const box = node.querySelector('.el-checkbox__inner');
-            if (box) box.click();
-        }
-    }""")
-    time.sleep(1)
-```
-
-### 选择下一级城市
-
-```python
-def select_next_level(page, province_name):
-    """展开省，选择所有下一级城市（不勾选省本身）"""
-    safe_eval(page, f"""() => {{
-        // 找到省节点并展开
-        const nodes = document.querySelectorAll('.el-cascader-node');
-        for (const node of nodes) {{
-            if (node.textContent?.includes('{province_name}')) {{
-                // 点击展开（如果有子节点）
-                const label = node.querySelector('.el-cascader-node__label');
-                if (label) label.click();
-                break;
-            }}
-        }}
-    }}""")
-    time.sleep(2)
-    
-    # 选择所有下一级城市
-    safe_eval(page, f"""() => {{
-        const nodes = document.querySelectorAll('.el-cascader-node');
-        let inProvince = false;
-        for (const node of nodes) {{
-            if (node.textContent?.trim() === '{province_name}') {{
-                inProvince = true;
-                continue;
-            }}
-            if (inProvince && node.level === 2) {{
-                const box = node.querySelector('.el-checkbox__inner');
-                if (box) box.click();
-            }}
-            if (inProvince && node.level === 1) break; // 遇到下一个省就停止
-        }}
-    }}""")
-    time.sleep(1)
-```
-
-## Cron Delivery Notes
-
-When using this skill with Hermes cron jobs, delivery configuration is critical.
-
-### WeChat (iLink) Delivery
-
-Hermes uses Tencent's iLink Bot API for WeChat. The chat_id format from iLink is `xxxx@im.wechat` (e.g. `o9cq805Sb0RjMzwijBZ-r_5CLvbc@im.wechat`).
-
-**Deliver format**: `weixin:CHAT_ID` — the full `@im.wechat` format works.
-
-**The `_WEIXIN_TARGET_RE` regex** in `send_message_tool.py` does NOT match `@im.wechat` format, but this is OK — the cron scheduler falls back to using the raw value when the regex doesn't match (`is_explicit=False` path in `_resolve_single_delivery_target`).
-
-**What actually fails**: Using just `weixin` without a chat_id. This triggers the `WEIXIN_HOME_CHANNEL` env var lookup, which returns empty → "no delivery target resolved".
-
-| deliver 格式 | 结果 | 原因 |
-|---|---|---|
-| `weixin` | ❌ 失败 | 没有 chat_id，环境变量未设置 |
-| `weixin:xxxx@im.wechat` | ✅ 成功 | 正则不匹配但 fallback 使用原始值 |
-| `weixin:wxid_xxxxx` | ✅ 成功 | 正则匹配 |
-| `origin` | 视情况 | 需要 origin 非 null（从对话中创建的任务才行） |
-
-**For third-party WebUI**: Tasks created from a WebUI have `origin: null`, so `origin` delivery won't work. Must use explicit `weixin:CHAT_ID` format. Get the chat_id from `~/.hermes/channel_directory.json`.
-
-See `references/wechat-cron-delivery.md` for full details.
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `last_run_at` stays null | Scheduler not running | `hermes cron schedule` or restart gateway |
+| `last_status: "ok"` but no screenshots | agent-browser not installed | `npm install -g agent-browser` |
+| Screenshots < 200 KB | Page not fully loaded | Increase wait time after navigation |
+| Screenshots sent but user sees nothing | Delivery format wrong | Use `weixin:CHAT_ID` not bare `weixin` |
 
 ## Scripts
 
-- `scripts/mapairs_dual_screenshot.py` — concentration ranking dual screenshot (province + city)
-- `scripts/mapairs_concentration_v4.py` — single-city concentration screenshot (Linux compatible)
-- `scripts/pingdingshan_screenshot.py` — Pingdingshan IPP-AIR three-screenshot workflow
+- `scripts/pingdingshan_ranking.py` — Pingdingshan 浓度排名双截图 + 数据分析（agent-browser 版，推荐）
 
 ## References
 
-- `references/concentration-ranking.md` — concentration ranking workflow details
-- `references/pingdingshan-workflow.md` — Pingdingshan-specific workflow details
+- `references/concentration-ranking.md` — 浓度排名操作详情
+- `references/pingdingshan-workflow.md` — 平顶山市工作流
+- `references/pingdingshan-ranking-parsing.md` — 数据分析与报告模板
+- `references/wechat-cron-delivery.md` — 微信推送配置
+- `references/browser-tools-workflow.md` — 浏览器工具降级方案（agent-browser 不可用时）
+
+## Pitfalls
+
+- **agent-browser 推荐但非必需** — 未安装时可用 browser_* 工具降级操作
+- **browser_console 多行 JS 返回 null** — 必须用分号分隔的单行表达式，否则返回 null 导致反复失败
+- **URL navigation most reliable** — don't use sidebar menus
+- **agent-browser evaluate** is the primary interaction method for Vue 3 reactive inputs
+- **Close cascader panel before clicking 查询** — press Escape first
+- **Mapbox flyTo unavailable** — map instance hidden; use zoom buttons
+- **Screen timeout** — keep script under 90-120s per screenshot
+- **user's config fix**: If user says they already fixed a config/provider issue, accept it immediately and move on
+- **Cascader 打开方式** — 点击 textbox "请选择" 的 ref 有时不生效，用 JS `document.querySelector('.el-cascader').querySelector('input').click()` 更可靠
+- **页面状态累积** — 截图之间必须 navigate fresh，否则 cascader/选择状态会累积导致数据错误
+- **Cascader panel index 陷阱** — "站点"模式有 4 个 panel（index 0-3），panel 3 始终为空。选区县"全部"时必须用 `panels[2]`（不是最后一个 panel）。用 `document.querySelectorAll('.el-cascader-menu').length` 确认实际 panel 数量
