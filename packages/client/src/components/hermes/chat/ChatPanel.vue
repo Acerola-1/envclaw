@@ -122,7 +122,7 @@ const currentUsername = computed(() => {
       const user = JSON.parse(stored);
       return user.username || user.name || '';
     }
-  } catch {}
+  } catch { }
   return '';
 });
 
@@ -142,7 +142,7 @@ function handleReloadClient() {
 async function handleUpdate() {
   try {
     await appStore.doUpdate();
-  } catch {}
+  } catch { }
 }
 
 // Batch selection mode
@@ -1291,8 +1291,9 @@ async function handleSessionModelCustomSubmit() {
               <SessionListItem v-for="s in pinnedSessions" :key="`pinned-${s.id}`" :session="s"
                 :active="s.id === chatStore.activeSessionId" :pinned="true" :can-delete="s.id !== chatStore.activeSessionId ||
                   chatStore.sessions.length > 1
-                  " :streaming="chatStore.isSessionLive(s.id)" :completed-unread="chatStore.isSessionCompletedUnread(s.id)"
-                :selectable="isBatchMode" :selected="isSessionSelected(s)" :show-profile="true" :to="sessionHref(s.id)"
+                  " :streaming="chatStore.isSessionLive(s.id)"
+                :completed-unread="chatStore.isSessionCompletedUnread(s.id)" :selectable="isBatchMode"
+                :selected="isSessionSelected(s)" :show-profile="true" :to="sessionHref(s.id)"
                 @select="handleSessionClick(s.id)" @contextmenu="handleContextMenu($event, s.id)"
                 @delete="handleDeleteSession(s.id)" @toggle-select="toggleSessionSelection(s)" />
             </template>
@@ -1300,8 +1301,9 @@ async function handleSessionModelCustomSubmit() {
             <SessionListItem v-for="s in visibleSessions" :key="s.id" :session="s"
               :active="s.id === chatStore.activeSessionId" :pinned="false" :can-delete="s.id !== chatStore.activeSessionId ||
                 chatStore.sessions.length > 1
-                " :streaming="chatStore.isSessionLive(s.id)" :completed-unread="chatStore.isSessionCompletedUnread(s.id)"
-              :selectable="isBatchMode" :selected="isSessionSelected(s)" :show-profile="true" :to="sessionHref(s.id)"
+                " :streaming="chatStore.isSessionLive(s.id)"
+              :completed-unread="chatStore.isSessionCompletedUnread(s.id)" :selectable="isBatchMode"
+              :selected="isSessionSelected(s)" :show-profile="true" :to="sessionHref(s.id)"
               @select="handleSessionClick(s.id)" @contextmenu="handleContextMenu($event, s.id)"
               @delete="handleDeleteSession(s.id)" @toggle-select="toggleSessionSelection(s)" />
             <button v-if="unpinnedSessions.length > MAX_VISIBLE_ITEMS" class="session-more-btn"
@@ -1421,7 +1423,8 @@ async function handleSessionModelCustomSubmit() {
               @click="handleUpdate">
               {{ appStore.updating ? t("sidebar.updating") : t("sidebar.updateVersion", {
                 version:
-                  appStore.latestVersion })
+                  appStore.latestVersion
+              })
               }}
             </NButton>
           </div>
@@ -1610,10 +1613,11 @@ async function handleSessionModelCustomSubmit() {
           <span v-if="activeAgentId && currentMode === 'chat' && appMode === 'smartQuery'" class="agent-badge">
             {{ activeAgentId === 'status' ? '📊 问现状' : activeAgentId === 'future' ? '🔮 问将来' : activeAgentId ===
               'rootcause'
-              ? '🔍 问根因' : activeAgentId === 'hourly-broadcast' ? '⏰ 小时播报' : activeAgentId === 'ratio-analysis' ? '📈综合占比分析'
-            : activeAgentId === 'daily-report' ? '📋 日报总结' : activeAgentId === 'alert-check' ? '🚨 预警检查' : activeAgentId
-              ===
-              'compare-analysis' ? '📉 同比环比分析' : activeAgentId === 'anomaly-detect' ? '🎯 异常检测' : '🤖 ' + activeAgentId }}
+              ? '🔍 问根因' : activeAgentId === 'hourly-broadcast' ? '⏰ 小时播报' : activeAgentId === 'ratio-analysis' ?
+                '📈综合占比分析'
+                : activeAgentId === 'daily-report' ? '📋 日报总结' : activeAgentId === 'alert-check' ? '🚨 预警检查' : activeAgentId
+                  ===
+                  'compare-analysis' ? '📉 同比环比分析' : activeAgentId === 'anomaly-detect' ? '🎯 异常检测' : '🤖 ' + activeAgentId }}
           </span>
           <span v-if="chatStore.activeSession?.workspace" class="workspace-badge"
             :title="chatStore.activeSession.workspace">📁
@@ -2377,6 +2381,10 @@ async function handleSessionModelCustomSubmit() {
 
 .session-section {
   padding: 0 6px;
+
+  &:first-child {
+    min-height: 200px;
+  }
 }
 
 .session-more-btn {

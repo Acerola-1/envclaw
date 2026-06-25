@@ -17,7 +17,6 @@ import SessionSettings from "@/components/hermes/settings/SessionSettings.vue";
 import PrivacySettings from "@/components/hermes/settings/PrivacySettings.vue";
 import ModelSettings from "@/components/hermes/settings/ModelSettings.vue";
 import AccountSettings from "@/components/hermes/settings/AccountSettings.vue";
-import UserManagementSettings from "@/components/hermes/settings/UserManagementSettings.vue";
 import VoiceSettings from "@/components/hermes/settings/VoiceSettings.vue";
 import { isStoredSuperAdmin } from "@/api/client";
 import { useProfilesStore } from "@/stores/hermes/profiles";
@@ -90,9 +89,9 @@ onMounted(() => {
           <NTabPane name="account" :tab="t('settings.tabs.account')">
             <AccountSettings />
           </NTabPane>
-          <NTabPane v-if="canManageUsers" name="users" :tab="t('settings.tabs.users')">
+          <!-- <NTabPane v-if="canManageUsers" name="users" :tab="t('settings.tabs.users')">
             <UserManagementSettings />
-          </NTabPane>
+          </NTabPane> -->
           <NTabPane name="display" :tab="t('settings.tabs.display')">
             <DisplaySettings />
           </NTabPane>
