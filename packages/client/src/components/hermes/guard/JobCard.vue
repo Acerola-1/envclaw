@@ -138,7 +138,7 @@ async function handleRunNow() {
   actionLoading.value = 'run'
   try {
     await runJob(jobId)
-    message.success('任务已触发执行')
+    message.success('任务已加入执行队列，将在 60 秒内执行')
     await fetchRuns()
   } catch (e: any) {
     message.error('触发失败: ' + (e.message || e))
