@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环保管家 · 技能库</title>
+<style>
+  :root {
+    --bg: #1a1a1a; --sider: #202020; --card: #2a2a2a; --card-hover: #303030;
+    --action: #252525; --border: #3a3a3a; --border-strong: #555555;
+    --text1: #e0e0e0; --text2: #a0a0a0; --text3: #666666;
+    --primary: #e0e0e0; --on-primary: #1a1a1a;
+    --green: #66bb6a; --green-soft: rgba(102,187,106,0.14);
+    --amber: #e0a458; --amber-soft: rgba(224,164,88,0.14);
+    --red: #d96a6a; --red-soft: rgba(217,106,106,0.14);
+    --blue: #6a9fd9; --blue-soft: rgba(106,159,217,0.14);
+    --radius: 8px; --radius-sm: 6px; --radius-lg: 12px;
+    --font: 'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    /* 来源色：内置灰 / hub蓝 / 本地绿 / 外部琥珀 */
+    --src-builtin: #777; --src-hub: var(--blue); --src-local: var(--green); --src-external: var(--amber);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text1); height: 100vh; overflow: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  svg { stroke-width: 1.6; }
+  .ic { width: 18px; height: 18px; flex-shrink: 0; }
+  .ic-sm { width: 15px; height: 15px; flex-shrink: 0; }
+
+  .app { display: flex; flex-direction: column; height: 100vh; }
+
+  /* 顶栏 */
+  .topbar { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .topbar-left { display: flex; align-items: center; gap: 22px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14px; letter-spacing: .2px; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--text1); color: var(--bg); display: flex; align-items: center; justify-content: center; }
+  .brand-mark svg { stroke-width: 2; }
+  .mode-switch { display: flex; background: var(--action); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px; gap: 2px; }
+  .mode-btn { display: flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--text2); background: transparent; border: none; cursor: pointer; transition: .15s; }
+  .mode-btn:hover { color: var(--text1); }
+  .mode-btn.active { background: var(--primary); color: var(--on-primary); }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .icon-btn { position: relative; width: 34px; height: 34px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text2); cursor: pointer; transition: .15s; }
+  .icon-btn:hover { background: var(--action); color: var(--text1); }
+  .dot-badge { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); border: 2px solid var(--bg); }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--card); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--text1); cursor: pointer; }
+
+  .body { flex: 1; display: flex; overflow: hidden; }
+
+  /* 左侧导航 */
+  .railnav { width: 200px; background: var(--sider); border-right: 1px solid var(--border); padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+  .rail-group-label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; padding: 12px 10px 6px; }
+  .rail-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); color: var(--text2); cursor: pointer; font-size: 13px; transition: .15s; text-decoration: none; }
+  .rail-item:hover { background: var(--action); color: var(--text1); }
+  .rail-item.active { background: rgba(255,255,255,0.08); color: var(--text1); font-weight: 500; }
+  .rail-item .count { margin-left: auto; font-size: 11px; background: var(--card); border: 1px solid var(--border); padding: 1px 7px; border-radius: 10px; color: var(--text2); }
+  .rail-spacer { flex: 1; }
+
+  /* 技能双栏 */
+  .skill-body { flex: 1; display: flex; overflow: hidden; }
+  .skill-list { width: 320px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sl-head { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+  .sl-head h2 { font-size: 15px; font-weight: 600; }
+  .sl-head .sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .sl-search { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 11px; margin-top: 12px; }
+  .sl-search:focus-within { border-color: var(--border-strong); }
+  .sl-search input { flex: 1; background: none; border: none; color: var(--text1); font-size: 13px; outline: none; font-family: var(--font); }
+  .sl-search input::placeholder { color: var(--text3); }
+  .sl-search svg { color: var(--text3); }
+  /* 来源图例 */
+  .legend { display: flex; gap: 12px; margin-top: 11px; padding: 0 2px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .sl-scroll { flex: 1; overflow-y: auto; padding: 8px; }
+  .sl-scroll::-webkit-scrollbar { width: 8px; }
+  .sl-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 2px solid var(--sider); }
+  .cat { margin-bottom: 6px; }
+  .cat-head { display: flex; align-items: center; gap: 8px; padding: 9px 10px; cursor: pointer; border-radius: var(--radius-sm); }
+  .cat-head:hover { background: var(--action); }
+  .cat-head .chev { transition: .15s; color: var(--text3); }
+  .cat-head .cat-name { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; }
+  .cat-head .cat-n { margin-left: auto; font-size: 11px; color: var(--text3); }
+
+  .skill-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; transition: .12s; margin-left: 4px; }
+  .skill-item:hover { background: var(--action); }
+  .skill-item.active { background: rgba(255,255,255,0.07); }
+  .skill-item .si-main { flex: 1; min-width: 0; }
+  .skill-item .si-name { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; }
+  .skill-item .si-name .modified { color: var(--amber); font-size: 11px; }
+  .skill-item .si-desc { font-size: 11.5px; color: var(--text3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* 迷你开关 */
+  .toggle { width: 34px; height: 19px; border-radius: 10px; background: var(--border-strong); position: relative; cursor: pointer; transition: .18s; flex-shrink: 0; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: var(--text1); transition: .18s; }
+  .toggle.on { background: var(--green); }
+  .toggle.on::after { left: 17px; background: #fff; }
+
+  /* 右侧详情 */
+  .skill-detail { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .sd-scroll { flex: 1; overflow-y: auto; padding: 32px 40px; }
+  .sd-scroll::-webkit-scrollbar { width: 10px; }
+  .sd-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 3px solid var(--bg); }
+  .sd-inner { max-width: 680px; margin: 0 auto; }
+  .sd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 8px; }
+  .sd-head h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .src-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 12px; font-size: 11.5px; font-weight: 500; background: var(--action); border: 1px solid var(--border); color: var(--text2); }
+  .sd-toggle-wrap { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--text2); }
+  .sd-desc { font-size: 14px; line-height: 1.7; color: var(--text2); margin: 14px 0 24px; }
+
+  .sd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 26px; }
+  .sd-stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .sd-stat .l { font-size: 11.5px; color: var(--text3); }
+  .sd-stat .v { font-size: 22px; font-weight: 650; margin-top: 5px; }
+
+  .sd-section { margin-bottom: 24px; }
+  .sd-section h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .used-by { display: flex; flex-direction: column; gap: 8px; }
+  .used-row { display: flex; align-items: center; gap: 11px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; }
+  .used-row .ui { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .used-row .ut { flex: 1; }
+  .used-row .ut h5 { font-size: 12.5px; font-weight: 500; }
+  .used-row .ut p { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .used-row .utag { font-size: 10.5px; padding: 2px 8px; border-radius: 9px; background: var(--action); border: 1px solid var(--border); color: var(--text2); }
+
+  .code-block { background: #161616; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; color: var(--text2); line-height: 1.7; white-space: pre-wrap; }
+
+  .color-blue { background: var(--blue-soft); color: var(--blue); }
+  .color-green { background: var(--green-soft); color: var(--green); }
+  .color-amber { background: var(--amber-soft); color: var(--amber); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 顶栏 -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <div class="brand-mark"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></div>
+        数智大气 · 环保管家
+      </div>
+      <div class="mode-switch">
+        <button class="mode-btn active"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>工作台</button>
+        <button class="mode-btn" onclick="location.href='prototype-askdata.html'"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.7L20 10l-6.1 1.3L12 17l-1.9-5.7L4 10l6.1-1.3z"/></svg>智能问数</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="icon-btn"><span class="dot-badge"></span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+      <div class="icon-btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></div>
+      <div class="avatar">张</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- 左侧导航 -->
+    <div class="railnav">
+      <a class="rail-item" href="prototype-workstation.html"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>工作台首页</a>
+      <a class="rail-item" href="prototype-jobs.html"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>值守任务<span class="count">6</span></a>
+      <a class="rail-item" href="prototype-platforms.html"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>平台管理</a>
+      <div class="rail-group-label">资源</div>
+      <a class="rail-item active" href="prototype-skills.html"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>技能库</a>
+      <a class="rail-item" href="prototype-history.html"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 22h16M4 18h16M4 14h16M4 10h16M4 6h16"/></svg>运行历史</a>
+      <div class="rail-spacer"></div>
+      <a class="rail-item" href="#"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>帮助</a>
+    </div>
+
+    <!-- 技能双栏 -->
+    <div class="skill-body">
+      <!-- 技能列表 -->
+      <div class="skill-list">
+        <div class="sl-head">
+          <h2>技能库</h2>
+          <div class="sub">技能可被平台和任务复用，开关控制是否启用</div>
+          <div class="sl-search">
+            <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input placeholder="搜索技能…">
+          </div>
+          <div class="legend">
+            <div class="legend-item"><span class="dot" style="background:var(--src-builtin)"></span>内置</div>
+            <div class="legend-item"><span class="dot" style="background:var(--src-hub)"></span>云端</div>
+            <div class="legend-item"><span class="dot" style="background:var(--src-local)"></span>本地</div>
+            <div class="legend-item"><span class="dot" style="background:var(--src-external)"></span>外部</div>
+          </div>
+        </div>
+        <div class="sl-scroll">
+          <!-- 环保领域 -->
+          <div class="cat">
+            <div class="cat-head"><svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg><span class="cat-name">环保领域</span><span class="cat-n">4</span></div>
+            <div class="skill-item active">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-local)"></span>IPP-AIR 操作指南</div>
+                <div class="si-desc">数智大气平台页面结构与操作流程</div>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="skill-item">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-local)"></span>城市排名分析</div>
+                <div class="si-desc">抓取省内地市空气质量并排名</div>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="skill-item">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-local)"></span>达标测算<span class="modified">✎</span></div>
+                <div class="si-desc">按国标计算优良天数与达标率</div>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="skill-item">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-hub)"></span>空气质量播报文案</div>
+                <div class="si-desc">生成规范的播报话术模板</div>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+          </div>
+
+          <!-- 浏览器自动化 -->
+          <div class="cat">
+            <div class="cat-head"><svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg><span class="cat-name">浏览器自动化</span><span class="cat-n">2</span></div>
+            <div class="skill-item">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-builtin)"></span>agent-browser</div>
+                <div class="si-desc">浏览器操作、表单填写、登录维持</div>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="skill-item">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-builtin)"></span>网页截图</div>
+                <div class="si-desc">抓取指定页面区域并保存图片</div>
+              </div>
+              <div class="toggle"></div>
+            </div>
+          </div>
+
+          <!-- 推送与通知 -->
+          <div class="cat">
+            <div class="cat-head"><svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg><span class="cat-name">推送与通知</span><span class="cat-n">3</span></div>
+            <div class="skill-item">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-builtin)"></span>飞书推送</div>
+                <div class="si-desc">向飞书群或个人发送消息卡片</div>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="skill-item">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-builtin)"></span>企业微信推送</div>
+                <div class="si-desc">向企业微信群机器人发送消息</div>
+              </div>
+              <div class="toggle on"></div>
+            </div>
+            <div class="skill-item">
+              <div class="si-main">
+                <div class="si-name"><span class="dot" style="background:var(--src-external)"></span>钉钉推送</div>
+                <div class="si-desc">向钉钉群自定义机器人发送</div>
+              </div>
+              <div class="toggle"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 技能详情 -->
+      <div class="skill-detail">
+        <div class="sd-scroll">
+          <div class="sd-inner">
+            <div class="sd-head">
+              <div>
+                <h1>IPP-AIR 操作指南 <span class="src-tag"><span class="dot" style="background:var(--src-local)"></span>本地</span></h1>
+              </div>
+              <div class="sd-toggle-wrap">已启用 <div class="toggle on"></div></div>
+            </div>
+            <p class="sd-desc">指导智能体在数智大气（IPP-AIR）平台上完成登录、页面导航与数据抓取。包含主要功能入口的定位方式、常用筛选项的操作顺序，以及数据导出的规范流程。</p>
+
+            <div class="sd-stats">
+              <div class="sd-stat"><div class="l">被任务使用</div><div class="v">5</div></div>
+              <div class="sd-stat"><div class="l">本月调用</div><div class="v">142</div></div>
+              <div class="sd-stat"><div class="l">关联平台</div><div class="v">1</div></div>
+            </div>
+
+            <div class="sd-section">
+              <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M2 12h4M18 12h4"/></svg>被以下任务使用</h3>
+              <div class="used-by">
+                <div class="used-row">
+                  <div class="ui color-green"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></div>
+                  <div class="ut"><h5>平顶山小时播报</h5><p>每小时整点 · 运行中</p></div>
+                  <span class="utag">数据播报</span>
+                </div>
+                <div class="used-row">
+                  <div class="ui color-green"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg></div>
+                  <div class="ut"><h5>郑州城市排名播报</h5><p>每日 08:00 · 运行中</p></div>
+                  <span class="utag">数据播报</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sd-section">
+              <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>关联平台</h3>
+              <div class="used-by">
+                <div class="used-row">
+                  <div class="ui color-blue"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/></svg></div>
+                  <div class="ut"><h5>数智大气</h5><p>该平台默认携带此技能</p></div>
+                  <span class="utag">已连接</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sd-section">
+              <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>技能内容（节选）</h3>
+              <div class="code-block">## 登录
+1. 打开 https://air.example.com 登录页
+2. 使用平台账号凭据填写用户名/密码
+3. 进入后台首页，确认顶部城市选择器已加载
+
+## 查询小时数据
+1. 点击左侧「实时监测」→「站点数据」
+2. 在城市选择器中切换到目标城市
+3. 时间粒度选择「小时」，导出当前数据表</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
