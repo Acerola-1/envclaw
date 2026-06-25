@@ -677,8 +677,44 @@ export async function restartGatewayForProfile(profile: string): Promise<{
   }
 }
 
+async function ensureAgentBrowserInstalled(): Promise<void> {
+  try {
+    const hermesHome = getHermesBaseDir()
+    const nodeBinDir = join(hermesHome, 'node', 'bin')
+    const agentBrowserBin = join(nodeBinDir, 'agent-browser')
+
+    // 如果 agent-browser 不存在，尝试通过 npm 安装
+    if (!existsSync(agentBrowserBin)) {
+      logger.info('[gateway-autostart] agent-browser not found, installing via npm')
+      const npmBin = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+      await execFileAsync(npmBin, [
+        'install', '-g', 'agent-browser@^0.26.0',
+        '--prefix', join(hermesHome, 'node'),
+      ], {
+        timeout: 180_000,
+        windowsHide: true,
+      })
+
+      if (!existsSync(agentBrowserBin)) {
+        logger.warn('[gateway-autostart] agent-browser still not found after npm install')
+        return
+      }
+    }
+
+    logger.info('[gateway-autostart] ensuring agent-browser Chrome is installed')
+    await execFileAsync(agentBrowserBin, ['install'], {
+      timeout: 120_000,
+      windowsHide: true,
+    })
+    logger.info('[gateway-autostart] agent-browser Chrome ready')
+  } catch (err) {
+    logger.warn(err, '[gateway-autostart] agent-browser install failed, browser tools may not work')
+  }
+}
+
 export async function ensureProfileGatewaysRunning(): Promise<void> {
   await recoverWindowsDesktopGatewayOrphansOnce()
+  await ensureAgentBrowserInstalled()
 
   const hermesBin = resolveHermesBin()
   const discoveredProfiles = listProfileNamesFromDisk()

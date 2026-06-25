@@ -4,6 +4,8 @@ import { join } from 'path'
 import { getHermesBin } from '../../services/hermes/hermes-path'
 import { getActiveProfileName, getProfileDir } from '../../services/hermes/hermes-profile'
 import { execHermesWithBin } from '../../services/hermes/hermes-process'
+import { isGatewayRunningForProfile, startGatewayForProfile } from '../../services/hermes/gateway-autostart'
+import { logger } from '../../services/logger'
 
 const TIMEOUT_MS = 60_000
 
@@ -182,6 +184,19 @@ export async function create(ctx: Context) {
     return
   }
 
+  // 确保 Gateway 正在运行，否则定时任务不会被执行
+  const hermesBin = getHermesBin()
+  const profileDir = resolveProfileDir(profile)
+  try {
+    const running = await isGatewayRunningForProfile(hermesBin, profileDir)
+    if (!running) {
+      logger.info('[jobs] Gateway not running for profile %s, starting automatically', profile)
+      await startGatewayForProfile(hermesBin, profile, profileDir)
+    }
+  } catch (err) {
+    logger.warn(err, '[jobs] Failed to check/start Gateway for profile %s, job will be created but may not fire', profile)
+  }
+
   const beforeJobs = readJobs(profile, true)
   const args = getCronArgs(profile, 'create')
   const name = String(body.name || '').trim()
@@ -301,6 +316,19 @@ export async function resume(ctx: Context) {
 export async function run(ctx: Context) {
   const profile = resolveProfile(ctx)
   if (!findJob(profile, ctx.params.id)) return sendJobNotFound(ctx)
+
+  // 确保 Gateway 正在运行，否则任务不会被执行
+  const hermesBin = getHermesBin()
+  const profileDir = resolveProfileDir(profile)
+  try {
+    const running = await isGatewayRunningForProfile(hermesBin, profileDir)
+    if (!running) {
+      logger.info('[jobs] Gateway not running for profile %s, starting automatically', profile)
+      await startGatewayForProfile(hermesBin, profile, profileDir)
+    }
+  } catch (err) {
+    logger.warn(err, '[jobs] Failed to check/start Gateway for profile %s, job may not fire', profile)
+  }
 
   try {
     await runHermesCron(profile, getCronArgs(profile, 'run', ctx.params.id))
