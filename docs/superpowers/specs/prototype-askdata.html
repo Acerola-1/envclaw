@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环保管家 · 智能问数</title>
+<style>
+  :root {
+    --bg: #1a1a1a; --sider: #202020; --card: #2a2a2a; --card-hover: #303030;
+    --action: #252525; --border: #3a3a3a; --border-strong: #555555;
+    --text1: #e0e0e0; --text2: #a0a0a0; --text3: #666666;
+    --primary: #e0e0e0; --on-primary: #1a1a1a;
+    --green: #66bb6a; --green-soft: rgba(102,187,106,0.14);
+    --amber: #e0a458; --amber-soft: rgba(224,164,88,0.14);
+    --red: #d96a6a; --red-soft: rgba(217,106,106,0.14);
+    --blue: #6a9fd9; --blue-soft: rgba(106,159,217,0.14);
+    --radius: 8px; --radius-sm: 6px; --radius-lg: 12px;
+    --font: 'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text1); height: 100vh; overflow: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  svg { stroke-width: 1.6; }
+  .ic { width: 18px; height: 18px; flex-shrink: 0; }
+  .ic-sm { width: 15px; height: 15px; flex-shrink: 0; }
+
+  .app { display: flex; flex-direction: column; height: 100vh; }
+  .topbar { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .topbar-left { display: flex; align-items: center; gap: 22px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14px; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--text1); color: var(--bg); display: flex; align-items: center; justify-content: center; }
+  .back-link { display: flex; align-items: center; gap: 6px; color: var(--text2); font-size: 13px; cursor: pointer; }
+  .back-link:hover { color: var(--text1); }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--card); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  .body { flex: 1; display: flex; overflow: hidden; }
+
+  /* 左侧历史 */
+  .history { width: 250px; background: var(--sider); border-right: 1px solid var(--border); padding: 14px; overflow-y: auto; flex-shrink: 0; }
+  .hist-title { font-size: 12px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; padding: 0 4px; }
+  .hist-item { padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 2px; }
+  .hist-item:hover { background: var(--action); }
+  .hist-item.active { background: rgba(255,255,255,0.07); }
+  .hist-item h5 { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist-item p { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* 主区 */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .conv { flex: 1; overflow-y: auto; padding: 24px 0; }
+  .conv::-webkit-scrollbar { width: 10px; }
+  .conv::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 3px solid var(--bg); }
+  .conv-inner { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+
+  .q-msg { display: flex; justify-content: flex-end; margin-bottom: 22px; }
+  .q-bubble { background: var(--primary); color: var(--on-primary); border-radius: 12px; border-top-right-radius: 4px; padding: 11px 15px; font-size: 14px; font-weight: 500; max-width: 75%; }
+
+  .a-msg { display: flex; gap: 12px; margin-bottom: 26px; }
+  .a-avatar { width: 30px; height: 30px; border-radius: 8px; background: var(--text1); color: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .a-avatar svg { stroke-width: 2; width: 15px; height: 15px; }
+  .a-content { flex: 1; min-width: 0; }
+  .a-text { font-size: 13.5px; line-height: 1.6; color: var(--text1); margin-bottom: 14px; }
+
+  /* 数据卡片 */
+  .data-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; }
+  .dc-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+  .dc-head h4 { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .dc-head .meta { font-size: 11px; color: var(--text3); }
+
+  /* 排名表 */
+  .rank-table { width: 100%; border-collapse: collapse; }
+  .rank-table th { text-align: left; font-size: 11px; color: var(--text3); font-weight: 500; padding: 9px 16px; border-bottom: 1px solid var(--border); }
+  .rank-table td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .rank-table tr:last-child td { border-bottom: none; }
+  .rank-table tr.highlight td { background: var(--blue-soft); }
+  .rank-no { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: var(--action); font-size: 11px; font-weight: 600; }
+  .rank-no.top { background: var(--green-soft); color: var(--green); }
+  .val-mono { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .trend { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; }
+  .trend-up { color: var(--red); }
+  .trend-down { color: var(--green); }
+
+  /* 关键数字行 */
+  .kpi-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .kpi { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 15px; }
+  .kpi .l { font-size: 11px; color: var(--text2); }
+  .kpi .v { font-size: 20px; font-weight: 650; margin-top: 5px; }
+  .kpi .d { font-size: 11px; margin-top: 3px; }
+
+  /* 简易折线图 */
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
+  .chart-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .chart-svg { width: 100%; height: 140px; }
+
+  .followup { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; }
+  .fu-chip { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); font-size: 12px; color: var(--text2); cursor: pointer; transition: .15s; }
+  .fu-chip:hover { border-color: var(--text2); color: var(--text1); }
+
+  /* 输入区 */
+  .input-area { padding: 14px 24px 20px; }
+  .input-inner { max-width: 760px; margin: 0 auto; }
+  .input-box { display: flex; align-items: flex-end; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 10px 12px 10px 16px; }
+  .input-box:focus-within { border-color: var(--border-strong); }
+  .input-box textarea { flex: 1; background: none; border: none; color: var(--text1); font-size: 14px; outline: none; resize: none; font-family: var(--font); line-height: 1.5; max-height: 100px; }
+  .input-box textarea::placeholder { color: var(--text3); }
+  .send-btn { width: 34px; height: 34px; border-radius: var(--radius); background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .input-hint { text-align: center; font-size: 11px; color: var(--text3); margin-top: 8px; }
+  .input-hint b { color: var(--text2); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand"><div class="brand-mark"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></div>数智大气 · 环保管家</div>
+      <div class="back-link" onclick="location.href='prototype-workstation.html'"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>返回工作台</div>
+    </div>
+    <div class="avatar">张</div>
+  </div>
+
+  <div class="body">
+    <!-- 历史 -->
+    <div class="history">
+      <button style="width:100%;margin-bottom:14px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px;border-radius:var(--radius);background:var(--primary);color:var(--on-primary);font-size:13px;font-weight:500;border:none;cursor:pointer"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5v14"/></svg>新问题</button>
+      <div class="hist-title">最近查询</div>
+      <div class="hist-item active"><h5>平顶山今天PM2.5排名第几</h5><p>今天 09:30</p></div>
+      <div class="hist-item"><h5>本周郑州空气质量趋势</h5><p>昨天 14:00</p></div>
+      <div class="hist-item"><h5>对比郑州和洛阳O₃浓度</h5><p>昨天 10:15</p></div>
+      <div class="hist-item"><h5>本月各市达标天数统计</h5><p>6月23日</p></div>
+    </div>
+
+    <!-- 主区 -->
+    <div class="main">
+      <div class="conv">
+        <div class="conv-inner">
+          <div class="q-msg"><div class="q-bubble">平顶山今天 PM2.5 排名第几？</div></div>
+
+          <div class="a-msg">
+            <div class="a-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/></svg></div>
+            <div class="a-content">
+              <div class="a-text">截至今天 09:00，平顶山市 PM2.5 浓度为 <b>48 μg/m³</b>，在河南省 18 个地市中排名 <b>第 12 位</b>（数值越低越好），较昨日下降 2 位。以下是省内排名概览：</div>
+
+              <div class="kpi-row">
+                <div class="kpi"><div class="l">平顶山 PM2.5</div><div class="v">48<span style="font-size:12px;color:var(--text3)"> μg/m³</span></div><div class="d trend trend-down"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>较昨日 -6%</div></div>
+                <div class="kpi"><div class="l">省内排名</div><div class="v">12<span style="font-size:12px;color:var(--text3)"> / 18</span></div><div class="d trend trend-down"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>上升 2 位</div></div>
+                <div class="kpi"><div class="l">空气质量</div><div class="v" style="color:var(--amber)">良</div><div class="d" style="color:var(--text3)">AQI 66</div></div>
+              </div>
+
+              <div class="data-card">
+                <div class="dc-head"><h4><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>河南省 PM2.5 排名（部分）</h4><span class="meta">数据来源：数智大气 · 09:00</span></div>
+                <table class="rank-table">
+                  <thead><tr><th style="width:50px">排名</th><th>城市</th><th>PM2.5</th><th>较昨日</th></tr></thead>
+                  <tbody>
+                    <tr><td><span class="rank-no top">1</span></td><td>三门峡市</td><td class="val-mono">31</td><td><span class="trend trend-down"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>4%</span></td></tr>
+                    <tr><td><span class="rank-no top">2</span></td><td>信阳市</td><td class="val-mono">35</td><td><span class="trend trend-down"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>2%</span></td></tr>
+                    <tr><td><span class="rank-no">11</span></td><td>许昌市</td><td class="val-mono">47</td><td><span class="trend trend-up"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19V5M5 12l7-7 7 7"/></svg>3%</span></td></tr>
+                    <tr class="highlight"><td><span class="rank-no">12</span></td><td>平顶山市</td><td class="val-mono">48</td><td><span class="trend trend-down"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>6%</span></td></tr>
+                    <tr><td><span class="rank-no">13</span></td><td>漯河市</td><td class="val-mono">50</td><td><span class="trend trend-up"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19V5M5 12l7-7 7 7"/></svg>1%</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="followup">
+                <div class="fu-chip"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>看平顶山近7天趋势</div>
+                <div class="fu-chip"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>和郑州对比</div>
+                <div class="fu-chip"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>生成排名报告</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="q-msg"><div class="q-bubble">看平顶山近 7 天趋势</div></div>
+
+          <div class="a-msg">
+            <div class="a-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/></svg></div>
+            <div class="a-content">
+              <div class="a-text">平顶山市近 7 天 PM2.5 浓度整体呈下降趋势，从 6 月 19 日的 62 μg/m³ 降至今天的 48 μg/m³，降幅约 23%。</div>
+              <div class="chart-card">
+                <h4><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>平顶山 PM2.5 近 7 天趋势（μg/m³）</h4>
+                <svg class="chart-svg" viewBox="0 0 600 140" preserveAspectRatio="none">
+                  <line x1="0" y1="35" x2="600" y2="35" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="4 4"/>
+                  <line x1="0" y1="70" x2="600" y2="70" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="4 4"/>
+                  <line x1="0" y1="105" x2="600" y2="105" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="4 4"/>
+                  <polyline fill="none" stroke="#66bb6a" stroke-width="2.5" points="20,40 116,55 212,48 308,72 404,68 500,92 580,100"/>
+                  <circle cx="20" cy="40" r="3.5" fill="#66bb6a"/><circle cx="116" cy="55" r="3.5" fill="#66bb6a"/><circle cx="212" cy="48" r="3.5" fill="#66bb6a"/><circle cx="308" cy="72" r="3.5" fill="#66bb6a"/><circle cx="404" cy="68" r="3.5" fill="#66bb6a"/><circle cx="500" cy="92" r="3.5" fill="#66bb6a"/><circle cx="580" cy="100" r="4.5" fill="#66bb6a" stroke="#1a1a1a" stroke-width="2"/>
+                </svg>
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text3);margin-top:6px"><span>6/19</span><span>6/20</span><span>6/21</span><span>6/22</span><span>6/23</span><span>6/24</span><span>今天</span></div>
+              </div>
+              <div class="followup">
+                <div class="fu-chip"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>导出图表到报告</div>
+                <div class="fu-chip"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M2 12h4M18 12h4"/></svg>设为定时监控</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-inner">
+          <div class="input-box">
+            <textarea rows="1" placeholder="问我任何环保数据问题，例如：本周哪个城市空气质量最好？"></textarea>
+            <div class="send-btn"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+          </div>
+          <div class="input-hint">由 <b>数智大气智能体</b> 提供数据分析支持</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

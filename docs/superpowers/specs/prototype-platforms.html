@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环保管家 · 平台账号管理</title>
+<style>
+  :root {
+    --bg: #1a1a1a; --sider: #202020; --card: #2a2a2a; --card-hover: #303030;
+    --action: #252525; --border: #3a3a3a; --border-strong: #555555;
+    --text1: #e0e0e0; --text2: #a0a0a0; --text3: #666666;
+    --primary: #e0e0e0; --on-primary: #1a1a1a;
+    --green: #66bb6a; --green-soft: rgba(102,187,106,0.14);
+    --amber: #e0a458; --amber-soft: rgba(224,164,88,0.14);
+    --red: #d96a6a; --red-soft: rgba(217,106,106,0.14);
+    --blue: #6a9fd9; --blue-soft: rgba(106,159,217,0.14);
+    --radius: 8px; --radius-sm: 6px; --radius-lg: 12px;
+    --font: 'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text1); height: 100vh; overflow: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  svg { stroke-width: 1.6; }
+  .ic { width: 18px; height: 18px; flex-shrink: 0; }
+  .ic-sm { width: 15px; height: 15px; flex-shrink: 0; }
+  .ic-lg { width: 22px; height: 22px; flex-shrink: 0; }
+
+  .app { display: flex; flex-direction: column; height: 100vh; }
+  .topbar { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .topbar-left { display: flex; align-items: center; gap: 22px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14px; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--text1); color: var(--bg); display: flex; align-items: center; justify-content: center; }
+  .back-link { display: flex; align-items: center; gap: 6px; color: var(--text2); font-size: 13px; cursor: pointer; }
+  .back-link:hover { color: var(--text1); }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--card); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  .content { flex: 1; overflow-y: auto; }
+  .content::-webkit-scrollbar { width: 10px; }
+  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 3px solid var(--bg); }
+  .page { max-width: 860px; margin: 0 auto; padding: 28px 32px 48px; }
+
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 8px; }
+  .page-head h1 { font-size: 21px; font-weight: 600; }
+  .page-head .sub { color: var(--text2); font-size: 13px; margin-top: 5px; }
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: .15s; white-space: nowrap; }
+  .btn-primary { background: var(--primary); color: var(--on-primary); }
+  .btn-primary:hover { background: #fff; }
+  .btn-ghost { background: transparent; color: var(--text1); border-color: var(--border-strong); }
+  .btn-ghost:hover { background: var(--action); }
+  .btn-sm { padding: 6px 11px; font-size: 12px; }
+
+  .summary-strip { display: flex; gap: 22px; padding: 14px 0 24px; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .ss-item { display: flex; align-items: center; gap: 9px; }
+  .ss-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .ss-item .n { font-size: 18px; font-weight: 650; }
+  .ss-item .l { font-size: 12px; color: var(--text2); }
+
+  .platform-list { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+  .pcard { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .pcard-head { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+  .pcard-logo { width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pcard-info { flex: 1; }
+  .pcard-info h3 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 9px; }
+  .pcard-url { font-size: 12px; color: var(--text3); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+  .pcard-actions { display: flex; align-items: center; gap: 8px; }
+  .st-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 11px; font-size: 11px; font-weight: 500; }
+  .st-on { background: var(--green-soft); color: var(--green); }
+  .st-expired { background: var(--amber-soft); color: var(--amber); }
+  .st-off { background: var(--action); color: var(--text3); }
+  .st-badge::before { content:''; width:6px; height:6px; border-radius:50%; background: currentColor; }
+
+  /* 账号子行（多账号） */
+  .accounts { border-top: 1px solid var(--border); background: rgba(0,0,0,0.12); }
+  .acct-row { display: flex; align-items: center; gap: 12px; padding: 11px 18px 11px 22px; font-size: 12.5px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .acct-row:last-child { border-bottom: none; }
+  .acct-icon { width: 26px; height: 26px; border-radius: 7px; background: var(--action); display: flex; align-items: center; justify-content: center; color: var(--text2); }
+  .acct-name { font-weight: 500; }
+  .acct-cred { color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+  .acct-meta { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .acct-time { font-size: 11px; color: var(--text3); }
+  .acct-link { font-size: 11.5px; color: var(--text2); cursor: pointer; }
+  .acct-link:hover { color: var(--text1); }
+  .add-acct { display: flex; align-items: center; gap: 7px; padding: 10px 18px 10px 22px; font-size: 12px; color: var(--text2); cursor: pointer; }
+  .add-acct:hover { color: var(--text1); }
+
+  /* 配置抽屉模拟 */
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: stretch; justify-content: flex-end; z-index: 50; }
+  .drawer-overlay.open { display: flex; }
+  .drawer { width: 440px; background: var(--bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+  .drawer-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .drawer-head h3 { font-size: 15px; font-weight: 600; }
+  .drawer-close { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--text3); cursor: pointer; }
+  .drawer-close:hover { background: var(--action); color: var(--text1); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 22px; }
+  .field { margin-bottom: 18px; }
+  .field-label { font-size: 12.5px; color: var(--text2); margin-bottom: 8px; font-weight: 500; }
+  .input { width: 100%; padding: 10px 12px; background: var(--action); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text1); font-size: 13px; }
+  .input:focus { outline: none; border-color: var(--border-strong); }
+  .input-wrap { position: relative; }
+  .input-eye { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--text3); cursor: pointer; }
+  .field-hint { font-size: 11px; color: var(--text3); margin-top: 6px; display: flex; align-items: center; gap: 5px; }
+  .test-row { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: var(--green-soft); border: 1px solid rgba(102,187,106,0.3); border-radius: var(--radius); font-size: 12.5px; color: var(--green); margin-bottom: 18px; }
+  .drawer-foot { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+  .drawer-foot .btn { flex: 1; justify-content: center; }
+
+  .color-blue { background: var(--blue-soft); color: var(--blue); }
+  .color-amber { background: var(--amber-soft); color: var(--amber); }
+  .color-green { background: var(--green-soft); color: var(--green); }
+  .color-red { background: var(--red-soft); color: var(--red); }
+  .color-mute { background: var(--action); color: var(--text2); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand"><div class="brand-mark"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg></div>数智大气 · 环保管家</div>
+      <div class="back-link" onclick="location.href='prototype-workstation.html'"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>返回工作台</div>
+    </div>
+    <div class="avatar">张</div>
+  </div>
+
+  <div class="content">
+    <div class="page">
+      <div class="page-head">
+        <div>
+          <h1>平台账号</h1>
+          <div class="sub">集中管理各平台登录凭据，任务运行时自动登录，无需重复操作</div>
+        </div>
+        <button class="btn btn-primary"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5v14"/></svg>添加平台</button>
+      </div>
+
+      <div class="summary-strip">
+        <div class="ss-item"><span class="ss-dot" style="background:var(--green)"></span><div><span class="n">4</span> <span class="l">已连接</span></div></div>
+        <div class="ss-item"><span class="ss-dot" style="background:var(--amber)"></span><div><span class="n">1</span> <span class="l">登录过期</span></div></div>
+        <div class="ss-item"><span class="ss-dot" style="background:var(--text3)"></span><div><span class="n">1</span> <span class="l">未配置</span></div></div>
+        <div class="ss-item" style="margin-left:auto"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="l">凭据均经 AES-256 本地加密存储</span></div>
+      </div>
+
+      <div class="platform-list">
+        <!-- 数智大气：多账号 -->
+        <div class="pcard">
+          <div class="pcard-head">
+            <div class="pcard-logo color-blue"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/></svg></div>
+            <div class="pcard-info"><h3>数智大气 <span class="st-badge st-on">2 个账号已连接</span></h3><div class="pcard-url">mapairs.com</div></div>
+            <div class="pcard-actions"><button class="btn btn-ghost btn-sm">连接测试</button></div>
+          </div>
+          <div class="accounts">
+            <div class="acct-row">
+              <div class="acct-icon"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <span class="acct-name">平顶山账号</span><span class="acct-cred">admin@pds · ••••••••</span>
+              <div class="acct-meta"><span class="st-badge st-on">已连接</span><span class="acct-time">上次登录 今天 08:00</span><span class="acct-link" onclick="document.getElementById('drawer').classList.add('open')">编辑</span></div>
+            </div>
+            <div class="acct-row">
+              <div class="acct-icon"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <span class="acct-name">郑州账号</span><span class="acct-cred">admin@zz · ••••••••</span>
+              <div class="acct-meta"><span class="st-badge st-on">已连接</span><span class="acct-time">上次登录 昨天 18:00</span><span class="acct-link">编辑</span></div>
+            </div>
+            <div class="add-acct"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5v14"/></svg>添加账号（用于其他地区）</div>
+          </div>
+        </div>
+
+        <!-- 国控站：过期 -->
+        <div class="pcard">
+          <div class="pcard-head">
+            <div class="pcard-logo color-green"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01"/></svg></div>
+            <div class="pcard-info"><h3>国控站数据平台 <span class="st-badge st-expired">登录过期</span></h3><div class="pcard-url">datacenter.mee.gov.cn</div></div>
+            <div class="pcard-actions"><button class="btn btn-primary btn-sm">重新登录</button></div>
+          </div>
+          <div class="accounts">
+            <div class="acct-row">
+              <div class="acct-icon"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <span class="acct-name">zhangsan</span><span class="acct-cred">••••••••</span>
+              <div class="acct-meta"><span class="st-badge st-expired">需重新登录</span><span class="acct-time">凭据有效，会话已过期</span><span class="acct-link">编辑</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 飞书 webhook -->
+        <div class="pcard">
+          <div class="pcard-head">
+            <div class="pcard-logo color-blue"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></div>
+            <div class="pcard-info"><h3>飞书 <span class="st-badge st-on">已连接</span></h3><div class="pcard-url">webhook · 消息推送</div></div>
+            <div class="pcard-actions"><button class="btn btn-ghost btn-sm">连接测试</button><button class="btn btn-ghost btn-sm">编辑</button></div>
+          </div>
+        </div>
+
+        <!-- 钉钉 -->
+        <div class="pcard">
+          <div class="pcard-head">
+            <div class="pcard-logo color-blue"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg></div>
+            <div class="pcard-info"><h3>钉钉 <span class="st-badge st-on">已连接</span></h3><div class="pcard-url">webhook · 消息推送</div></div>
+            <div class="pcard-actions"><button class="btn btn-ghost btn-sm">连接测试</button><button class="btn btn-ghost btn-sm">编辑</button></div>
+          </div>
+        </div>
+
+        <!-- OA 未配置 -->
+        <div class="pcard">
+          <div class="pcard-head">
+            <div class="pcard-logo color-mute"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+            <div class="pcard-info"><h3>OA 系统 <span class="st-badge st-off">未配置</span></h3><div class="pcard-url">oa.example.com</div></div>
+            <div class="pcard-actions"><button class="btn btn-primary btn-sm">立即配置</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑抽屉 -->
+<div class="drawer-overlay" id="drawer" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="drawer">
+    <div class="drawer-head"><h3>编辑账号 · 平顶山账号</h3><div class="drawer-close" onclick="document.getElementById('drawer').classList.remove('open')"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12"/></svg></div></div>
+    <div class="drawer-body">
+      <div class="test-row"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>连接测试通过 · 凭据有效</div>
+      <div class="field"><div class="field-label">账号名称</div><input class="input" value="平顶山账号"></div>
+      <div class="field"><div class="field-label">登录账号</div><input class="input" value="admin@pds"></div>
+      <div class="field"><div class="field-label">登录密码</div><div class="input-wrap"><input class="input" type="password" value="passwordvalue"><span class="input-eye"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span></div><div class="field-hint"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>密码经 AES-256 加密后存储于本地，不会上传</div></div>
+      <div class="field"><div class="field-label">采集区域绑定</div><input class="input" value="平顶山市"></div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost">测试连接</button>
+      <button class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
