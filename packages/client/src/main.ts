@@ -2,6 +2,8 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
 import { i18n } from './i18n'
+import { setApiKey, hasApiKey } from './api/client'
+import { loginWithPassword } from './api/auth'
 import App from './App.vue'
 import './styles/global.scss'
 import 'katex/dist/katex.min.css'
@@ -30,18 +32,28 @@ if (isDesktopShell) {
   document.documentElement.classList.add('hermes-desktop-shell')
 }
 
-// Read token from URL BEFORE router initializes (hash router strips params)
-const urlParams = new URLSearchParams(window.location.search)
-const hashQuery = window.location.hash.split('?')[1]
-const urlToken = urlParams.get('token') || (hashQuery ? new URLSearchParams(hashQuery).get('token') : null)
-if (urlToken) {
-  ;(window as any).__LOGIN_TOKEN__ = urlToken
+// Auto-login: silently authenticate using default credentials so the user
+// never sees a login page.  The desktop preload does the same thing, but
+// this covers the web-UI path and any race where the preload hasn't finished
+// by the time the Vue app boots.
+async function ensureAuthenticated(): Promise<void> {
+  if (hasApiKey()) return
+  try {
+    const token = await loginWithPassword('admin', '123456')
+    if (token) setApiKey(token)
+  } catch {
+    // Server may not be ready yet (desktop splash screen); the preload
+    // will handle auth in that case.  Ignore errors silently.
+  }
 }
 
 const app = createApp(App)
 app.use(createPinia())
 app.use(i18n)
 app.use(router)
-router.isReady().finally(() => {
-  app.mount('#app')
+
+ensureAuthenticated().finally(() => {
+  router.isReady().finally(() => {
+    app.mount('#app')
+  })
 })

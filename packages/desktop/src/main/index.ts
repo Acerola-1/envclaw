@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { startWebUiServer, stopWebUiServer, getToken } from './webui-server'
 import { bundledNode, desktopIcon, desktopRuntimeVersion, desktopTrayTemplateIcon, desktopWindowsTrayIcon, hermesBinExists, hermesBin, webuiDir } from './paths'
-import { checkForDesktopUpdates, initAutoUpdater } from './updater'
+
 import { t } from './desktop-i18n'
 import { installEnvclawCliShim, installEnvclawMcpShim } from './cli-shim'
 import { parseHermesCliArgs, runBundledHermesCli } from './hermes-cli'
@@ -141,14 +141,6 @@ function updateTrayMenu() {
           showMainWindow()
         }
         updateTrayMenu()
-      },
-    },
-    {
-      label: t('tray.checkForUpdates'),
-      click: () => {
-        checkForDesktopUpdates(true).catch(err => {
-          console.error('[tray] update check failed:', err)
-        })
       },
     },
     {
@@ -591,11 +583,6 @@ function runDesktopApp() {
     createTray()
     createWindow()
     bootstrap()
-    initAutoUpdater({
-      beforeQuitAndInstall: () => {
-        isQuitting = true
-      },
-    })
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow()

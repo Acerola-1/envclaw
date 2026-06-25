@@ -83,7 +83,8 @@ describe('stt api wrappers', () => {
 
   it('uses shared 401 handling for settings requests', async () => {
     localStorage.setItem('hermes_active_profile_name', 'research')
-    mockFetch.mockResolvedValueOnce({
+    // Both original request and auto-login attempt fail with 401
+    mockFetch.mockResolvedValue({
       ok: false,
       status: 401,
       text: () => Promise.resolve(''),
@@ -92,7 +93,6 @@ describe('stt api wrappers', () => {
     await expect(fetchSttSettings()).rejects.toThrow('Unauthorized')
 
     expect(hasApiKey()).toBe(false)
-    expect(router.replace).toHaveBeenCalledWith({ name: 'login' })
     expect(mockFetch).toHaveBeenCalledWith(
       'https://hermes.example/api/hermes/stt/settings',
       expect.objectContaining({
@@ -345,7 +345,8 @@ describe('stt api wrappers', () => {
     localStorage.setItem('hermes_active_profile_name', 'research')
     const listener = vi.fn()
     window.addEventListener('hermes-auth-notice', listener)
-    mockFetch.mockResolvedValueOnce({
+    // Both original request and auto-login attempt fail with 401
+    mockFetch.mockResolvedValue({
       ok: false,
       status: 401,
       text: () => Promise.resolve(''),
@@ -357,7 +358,6 @@ describe('stt api wrappers', () => {
     })).rejects.toThrow('Unauthorized')
 
     expect(hasApiKey()).toBe(false)
-    expect(router.replace).toHaveBeenCalledWith({ name: 'login' })
     expect(listener).toHaveBeenCalledOnce()
     expect(listener.mock.calls[0][0].detail).toEqual({ kind: 'expired' })
     expect(mockFetch).toHaveBeenCalledWith(

@@ -51,6 +51,14 @@ cpSync(
   { recursive: true },
 )
 
+const soulsOutDir = resolve(rootDir, 'dist/souls')
+rmSync(soulsOutDir, { recursive: true, force: true })
+cpSync(
+  resolve(rootDir, 'packages/souls'),
+  soulsOutDir,
+  { recursive: true },
+)
+
 const firmwareSrc = resolve(rootDir, 'packages/esp32-c3/.pio/build/esp32-c3-devkitm-1/firmware.bin')
 const firmwareOutDir = resolve(rootDir, 'dist/mcu')
 if (existsSync(firmwareSrc)) {

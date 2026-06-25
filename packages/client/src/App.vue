@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, computed, watch } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { darkTheme, NConfigProvider, NMessageProvider, NDialogProvider, NNotificationProvider } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
@@ -11,7 +11,6 @@ import { useKeyboard } from '@/composables/useKeyboard'
 import { useAppStore } from '@/stores/hermes/app'
 import SessionSearchModal from '@/components/hermes/chat/SessionSearchModal.vue'
 import AuthEventListener from '@/components/auth/AuthEventListener.vue'
-import DefaultCredentialPrompt from '@/components/auth/DefaultCredentialPrompt.vue'
 
 const { isDark, isComic } = useTheme()
 const { t } = useI18n()
@@ -21,12 +20,11 @@ const route = useRoute()
 const themeOverrides = computed(() => getThemeOverrides(isDark.value, isComic.value))
 const naiveTheme = computed(() => isDark.value ? darkTheme : null)
 
-const isLoginPage = computed(() => route.name === 'login')
 const usesPageSidebar = computed(() =>
   ['hermes.chat', 'hermes.session', 'hermes.history', 'hermes.historySession', 'hermes.globalAgent', 'hermes.globalAgentSession', 'hermes.groupChat', 'hermes.groupChatRoom'].includes(route.name as string),
 )
-const showAppSidebar = computed(() => !isLoginPage.value && !usesPageSidebar.value)
-const showMobileMenuButton = computed(() => !isLoginPage.value && (showAppSidebar.value || usesPageSidebar.value))
+const showAppSidebar = computed(() => !usesPageSidebar.value)
+const showMobileMenuButton = computed(() => showAppSidebar.value || usesPageSidebar.value)
 
 const nodeVersionLow = computed(() => {
   const v = appStore.nodeVersion
@@ -50,15 +48,9 @@ function handleMobileMenuClick() {
   appStore.toggleSidebar()
 }
 
-watch(isLoginPage, (loginPage) => {
-  if (loginPage) {
-    appStore.stopHealthPolling()
-    return
-  }
+onMounted(() => {
   appStore.loadModels()
   appStore.startHealthPolling()
-}, {
-  immediate: true,
 })
 
 onUnmounted(() => {
@@ -79,19 +71,18 @@ useKeyboard()
             <div v-if="nodeVersionLow" class="node-warning-bar">
               {{ t('sidebar.nodeVersionWarning', { version: appStore.nodeVersion }) }}
             </div>
-            <div class="app-layout" :class="{ 'no-sidebar': isLoginPage || !showAppSidebar }">
+            <div class="app-layout" :class="{ 'no-sidebar': !showAppSidebar }">
               <button v-if="showMobileMenuButton" class="hamburger-btn" @click="handleMobileMenuClick">
                 <img src="/logo.png" alt="Menu" style="width: 24px; height: 24px;" />
               </button>
-              <div v-if="!isLoginPage && showAppSidebar && appStore.sidebarOpen" class="mobile-backdrop" @click="appStore.closeSidebar" />
-              <AppSidebar v-if="!isLoginPage && showAppSidebar" />
+              <div v-if="showAppSidebar && appStore.sidebarOpen" class="mobile-backdrop" @click="appStore.closeSidebar" />
+              <AppSidebar v-if="showAppSidebar" />
               <main class="app-main">
                 <router-view />
               </main>
             </div>
           </div>
           <SessionSearchModal />
-          <DefaultCredentialPrompt />
         </NNotificationProvider>
       </NDialogProvider>
     </NMessageProvider>

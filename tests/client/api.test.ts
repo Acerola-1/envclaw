@@ -106,15 +106,32 @@ describe('API Client', () => {
       expect(options.headers.Authorization).toBeUndefined()
     })
 
-    it('clears token and redirects on 401 for local BFF endpoints', async () => {
+    it('clears token and emits notice on 401 when auto-refresh fails', async () => {
       setApiKey('secret-key')
       localStorage.setItem('hermes_active_profile_name', 'research')
+      const listener = vi.fn()
+      window.addEventListener('hermes-auth-notice', listener)
+      // Both the original request and the auto-login attempt fail
       mockFetch.mockResolvedValue({ ok: false, status: 401 })
 
       await expect(request('/api/hermes/sessions')).rejects.toThrow('Unauthorized')
       expect(hasApiKey()).toBe(false)
       expect(localStorage.getItem('hermes_active_profile_name')).toBeNull()
-      expect(router.replace).toHaveBeenCalledWith({ name: 'login' })
+      expect(listener).toHaveBeenCalledOnce()
+      expect(listener.mock.calls[0][0].detail).toEqual({ kind: 'expired' })
+      window.removeEventListener('hermes-auth-notice', listener)
+    })
+
+    it('retries request after successful auto-refresh on 401', async () => {
+      setApiKey('expired-key')
+      mockFetch
+        .mockResolvedValueOnce({ ok: false, status: 401 })  // original request
+        .mockResolvedValueOnce({ ok: true, status: 200, json: () => ({ token: 'new-jwt' }) })  // auto-login
+        .mockResolvedValueOnce({ ok: true, status: 200, json: () => ({ data: 'retried' }) })  // retry
+
+      const result = await request('/api/hermes/sessions')
+      expect(result).toEqual({ data: 'retried' })
+      expect(hasApiKey()).toBe(true)
     })
 
     it('emits a global auth notice on local 403 responses', async () => {
@@ -131,9 +148,12 @@ describe('API Client', () => {
       window.removeEventListener('hermes-auth-notice', listener)
     })
 
-    it('clears token and redirects when the JWT user no longer exists', async () => {
+    it('clears token and emits notice when the JWT user no longer exists and auto-refresh fails', async () => {
       setApiKey('stale-jwt')
       localStorage.setItem('hermes_active_profile_name', 'research')
+      const listener = vi.fn()
+      window.addEventListener('hermes-auth-notice', listener)
+      // Both the original request and the auto-login attempt fail
       mockFetch.mockResolvedValue({
         ok: false,
         status: 403,
@@ -144,7 +164,9 @@ describe('API Client', () => {
 
       expect(hasApiKey()).toBe(false)
       expect(localStorage.getItem('hermes_active_profile_name')).toBeNull()
-      expect(router.replace).toHaveBeenCalledWith({ name: 'login' })
+      expect(listener).toHaveBeenCalledOnce()
+      expect(listener.mock.calls[0][0].detail).toEqual({ kind: 'expired' })
+      window.removeEventListener('hermes-auth-notice', listener)
     })
 
     it('does NOT clear token on 401 for proxied v1 endpoints', async () => {

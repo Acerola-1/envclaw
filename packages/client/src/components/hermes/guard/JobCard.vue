@@ -297,9 +297,9 @@ watch(() => [props.job, props.profileKey], () => {
             <span class="info-label">上次执行</span>
             <span class="info-value">
               {{ formatTime(job.last_run_at) }}
-              <NTag v-if="job.last_status" :type="job.last_status === 'success' ? 'success' : 'error'" size="tiny"
+              <NTag v-if="job.last_status" :type="job.last_status === 'ok' ? 'success' : 'error'" size="tiny"
                 round>
-                {{ job.last_status === 'success' ? '成功' : '失败' }}
+                {{ job.last_status === 'ok' ? '成功' : '失败' }}
               </NTag>
             </span>
           </div>

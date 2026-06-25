@@ -16,6 +16,7 @@ import { smartCloneCleanup, copyModelProviderAuthForClone } from '../../services
 import { detectHermesRootHome } from '../../services/hermes/hermes-path'
 import { getActiveProfileName } from '../../services/hermes/hermes-profile'
 import { HermesSkillInjector } from '../../services/hermes/skill-injector'
+import { HermesSoulInjector } from '../../services/hermes/soul-injector'
 import type { HermesProfile } from '../../services/hermes/hermes-cli'
 import { listUserProfiles } from '../../db/hermes/users-store'
 
@@ -118,6 +119,22 @@ async function injectBundledSkillsForProfile(name: string): Promise<void> {
     }
   } catch (err: any) {
     logger.warn(err, '[profiles] failed to sync bundled skills for profile "%s"', name)
+  }
+}
+
+async function injectBundledSoulForProfile(name: string): Promise<void> {
+  try {
+    const hermesBase = detectHermesRootHome()
+    const targetDir = (!name || name === 'default')
+      ? hermesBase
+      : join(hermesBase, 'profiles', name)
+    const result = await new HermesSoulInjector(undefined, targetDir).injectMissingSoul()
+    const target = result.targets[0]
+    if (target && target.action !== 'unchanged' && target.action !== 'skipped') {
+      logger.info({ profile: name, action: target.action }, '[profiles] synced bundled soul for profile')
+    }
+  } catch (err: any) {
+    logger.warn(err, '[profiles] failed to sync bundled soul for profile "%s"', name)
   }
 }
 
@@ -449,6 +466,7 @@ export async function create(ctx: any) {
     }
 
     await injectBundledSkillsForProfile(name)
+    await injectBundledSoulForProfile(name)
 
     ctx.body = {
       success: true,
@@ -761,6 +779,7 @@ export async function switchProfile(ctx: any) {
     }
 
     await injectBundledSkillsForProfile(name)
+    await injectBundledSoulForProfile(name)
     SessionDeleter.getInstance().switchProfile(name)
     logger.info('[switchProfile] switched session deleter to Hermes profile "%s"', name)
 
