@@ -96,6 +96,10 @@
   .stat-ic { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
   .stat-val { font-size: 26px; font-weight: 650; margin-top: 10px; letter-spacing: -.5px; }
   .stat-meta { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  /* 待接入：数据源未落地，置灰不可信 */
+  .stat-card.pending { opacity: .55; }
+  .stat-card.pending .stat-val { color: var(--text3) !important; }
+  .badge-soon { font-size: 10px; padding: 1px 7px; border-radius: 9px; background: var(--action); border: 1px solid var(--border); color: var(--text3); font-weight: 500; }
 
   /* ===== 区块标题 ===== */
   .section { margin-bottom: 30px; }
@@ -109,6 +113,11 @@
   .scenario-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .scenario-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; cursor: pointer; transition: .15s; }
   .scenario-card:hover { border-color: var(--border-strong); background: var(--card-hover); transform: translateY(-2px); }
+  /* 未完成场景：明确不可点击 */
+  .scenario-card.disabled { cursor: not-allowed; opacity: .5; }
+  .scenario-card.disabled:hover { border-color: var(--border); background: var(--card); transform: none; }
+  .scenario-card.disabled .scenario-go { color: var(--text3); }
+  .badge-wip { padding: 2px 8px; border-radius: 10px; font-size: 10.5px; background: var(--action); color: var(--text3); border: 1px dashed var(--border-strong); }
   .scenario-ic { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 13px; }
   .scenario-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
   .scenario-card p { font-size: 12px; color: var(--text2); line-height: 1.55; margin-bottom: 14px; min-height: 37px; }
@@ -168,8 +177,8 @@
           工作台
         </button>
         <button class="mode-btn">
-          <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-          对话
+          <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.7L20 10l-6.1 1.3L12 17l-1.9-5.7L4 10l6.1-1.3z"/></svg>
+          智能问数
         </button>
       </div>
     </div>
@@ -192,12 +201,8 @@
         值守任务<span class="count">6</span>
       </div>
       <div class="rail-item">
-        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        智能问数
-      </div>
-      <div class="rail-item">
         <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>
-        平台账号
+        平台管理
       </div>
       <div class="rail-group-label">资源</div>
       <div class="rail-item">
@@ -225,7 +230,6 @@
             <div class="sub">2026 年 6 月 25 日 · 河南省环境监测中心</div>
           </div>
           <div class="overview-actions">
-            <button class="btn btn-ghost"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>今日报表</button>
             <button class="btn btn-primary"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5v14"/></svg>新建任务</button>
           </div>
         </div>
@@ -242,15 +246,15 @@
             <div class="stat-val" style="color:var(--green)">98%</div>
             <div class="stat-meta">较昨日 +2%</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-top"><span class="stat-label">待处理预警</span><div class="stat-ic color-amber"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></svg></div></div>
-            <div class="stat-val" style="color:var(--amber)">3</div>
-            <div class="stat-meta">PM2.5 超阈值</div>
+          <div class="stat-card pending">
+            <div class="stat-top"><span class="stat-label">待处理预警</span><span class="badge-soon">待接入</span></div>
+            <div class="stat-val">—</div>
+            <div class="stat-meta">数据源未接入</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-top"><span class="stat-label">今日数据采集</span><div class="stat-ic color-mute"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div></div>
-            <div class="stat-val">12</div>
-            <div class="stat-meta">组数据已入库</div>
+          <div class="stat-card pending">
+            <div class="stat-top"><span class="stat-label">今日数据采集</span><span class="badge-soon">待接入</span></div>
+            <div class="stat-val">—</div>
+            <div class="stat-meta">数据源未接入</div>
           </div>
         </div>
 
@@ -261,28 +265,28 @@
           </div>
           <div class="scenario-grid">
             <div class="scenario-card" onclick="location.href='prototype-wizard.html'">
-              <div class="scenario-ic color-blue"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg></div>
+              <div class="scenario-ic color-green"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14"/></svg></div>
+              <h3>数据播报</h3>
+              <p>定时抓取空气质量数据，自动生成播报内容并推送到指定群组</p>
+              <div class="scenario-foot"><div class="tag-row"><span class="tag">定时</span><span class="tag">多渠道</span></div><span class="scenario-go">开始<svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></div>
+            </div>
+            <div class="scenario-card disabled">
+              <div class="scenario-ic color-mute"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg></div>
               <h3>数据采集</h3>
               <p>从 mapairs、国控站等平台自动抓取空气质量数据并生成报表</p>
-              <div class="scenario-foot"><div class="tag-row"><span class="tag">定时</span><span class="tag">多平台</span></div><span class="scenario-go">开始<svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></div>
+              <div class="scenario-foot"><span class="badge-wip">即将推出</span><span class="scenario-go">敬请期待</span></div>
             </div>
-            <div class="scenario-card" onclick="location.href='prototype-wizard.html'">
-              <div class="scenario-ic color-amber"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+            <div class="scenario-card disabled">
+              <div class="scenario-ic color-mute"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></svg></div>
               <h3>异常预警</h3>
               <p>实时监控空气质量指标，超阈值自动预警并多渠道推送</p>
-              <div class="scenario-foot"><div class="tag-row"><span class="tag">实时</span><span class="tag">多渠道</span></div><span class="scenario-go">开始<svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></div>
+              <div class="scenario-foot"><span class="badge-wip">即将推出</span><span class="scenario-go">敬请期待</span></div>
             </div>
-            <div class="scenario-card" onclick="location.href='prototype-wizard.html'">
-              <div class="scenario-ic color-green"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg></div>
+            <div class="scenario-card disabled">
+              <div class="scenario-ic color-mute"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg></div>
               <h3>报告生成</h3>
               <p>自动生成日报、周报、月报，支持自定义模板与定时推送</p>
-              <div class="scenario-foot"><div class="tag-row"><span class="tag">模板</span><span class="tag">自动</span></div><span class="scenario-go">开始<svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></div>
-            </div>
-            <div class="scenario-card" onclick="location.href='prototype-askdata.html'">
-              <div class="scenario-ic color-mute"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
-              <h3>智能问数</h3>
-              <p>用自然语言查询数据，自动分析趋势、对比排名、生成图表</p>
-              <div class="scenario-foot"><div class="tag-row"><span class="tag">AI</span><span class="tag">图表</span></div><span class="scenario-go">开始<svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></div>
+              <div class="scenario-foot"><span class="badge-wip">即将推出</span><span class="scenario-go">敬请期待</span></div>
             </div>
           </div>
         </div>
@@ -328,7 +332,7 @@
         <!-- 平台账号 -->
         <div class="section">
           <div class="section-head">
-            <div class="section-title">平台账号 <span class="hint">配置一次，自动登录</span></div>
+            <div class="section-title">平台管理 <span class="hint">配置一次，自动登录</span></div>
             <span class="section-link" onclick="location.href='prototype-platforms.html'">管理<svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
           </div>
           <div class="platform-bar">
