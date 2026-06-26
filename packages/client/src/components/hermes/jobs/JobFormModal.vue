@@ -16,6 +16,7 @@ import type { SkillInfo } from '@/api/hermes/skills'
 import { getChannelContacts } from '@/api/client'
 import { useI18n } from 'vue-i18n'
 import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
+import DataSourceSelector from '@/components/hermes/guard/DataSourceSelector.vue'
 
 const { t } = useI18n()
 
@@ -44,6 +45,7 @@ const formData = ref({
   deliver: 'origin',
   skills: [] as string[],
   repeat_times: null as number | null,
+  dataSourcePlatforms: [] as string[],
 })
 
 const schedule = ref('0 9 * * *')  // 默认每天 9:00
@@ -221,7 +223,7 @@ function handleClose() {
     v-model:show="showModal"
     preset="card"
     :title="isEdit ? t('jobs.editJob') : t('jobs.createJob')"
-    :style="{ width: 'min(520px, calc(100vw - 32px))' }"
+    :style="{ width: 'min(720px, calc(100vw - 32px))' }"
     :mask-closable="!loading"
     @after-leave="emit('close')"
   >
@@ -234,6 +236,11 @@ function handleClose() {
           show-count
         />
       </NFormItem>
+
+      <DataSourceSelector
+        v-model="formData.dataSourcePlatforms"
+        v-model:prompt="formData.prompt"
+      />
 
       <NFormItem :label="t('jobs.prompt')" required>
         <NInput

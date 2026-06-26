@@ -11,6 +11,7 @@ import { getJob, scheduleToEditableInput, jobRepeatToEditValue } from '@/api/her
 import type { Job } from '@/api/hermes/jobs'
 import { getChannelContacts } from '@/api/client'
 import { useMessage } from 'naive-ui'
+import DataSourceSelector from '@/components/hermes/guard/DataSourceSelector.vue'
 
 interface GuardRobot {
   id: string
@@ -38,6 +39,7 @@ const originalJob = ref<Job | null>(null)
 // 基础表单数据
 const taskName = ref('')
 const taskPrompt = ref('')
+const dataSourcePlatforms = ref<string[]>([])
 
 const router = useRouter()
 const settingsStore = useSettingsStore()
@@ -186,6 +188,7 @@ function resetForm() {
   notifyGroupId.value = ''
   repeat_times.value = null
   selectedSkills.value = []
+  dataSourcePlatforms.value = []
   schedule.value = '0 9 * * *'
   originalJob.value = null
 }
@@ -243,11 +246,17 @@ onMounted(() => {
         <NInput v-model:value="taskName" placeholder="请输入任务名称" maxlength="50" />
       </div>
 
+      <!-- 数据源平台选择 -->
+      <DataSourceSelector
+        v-model="dataSourcePlatforms"
+        v-model:prompt="taskPrompt"
+      />
+
       <!-- 4.5 将技能选择器嵌入提示词输入框内部下方 -->
       <div class="form-item">
         <label class="form-label">执行提示词</label>
         <div class="prompt-container">
-          <NInput v-model:value="taskPrompt" type="textarea" placeholder="请输入分析提示词" :rows="4" maxlength="500"
+          <NInput v-model:value="taskPrompt" type="textarea" placeholder="请输入分析提示词" :rows="6" maxlength="1000"
             class="prompt-textarea" />
           <div class="skills-in-prompt">
             <NSelect v-model:value="selectedSkills" multiple filterable clearable :loading="skillsLoading"

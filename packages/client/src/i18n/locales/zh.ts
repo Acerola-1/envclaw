@@ -1,7 +1,7 @@
 export default {
   // 登录
   login: {
-    title: 'Hermes Web UI',
+    title: '智能值守 Envclaw',
     description: '输入用户名和密码以继续。',
     placeholder: '访问令牌',
     submit: '登录',
@@ -197,6 +197,7 @@ export default {
     performance: '性能监控',
     skillsUsage: '技能用量',
     channels: '频道',
+    dataSourcePlatforms: '数据源平台',
     gateways: '网关',
     terminal: '终端',
     singleChat: '单聊',

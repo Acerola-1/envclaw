@@ -106,6 +106,11 @@ const router = createRouter({
       component: () => import('@/views/hermes/ChannelsView.vue'),
     },
     {
+      path: '/hermes/dataSourcePlatforms',
+      name: 'hermes.dataSourcePlatforms',
+      component: () => import('@/views/hermes/DataSourcePlatformsView.vue'),
+    },
+    {
       path: '/hermes/terminal',
       name: 'hermes.terminal',
       component: () => import('@/views/hermes/TerminalView.vue'),

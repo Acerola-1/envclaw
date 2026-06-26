@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>数据动态播报 — 创建任务</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .page {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+  .page-title {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .page-title h2 {
+    font-size: 18px;
+    color: #666;
+    font-weight: normal;
+  }
+  .modal {
+    width: 720px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #eee;
+    background: #fafafa;
+  }
+  .modal-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .modal-header .close {
+    cursor: pointer;
+    color: #999;
+    font-size: 20px;
+    line-height: 1;
+  }
+  .steps {
+    display: flex;
+    padding: 16px 24px;
+    gap: 4px;
+    border-bottom: 1px solid #eee;
+  }
+  .step {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #bbb;
+    position: relative;
+  }
+  .step .num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #e8e8e8;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .step.active .num {
+    background: #1890ff;
+    color: #fff;
+  }
+  .step.active {
+    color: #1890ff;
+    font-weight: 600;
+  }
+  .step.done .num {
+    background: #52c41a;
+    color: #fff;
+  }
+  .step.done {
+    color: #52c41a;
+  }
+  .step-label {
+    white-space: nowrap;
+  }
+  .modal-body {
+    padding: 24px;
+    min-height: 380px;
+  }
+  .step-content {
+    display: none;
+  }
+  .step-content.active {
+    display: block;
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  .form-label .required {
+    color: #ff4d4f;
+    margin-left: 2px;
+  }
+  .form-hint {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus {
+    border-color: #1890ff;
+  }
+  .form-input::placeholder {
+    color: #bbb;
+  }
+  textarea.form-input {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.7;
+  }
+  .platform-list {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .platform-card {
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 12px 16px;
+    width: calc(50% - 6px);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .platform-card:hover {
+    border-color: #1890ff;
+  }
+  .platform-card.selected {
+    border-color: #1890ff;
+    background: #e6f7ff;
+  }
+  .platform-card .name {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .platform-card .desc {
+    font-size: 11px;
+    color: #999;
+  }
+  .platform-card .check {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    color: #1890ff;
+    font-size: 14px;
+    display: none;
+  }
+  .platform-card.selected .check {
+    display: block;
+  }
+  .time-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  .time-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .time-row .form-group .form-label {
+    margin-bottom: 4px;
+  }
+  .toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .toggle-row:last-child {
+    border-bottom: none;
+  }
+  .toggle-label {
+    font-size: 13px;
+  }
+  .toggle-label .hint {
+    font-size: 12px;
+    color: #999;
+    margin-left: 6px;
+  }
+  .toggle {
+    width: 36px;
+    height: 20px;
+    background: #d9d9d9;
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .toggle.on {
+    background: #1890ff;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s;
+  }
+  .toggle.on::after {
+    left: 18px;
+  }
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+  }
+  .btn {
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    transition: all 0.2s;
+  }
+  .btn:hover {
+    border-color: #1890ff;
+    color: #1890ff;
+  }
+  .btn-primary {
+    background: #1890ff;
+    color: #fff;
+    border-color: #1890ff;
+  }
+  .btn-primary:hover {
+    background: #40a9ff;
+    color: #fff;
+  }
+  .btn-text {
+    border: none;
+    background: transparent;
+    color: #666;
+  }
+  .btn-text:hover {
+    color: #1890ff;
+  }
+  .summary-section {
+    margin-bottom: 16px;
+  }
+  .summary-section:last-child {
+    margin-bottom: 0;
+  }
+  .summary-title {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px dashed #f0f0f0;
+  }
+  .summary-row:last-child {
+    border-bottom: none;
+  }
+  .summary-key {
+    color: #666;
+  }
+  .summary-val {
+    font-weight: 600;
+    color: #333;
+  }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    background: #f0f0f0;
+    color: #666;
+    margin-left: 4px;
+  }
+  .tag-blue {
+    background: #e6f7ff;
+    color: #1890ff;
+  }
+  .tag-green {
+    background: #f6ffed;
+    color: #52c41a;
+  }
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0 16px;
+  }
+  .section-divider .line {
+    flex: 1;
+    height: 1px;
+    background: #f0f0f0;
+  }
+  .section-divider .text {
+    font-size: 12px;
+    color: #999;
+  }
+  .radio-group {
+    display: flex;
+    gap: 16px;
+  }
+  .radio-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .radio-item input[type="radio"] {
+    accent-color: #1890ff;
+  }
+  .number-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .number-input {
+    width: 80px;
+    padding: 6px 10px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: center;
+    outline: none;
+  }
+  .number-input:focus {
+    border-color: #1890ff;
+  }
+  .number-unit {
+    font-size: 12px;
+    color: #999;
+  }
+  .info-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #1890ff;
+    font-size: 12px;
+    cursor: help;
+    margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div>
+    <div class="page-title">
+      <h2>智能值守 · 创建任务 — 数据动态播报</h2>
+    </div>
+
+    <div class="modal">
+      <div class="modal-header">
+        <h3>新建任务 — 数据动态播报</h3>
+        <span class="close">&times;</span>
+      </div>
+
+      <div class="steps">
+        <div class="step active" data-step="1">
+          <span class="num">1</span>
+          <span class="step-label">基础信息</span>
+        </div>
+        <div class="step" data-step="2">
+          <span class="num">2</span>
+          <span class="step-label">执行时间</span>
+        </div>
+        <div class="step" data-step="3">
+          <span class="num">3</span>
+          <span class="step-label">数据源与模板</span>
+        </div>
+        <div class="step" data-step="4">
+          <span class="num">4</span>
+          <span class="step-label">高级设置</span>
+        </div>
+        <div class="step" data-step="5">
+          <span class="num">5</span>
+          <span class="step-label">确认创建</span>
+        </div>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Step 1: 基础信息 -->
+        <div class="step-content active" data-content="1">
+          <div class="form-group">
+            <label class="form-label">任务名称 <span class="required">*</span></label>
+            <input type="text" class="form-input" placeholder="例如：郑州市数据动态播报" value="郑州市数据动态播报">
+            <div class="form-hint">用于区分不同项目的播报任务</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">推送目标群 <span class="required">*</span></label>
+            <div class="platform-list">
+              <div class="platform-card selected">
+                <span class="check">✓</span>
+                <div class="name">郑州空气质量工作群</div>
+                <div class="desc">微信群 · 已关联</div>
+              </div>
+              <div class="platform-card">
+                <span class="check">✓</span>
+                <div class="name">平顶山空气质量工作群</div>
+                <div class="desc">微信群 · 已关联</div>
+              </div>
+              <div class="platform-card">
+                <span class="check">✓</span>
+                <div class="name">+ 添加新群</div>
+                <div class="desc">从已配置群中选择</div>
+              </div>
+            </div>
+            <div class="form-hint">可多选，任务执行后结果将推送到所选群</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">任务标签</label>
+            <div class="radio-group">
+              <label class="radio-item"><input type="checkbox" checked> 日常工作</label>
+              <label class="radio-item"><input type="checkbox"> 重点时段</label>
+              <label class="radio-item"><input type="checkbox"> 临时任务</label>
+            </div>
+            <div class="form-hint">便于后续管理和筛选</div>
+          </div>
+        </div>
+
+        <!-- Step 2: 执行时间 -->
+        <div class="step-content" data-content="2">
+          <div class="form-group">
+            <label class="form-label">运行时段 <span class="required">*</span></label>
+            <div class="radio-group">
+              <label class="radio-item"><input type="radio" name="period" checked> 工作时段（6:00 - 23:00）</label>
+              <label class="radio-item"><input type="radio" name="period"> 全天运行</label>
+              <label class="radio-item"><input type="radio" name="period"> 自定义</label>
+            </div>
+            <div class="form-hint">非运行时段任务自动暂停，次日开机后自动回溯</div>
+          </div>
+
+          <div class="time-row">
+            <div class="form-group">
+              <label class="form-label">每小时触发时间 <span class="required">*</span>
+                <span class="info-inline">? <span style="display:none">整点后第几分钟开始拉取数据</span></span>
+              </label>
+              <div class="number-input-wrap">
+                <input type="number" class="number-input" value="3" min="0" max="59">
+                <span class="number-unit">分钟</span>
+              </div>
+              <div class="form-hint">例如填 3，则每小时第 3 分钟触发</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">最晚截止时间 <span class="required">*</span></label>
+              <div class="number-input-wrap">
+                <input type="number" class="number-input" value="20" min="1" max="59">
+                <span class="number-unit">分钟</span>
+              </div>
+              <div class="form-hint">超过此时间仍未获取数据则推送告警</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label">重试策略</label>
+            <div class="radio-group">
+              <label class="radio-item"><input type="radio" name="retry" checked> 自动重试（间隔 1~3 分钟）</label>
+              <label class="radio-item"><input type="radio" name="retry"> 不重试，直接告警</label>
+            </div>
+            <div class="form-hint">平台数据更新可能延迟，自动重试可提高成功率</div>
+          </div>
+        </div>
+
+        <!-- Step 3: 数据源与模板 -->
+        <div class="step-content" data-content="3">
+          <div class="form-group">
+            <label class="form-label">数据源平台 <span class="required">*</span></label>
+            <div class="platform-list">
+              <div class="platform-card selected">
+                <span class="check">✓</span>
+                <div class="name">中大平台 <span class="tag tag-blue">国家级</span></div>
+                <div class="desc">空气质量联网监测管理平台 · 内网 · 数字验证码</div>
+              </div>
+              <div class="platform-card selected">
+                <span class="check">✓</span>
+                <div class="name">华东平台 <span class="tag tag-blue">省级</span></div>
+                <div class="desc">河南省城市空气质量大数据综合应用系统 · 内网 · 字母+数字验证码</div>
+              </div>
+            </div>
+            <div class="form-hint">至少选择一个平台，可多选；账号密码已保存在凭据管理中 <a href="#" style="color:#1890ff;text-decoration:none;margin-left:4px;" onclick="event.preventDefault();alert('打开账号管理弹窗')">管理账号</a></div>
+          </div>
+
+          <div class="section-divider">
+            <span class="line"></span>
+            <span class="text">播报文字</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">提示词 <span class="required">*</span></label>
+            <textarea class="form-input" rows="5" placeholder="请输入播报文字模板，例如：&#10;【数据播报】截至{time}时，全市{count}个站点AQI均值为{aqi}，首要污染物为{pollutant}。&#10;&#10;支持的变量：&#10;{time} - 当前小时&#10;{count} - 站点数量&#10;{aqi} - AQI均值&#10;{pollutant} - 首要污染物&#10;{pm25} - PM2.5浓度&#10;{pm10} - PM10浓度&#10;{so2} - SO2浓度&#10;{no2} - NO2浓度&#10;{co} - CO浓度&#10;{o3} - O3浓度">{time}时数据播报：全市{count}个站点AQI均值{aqi}，首要污染物{pollutant}，PM2.5为{pm25}μg/m³，PM10为{pm10}μg/m³。</textarea>
+            <div class="form-hint">支持使用 {变量名} 自动替换为对应数据，系统将每小时自动更新推送</div>
+          </div>
+        </div>
+
+        <!-- Step 4: 高级设置 -->
+        <div class="step-content" data-content="4">
+          <div class="toggle-row">
+            <div class="toggle-label">
+              数据完整性检查
+              <span class="hint">关键字段缺失时在图片上标注【数据待更新】</span>
+            </div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              图片去重检测
+              <span class="hint">与上一小时图片相同时重新获取，防止推送旧图</span>
+            </div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              VPN 断连告警
+              <span class="hint">VPN 断开时自动暂停并向运维群发送告警</span>
+            </div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              夜间数据回溯
+              <span class="hint">次日首次开机后自动补推夜间未执行时段的数据</span>
+            </div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              失败通知
+              <span class="hint">任务执行失败时通知运维群</span>
+            </div>
+            <div class="toggle on"></div>
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label">最大重试次数</label>
+            <div class="number-input-wrap">
+              <input type="number" class="number-input" value="5" min="1" max="10">
+              <span class="number-unit">次</span>
+            </div>
+            <div class="form-hint">超过此次数仍未获取数据则推送告警，不再重试</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">截图图片大小限制</label>
+            <div class="radio-group">
+              <label class="radio-item"><input type="radio" name="imgsize" checked> 800×600 像素</label>
+              <label class="radio-item"><input type="radio" name="imgsize"> 1024×768 像素</label>
+              <label class="radio-item"><input type="radio" name="imgsize"> 自定义</label>
+            </div>
+            <div class="form-hint">控制推送消息大小，保持工作群阅读体验</div>
+          </div>
+        </div>
+
+        <!-- Step 5: 确认创建 -->
+        <div class="step-content" data-content="5">
+          <div class="summary-section">
+            <div class="summary-title">基础信息</div>
+            <div class="summary-row">
+              <span class="summary-key">任务名称</span>
+              <span class="summary-val">郑州市数据动态播报</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">推送目标群</span>
+              <span class="summary-val">郑州空气质量工作群</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">任务标签</span>
+              <span class="summary-val"><span class="tag">日常工作</span></span>
+            </div>
+          </div>
+
+          <div class="summary-section">
+            <div class="summary-title">执行时间</div>
+            <div class="summary-row">
+              <span class="summary-key">运行时段</span>
+              <span class="summary-val">工作时段（6:00 - 23:00）</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">触发时间</span>
+              <span class="summary-val">每小时第 3 分钟</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">截止时间</span>
+              <span class="summary-val">每小时第 20 分钟</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">重试策略</span>
+              <span class="summary-val">自动重试（间隔 1~3 分钟）</span>
+            </div>
+          </div>
+
+          <div class="summary-section">
+            <div class="summary-title">数据源与播报</div>
+            <div class="summary-row">
+              <span class="summary-key">数据源平台</span>
+              <span class="summary-val">中大平台、华东平台</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">提示词</span>
+              <span class="summary-val"><span class="tag tag-green">已配置</span></span>
+            </div>
+          </div>
+
+          <div class="summary-section">
+            <div class="summary-title">高级设置</div>
+            <div class="summary-row">
+              <span class="summary-key">数据完整性检查</span>
+              <span class="summary-val"><span class="tag tag-green">开启</span></span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">图片去重检测</span>
+              <span class="summary-val"><span class="tag tag-green">开启</span></span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">VPN 断连告警</span>
+              <span class="summary-val"><span class="tag tag-green">开启</span></span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">夜间数据回溯</span>
+              <span class="summary-val"><span class="tag tag-green">开启</span></span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">最大重试次数</span>
+              <span class="summary-val">5 次</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <div>
+          <button class="btn btn-text" id="btn-prev" style="display:none;">上一步</button>
+        </div>
+        <div>
+          <button class="btn btn-text" id="btn-save-template">保存为模板</button>
+          <button class="btn btn-primary" id="btn-next">下一步</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const steps = document.querySelectorAll('.step');
+  const contents = document.querySelectorAll('.step-content');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  let current = 0;
+
+  function goTo(n) {
+    current = Math.max(0, Math.min(steps.length - 1, n));
+    steps.forEach((s, i) => {
+      s.classList.remove('active', 'done');
+      if (i < current) s.classList.add('done');
+      if (i === current) s.classList.add('active');
+    });
+    contents.forEach((c, i) => {
+      c.classList.toggle('active', i === current);
+    });
+    btnPrev.style.display = current === 0 ? 'none' : '';
+    btnNext.textContent = current === steps.length - 1 ? '确认创建' : '下一步';
+  }
+
+  btnNext.addEventListener('click', () => goTo(current + 1));
+  btnPrev.addEventListener('click', () => goTo(current - 1));
+
+  document.querySelectorAll('.platform-card').forEach(card => {
+    card.addEventListener('click', () => card.classList.toggle('selected'));
+  });
+
+  document.querySelectorAll('.toggle').forEach(t => {
+    t.addEventListener('click', () => t.classList.toggle('on'));
+  });
+</script>
+</body>
+</html>

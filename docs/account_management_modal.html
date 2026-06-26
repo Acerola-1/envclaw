@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>账号管理</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .page {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+  .page-title {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .page-title h2 {
+    font-size: 18px;
+    color: #666;
+    font-weight: normal;
+  }
+
+  /* Modal */
+  .modal {
+    width: 800px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #eee;
+    background: #fafafa;
+  }
+  .modal-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .modal-header .close {
+    cursor: pointer;
+    color: #999;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  /* Layout */
+  .modal-body {
+    display: flex;
+    min-height: 480px;
+  }
+  .sidebar {
+    width: 200px;
+    border-right: 1px solid #f0f0f0;
+    background: #fafafa;
+    padding: 16px 0;
+  }
+  .sidebar-title {
+    font-size: 12px;
+    color: #999;
+    padding: 0 16px 10px;
+    letter-spacing: 1px;
+  }
+  .platform-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  .platform-item:hover {
+    background: #f0f0f0;
+  }
+  .platform-item.active {
+    background: #e6f7ff;
+    border-left-color: #1890ff;
+    color: #1890ff;
+  }
+  .platform-item .icon {
+    font-size: 16px;
+  }
+  .platform-item .name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .platform-item .badge {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #f0f0f0;
+    color: #999;
+  }
+  .platform-item.active .badge {
+    background: #1890ff;
+    color: #fff;
+  }
+
+  /* Main */
+  .main {
+    flex: 1;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+  .main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .main-header .title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .main-header .title .sub {
+    font-size: 12px;
+    color: #999;
+    font-weight: normal;
+    margin-left: 6px;
+  }
+  .btn {
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    transition: all 0.2s;
+  }
+  .btn:hover {
+    border-color: #1890ff;
+    color: #1890ff;
+  }
+  .btn-primary {
+    background: #1890ff;
+    color: #fff;
+    border-color: #1890ff;
+  }
+  .btn-primary:hover {
+    background: #40a9ff;
+    color: #fff;
+  }
+  .btn-danger {
+    color: #ff4d4f;
+    border-color: #ffccc7;
+  }
+  .btn-danger:hover {
+    color: #ff4d4f;
+    border-color: #ff4d4f;
+  }
+  .btn-text {
+    border: none;
+    background: transparent;
+    color: #666;
+    padding: 4px 8px;
+  }
+  .btn-text:hover {
+    color: #1890ff;
+  }
+  .btn-success {
+    color: #52c41a;
+    border-color: #b7eb8f;
+  }
+  .btn-success:hover {
+    color: #52c41a;
+    border-color: #52c41a;
+  }
+
+  /* Account cards */
+  .account-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+  .account-card {
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 14px 16px;
+    transition: all 0.2s;
+  }
+  .account-card:hover {
+    border-color: #1890ff;
+  }
+  .account-card.active-account {
+    border-color: #1890ff;
+    background: #e6f7ff;
+  }
+  .account-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .account-name {
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .account-name .user {
+    color: #333;
+  }
+  .account-name .platform-tag {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: #f0f0f0;
+    color: #666;
+  }
+  .account-status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .status-ok {
+    background: #f6ffed;
+    color: #52c41a;
+  }
+  .status-err {
+    background: #fff2f0;
+    color: #ff4d4f;
+  }
+  .status-pending {
+    background: #fffbe6;
+    color: #faad14;
+  }
+  .account-info {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 8px;
+  }
+  .account-info .item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .account-info .label {
+    color: #bbb;
+  }
+  .account-info .value {
+    color: #666;
+  }
+  .account-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+  }
+  .empty-state .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .empty-state .text {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .empty-state .sub {
+    font-size: 12px;
+    color: #bbb;
+  }
+
+  /* Add account form */
+  .add-form {
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background: #fafafa;
+  }
+  .add-form-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .form-row:last-child {
+    margin-bottom: 0;
+  }
+  .form-group {
+    flex: 1;
+  }
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+  }
+  .form-label .required {
+    color: #ff4d4f;
+    margin-left: 2px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus {
+    border-color: #1890ff;
+  }
+  .form-input::placeholder {
+    color: #bbb;
+  }
+  .form-select {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+    background: #fff;
+  }
+  .form-hint {
+    font-size: 11px;
+    color: #999;
+    margin-top: 3px;
+  }
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+
+  /* Tag */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    background: #f0f0f0;
+    color: #666;
+    margin-left: 4px;
+  }
+  .tag-blue {
+    background: #e6f7ff;
+    color: #1890ff;
+  }
+  .tag-green {
+    background: #f6ffed;
+    color: #52c41a;
+  }
+  .tag-orange {
+    background: #fff7e6;
+    color: #fa8c16;
+  }
+
+  /* Modal footer */
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 13px;
+    z-index: 999;
+    display: none;
+  }
+  .toast.show {
+    display: block;
+  }
+  .toast-success {
+    background: #f6ffed;
+    border: 1px solid #b7eb8f;
+    color: #52c41a;
+  }
+  .toast-error {
+    background: #fff2f0;
+    border: 1px solid #ffccc7;
+    color: #ff4d4f;
+  }
+
+  /* Confirm dialog */
+  .confirm-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 998;
+  }
+  .confirm-overlay.show {
+    display: flex;
+  }
+  .confirm-dialog {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    width: 360px;
+    text-align: center;
+  }
+  .confirm-dialog .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .confirm-dialog .title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .confirm-dialog .desc {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 20px;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div>
+    <div class="page-title">
+      <h2>智能值守 · 账号管理</h2>
+    </div>
+
+    <div class="modal">
+      <div class="modal-header">
+        <h3>数据源平台账号管理</h3>
+        <span class="close">&times;</span>
+      </div>
+
+      <div class="modal-body">
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <div class="sidebar-title">平台列表</div>
+          <div class="platform-item active" data-platform="all">
+            <span class="icon">📋</span>
+            <span class="name">全部账号</span>
+            <span class="badge">3</span>
+          </div>
+          <div class="platform-item" data-platform="zhongda">
+            <span class="icon">🏛️</span>
+            <span class="name">中大平台</span>
+            <span class="badge">1</span>
+          </div>
+          <div class="platform-item" data-platform="huadong">
+            <span class="icon">🏢</span>
+            <span class="name">华东平台</span>
+            <span class="badge">1</span>
+          </div>
+          <div class="platform-item" data-platform="shuzhi">
+            <span class="icon">☁️</span>
+            <span class="name">数智大气</span>
+            <span class="badge">1</span>
+          </div>
+          <div class="platform-item" data-platform="xiangzhen">
+            <span class="icon">🏙️</span>
+            <span class="name">乡镇平台</span>
+            <span class="badge">0</span>
+          </div>
+        </div>
+
+        <!-- Main -->
+        <div class="main">
+          <div class="main-header">
+            <div class="title">全部账号 <span class="sub">共 3 个</span></div>
+            <button class="btn btn-primary" id="btn-add">+ 添加账号</button>
+          </div>
+
+          <!-- Add account form (hidden by default) -->
+          <div class="add-form" id="add-form" style="display:none;">
+            <div class="add-form-title">
+              <span>添加新账号</span>
+              <button class="btn btn-text" id="btn-cancel-add">取消</button>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">平台 <span class="required">*</span></label>
+                <select class="form-select" id="form-platform">
+                  <option value="">请选择平台</option>
+                  <option value="zhongda">中大平台（国家级 · 内网 · 数字验证码）</option>
+                  <option value="huadong">华东平台（省级 · 内网 · 字母+数字验证码）</option>
+                  <option value="shuzhi">数智大气平台（互联网 · 无需验证码）</option>
+                  <option value="xiangzhen">乡镇数据平台（市级 · 互联网 · 数字验证码）</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">账号别名</label>
+                <input type="text" class="form-input" placeholder="例如：郑州主账号" value="">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">用户名 <span class="required">*</span></label>
+                <input type="text" class="form-input" placeholder="请输入登录用户名">
+              </div>
+              <div class="form-group">
+                <label class="form-label">密码 <span class="required">*</span></label>
+                <input type="password" class="form-input" placeholder="密码将加密存储">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">验证码类型</label>
+                <select class="form-select">
+                  <option value="number">数字验证码</option>
+                  <option value="letter-number">字母+数字验证码</option>
+                  <option value="none">无需验证码</option>
+                </select>
+                <div class="form-hint">系统将根据此类型自动识别验证码</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">网络环境</label>
+                <select class="form-select">
+                  <option value="intranet">政务内网（需VPN）</option>
+                  <option value="internet">互联网</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn" id="btn-test">测试连接</button>
+              <button class="btn btn-primary" id="btn-save">保存账号</button>
+            </div>
+          </div>
+
+          <!-- Account list -->
+          <div class="account-list" id="account-list">
+            <!-- Account 1: 中大平台 -->
+            <div class="account-card">
+              <div class="account-top">
+                <div class="account-name">
+                  <span class="user">zhengzhou_admin</span>
+                  <span class="platform-tag">中大平台</span>
+                  <span class="tag tag-blue">国家级</span>
+                  <span class="tag tag-orange">内网</span>
+                </div>
+                <span class="account-status status-ok">● 可用</span>
+              </div>
+              <div class="account-info">
+                <div class="item">
+                  <span class="label">验证码：</span>
+                  <span class="value">数字验证码</span>
+                </div>
+                <div class="item">
+                  <span class="label">最后使用：</span>
+                  <span class="value">2026-06-25 16:30</span>
+                </div>
+                <div class="item">
+                  <span class="label">登录次数：</span>
+                  <span class="value">156 次</span>
+                </div>
+              </div>
+              <div class="account-actions">
+                <button class="btn btn-text btn-success">测试连接</button>
+                <button class="btn btn-text">编辑</button>
+                <button class="btn btn-text btn-danger">删除</button>
+              </div>
+            </div>
+
+            <!-- Account 2: 华东平台 -->
+            <div class="account-card">
+              <div class="account-top">
+                <div class="account-name">
+                  <span class="user">henan_monitor</span>
+                  <span class="platform-tag">华东平台</span>
+                  <span class="tag tag-blue">省级</span>
+                  <span class="tag tag-orange">内网</span>
+                </div>
+                <span class="account-status status-ok">● 可用</span>
+              </div>
+              <div class="account-info">
+                <div class="item">
+                  <span class="label">验证码：</span>
+                  <span class="value">字母+数字验证码</span>
+                </div>
+                <div class="item">
+                  <span class="label">最后使用：</span>
+                  <span class="value">2026-06-25 16:25</span>
+                </div>
+                <div class="item">
+                  <span class="label">登录次数：</span>
+                  <span class="value">203 次</span>
+                </div>
+              </div>
+              <div class="account-actions">
+                <button class="btn btn-text btn-success">测试连接</button>
+                <button class="btn btn-text">编辑</button>
+                <button class="btn btn-text btn-danger">删除</button>
+              </div>
+            </div>
+
+            <!-- Account 3: 数智大气 -->
+            <div class="account-card">
+              <div class="account-top">
+                <div class="account-name">
+                  <span class="user">shuzhi_user</span>
+                  <span class="platform-tag">数智大气</span>
+                  <span class="tag tag-green">互联网</span>
+                </div>
+                <span class="account-status status-pending">● 待验证</span>
+              </div>
+              <div class="account-info">
+                <div class="item">
+                  <span class="label">验证码：</span>
+                  <span class="value">无需验证码</span>
+                </div>
+                <div class="item">
+                  <span class="label">最后使用：</span>
+                  <span class="value">2026-06-24 09:15</span>
+                </div>
+                <div class="item">
+                  <span class="label">登录次数：</span>
+                  <span class="value">89 次</span>
+                </div>
+              </div>
+              <div class="account-actions">
+                <button class="btn btn-text btn-success">测试连接</button>
+                <button class="btn btn-text">编辑</button>
+                <button class="btn btn-text btn-danger">删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div>
+          <span style="font-size:12px;color:#999;">密码采用 AES-256 加密存储，不在代码或配置文件中明文出现</span>
+        </div>
+        <div>
+          <button class="btn">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast toast-success" id="toast">✓ 账号保存成功</div>
+
+<!-- Confirm dialog -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-dialog">
+    <div class="icon">⚠️</div>
+    <div class="title">确认删除账号</div>
+    <div class="desc">删除后该账号将无法用于任何任务，且无法恢复</div>
+    <div class="confirm-actions">
+      <button class="btn" id="confirm-cancel">取消</button>
+      <button class="btn btn-danger" id="confirm-ok">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Sidebar navigation
+  document.querySelectorAll('.platform-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.platform-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // Add account form toggle
+  const btnAdd = document.getElementById('btn-add');
+  const addForm = document.getElementById('add-form');
+  const btnCancelAdd = document.getElementById('btn-cancel-add');
+  const btnSave = document.getElementById('btn-save');
+  const btnTest = document.getElementById('btn-test');
+  const toast = document.getElementById('toast');
+
+  btnAdd.addEventListener('click', () => {
+    addForm.style.display = addForm.style.display === 'none' ? 'block' : 'none';
+  });
+
+  btnCancelAdd.addEventListener('click', () => {
+    addForm.style.display = 'none';
+  });
+
+  btnSave.addEventListener('click', () => {
+    toast.textContent = '✓ 账号保存成功';
+    toast.className = 'toast toast-success show';
+    addForm.style.display = 'none';
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+
+  btnTest.addEventListener('click', () => {
+    toast.textContent = '⏳ 正在测试连接...';
+    toast.className = 'toast toast-success show';
+    setTimeout(() => {
+      toast.textContent = '✓ 连接测试成功';
+      toast.classList.remove('show');
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }, 1500);
+  });
+
+  // Test connection buttons on account cards
+  document.querySelectorAll('.account-card .btn-success').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toast.textContent = '⏳ 正在测试连接...';
+      toast.className = 'toast toast-success show';
+      setTimeout(() => {
+        toast.textContent = '✓ 连接测试成功';
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      }, 1500);
+    });
+  });
+
+  // Delete confirmation
+  const confirmOverlay = document.getElementById('confirm-overlay');
+  const confirmCancel = document.getElementById('confirm-cancel');
+  const confirmOk = document.getElementById('confirm-ok');
+
+  document.querySelectorAll('.account-card .btn-danger').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      confirmOverlay.classList.add('show');
+    });
+  });
+
+  confirmCancel.addEventListener('click', () => {
+    confirmOverlay.classList.remove('show');
+  });
+
+  confirmOk.addEventListener('click', () => {
+    confirmOverlay.classList.remove('show');
+    toast.textContent = '✓ 账号已删除';
+    toast.className = 'toast toast-success show';
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+
+  // Close confirm on overlay click
+  confirmOverlay.addEventListener('click', (e) => {
+    if (e.target === confirmOverlay) {
+      confirmOverlay.classList.remove('show');
+    }
+  });
+</script>
+</body>
+</html>
