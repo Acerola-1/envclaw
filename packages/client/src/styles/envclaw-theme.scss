@@ -1,0 +1,72 @@
+// Envclaw 主题变量
+// 使用 CSS 自定义属性，支持浅色/暗色主题切换
+
+// 暗色主题（默认）
+.envclaw-layout {
+  // 背景色
+  --envclaw-bg-primary: #1a1a1a;
+  --envclaw-bg-secondary: #2a2a2a;
+  --envclaw-bg-tertiary: #252525;
+  --envclaw-bg-hover: #202020;
+
+  // 边框
+  --envclaw-border: #3a3a3a;
+  --envclaw-border-light: #555;
+
+  // 文字
+  --envclaw-text-primary: #e0e0e0;
+  --envclaw-text-secondary: #a0a0a0;
+  --envclaw-text-muted: #666;
+  --envclaw-text-inverse: #1a1a1a;
+
+  // 状态色（暗色模式下更柔和）
+  --envclaw-success: #66bb6a;
+  --envclaw-warning: #e0a458;
+  --envclaw-error: #d96a6a;
+  --envclaw-info: #6a9fd9;
+
+  // 交互元素
+  --envclaw-button-bg: #e0e0e0;
+  --envclaw-button-bg-hover: #fff;
+  --envclaw-button-text: #1a1a1a;
+
+  // 输入框
+  --envclaw-input-bg: #252525;
+  --envclaw-input-border: #3a3a3a;
+  --envclaw-input-border-focus: #555;
+
+  // 浅色主题
+  &.light {
+    // 背景色
+    --envclaw-bg-primary: #fafafa;
+    --envclaw-bg-secondary: #ffffff;
+    --envclaw-bg-tertiary: #f5f5f5;
+    --envclaw-bg-hover: #f0f0f0;
+
+    // 边框
+    --envclaw-border: #e0e0e0;
+    --envclaw-border-light: #d0d0d0;
+
+    // 文字
+    --envclaw-text-primary: #1a1a1a;
+    --envclaw-text-secondary: #666666;
+    --envclaw-text-muted: #999999;
+    --envclaw-text-inverse: #ffffff;
+
+    // 状态色（浅色模式下稍深一些，保证对比度）
+    --envclaw-success: #4caf50;
+    --envclaw-warning: #d89a3c;
+    --envclaw-error: #d32f2f;
+    --envclaw-info: #1976d2;
+
+    // 交互元素
+    --envclaw-button-bg: #333333;
+    --envclaw-button-bg-hover: #1a1a1a;
+    --envclaw-button-text: #ffffff;
+
+    // 输入框
+    --envclaw-input-bg: #ffffff;
+    --envclaw-input-border: #e0e0e0;
+    --envclaw-input-border-focus: #999999;
+  }
+}

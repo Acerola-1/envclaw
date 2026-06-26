@@ -29,6 +29,19 @@ const route = useRoute();
 const router = useRouter();
 const activeTab = ref("account");
 
+// 检查是否有返回来源页面
+const returnTo = sessionStorage.getItem('settingsReturnTo')
+const canGoBack = computed(() => true) // 始终显示返回按钮
+
+function handleBack() {
+  sessionStorage.removeItem('settingsReturnTo')
+  if (returnTo) {
+    router.push(returnTo)
+  } else {
+    router.back()
+  }
+}
+
 const validTabs = computed(() => new Set([
   "account",
   ...(canManageUsers ? ["users"] : []),
@@ -76,6 +89,12 @@ onMounted(() => {
 <template>
   <div class="settings-view">
     <header class="page-header">
+      <button v-if="canGoBack" class="back-btn" @click="handleBack">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        {{ t('common.back') }}
+      </button>
       <h2 class="header-title">{{ t("settings.title") }}</h2>
     </header>
 
@@ -130,6 +149,38 @@ onMounted(() => {
   height: calc(100 * var(--vh));
   display: flex;
   flex-direction: column;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: 0.15s;
+
+  &:hover {
+    background: var(--hover-color);
+    color: var(--text-primary);
+  }
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .settings-content {

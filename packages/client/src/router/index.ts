@@ -6,7 +6,21 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/hermes/chat',
+      redirect: '/envclaw',
+    },
+    // Envclaw workstation routes
+    {
+      path: '/envclaw',
+      component: () => import('@/views/envclaw/EnvclawLayout.vue'),
+      children: [
+        { path: '', name: 'envclaw.home', component: () => import('@/views/envclaw/WorkstationHome.vue') },
+        { path: 'jobs', name: 'envclaw.jobs', component: () => import('@/views/envclaw/JobsPage.vue') },
+        { path: 'jobs/:jobId', name: 'envclaw.jobDetail', component: () => import('@/views/envclaw/JobDetailPage.vue') },
+        { path: 'platforms', name: 'envclaw.platforms', component: () => import('@/views/envclaw/PlatformsPage.vue') },
+        { path: 'skills', name: 'envclaw.skills', component: () => import('@/views/envclaw/SkillsPage.vue') },
+        { path: 'history', name: 'envclaw.history', component: () => import('@/views/envclaw/HistoryPage.vue') },
+        { path: 'smart-query', name: 'envclaw.smartQuery', component: () => import('@/views/envclaw/SmartQueryPage.vue') },
+      ],
     },
     {
       path: '/hermes/chat',

@@ -46,6 +46,9 @@ import { runtimeVersionRoutes } from './hermes/runtime-versions'
 import { writeGateRoutes } from './hermes/write-gate'
 import { channelContactRoutes } from './hermes/channel-contacts'
 
+// Envclaw route modules
+import { platformRoutes } from './envclaw/platforms'
+
 /**
  * Register all routes on the Koa app.
  * Public routes are registered first, then auth middleware,
@@ -103,4 +106,5 @@ export function registerRoutes(app: any, authMiddleware: Array<(ctx: Context, ne
   app.use(runtimeVersionRoutes.routes())         // Runtime and version management
   app.use(writeGateRoutes.routes())              // Hermes Agent write approval review
   app.use(channelContactRoutes.routes())         // Channel contacts from channel_directory.json
+  app.use(platformRoutes.routes())                // Envclaw platform management
 }

@@ -27,6 +27,7 @@ const isDesktopShell = computed(() =>
 );
 const showChangelog = ref(false);
 const showVersionManagement = ref(false);
+const isSettingsRoute = computed(() => route.name === 'hermes.settings');
 
 const { record: collapsedGroups, persist: persistCollapsedGroups } = usePersistentRecord('hermes.sidebar.collapsedGroups');
 

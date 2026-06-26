@@ -23,7 +23,8 @@ const naiveTheme = computed(() => isDark.value ? darkTheme : null)
 const usesPageSidebar = computed(() =>
   ['hermes.chat', 'hermes.session', 'hermes.history', 'hermes.historySession', 'hermes.globalAgent', 'hermes.globalAgentSession', 'hermes.groupChat', 'hermes.groupChatRoom'].includes(route.name as string),
 )
-const showAppSidebar = computed(() => !usesPageSidebar.value)
+const isEnvclawRoute = computed(() => route.path.startsWith('/envclaw'))
+const showAppSidebar = computed(() => !usesPageSidebar.value && !isEnvclawRoute.value)
 const showMobileMenuButton = computed(() => showAppSidebar.value || usesPageSidebar.value)
 
 const nodeVersionLow = computed(() => {
