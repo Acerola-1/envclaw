@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { NCard, NTag, NButton, NInput, useMessage } from 'naive-ui'
+import { NCard, NTag, NButton, useMessage } from 'naive-ui'
 import { useDataSourcePlatformsStore } from '@/stores/hermes/dataSourcePlatforms'
 import type { DataSourcePlatform } from '@/stores/hermes/dataSourcePlatforms'
 
@@ -23,9 +23,7 @@ const selectedPlatforms = computed(() => {
   return (props.modelValue || []).map(id => store.getPlatform(id)).filter(Boolean) as DataSourcePlatform[]
 })
 
-const availablePlatforms = computed(() => {
-  return store.enabledPlatforms.value
-})
+const availablePlatforms = computed(() => store.enabledPlatforms)
 
 const generatedPrompt = computed(() => {
   return selectedPlatforms.value
@@ -82,20 +80,16 @@ watch(() => props.prompt, (newVal, oldVal) => {
       </div>
 
       <div class="platforms-grid">
-        <NCard
-          v-for="platform in availablePlatforms"
-          :key="platform.id"
-          :class="{
-            'platform-card': true,
-            'platform-card-selected': isPlatformSelected(platform.id),
-            'platform-card-disabled': !platform.enabled
-          }"
-          @click="togglePlatform(platform.id)"
-        >
+        <NCard v-for="platform in availablePlatforms" :key="platform.id" :class="{
+          'platform-card': true,
+          'platform-card-selected': isPlatformSelected(platform.id),
+          'platform-card-disabled': !platform.enabled
+        }" @click="togglePlatform(platform.id)">
           <div class="platform-info">
             <span class="platform-icon">{{ platform.icon }}</span>
             <span class="platform-name">{{ platform.name }}</span>
           </div>
+          <div class="platform-meta">地址：{{ platform.url }}</div>
           <div class="platform-meta">
             <span class="meta-item">{{ platform.level }}</span>
             <span class="meta-separator">·</span>
@@ -111,25 +105,16 @@ watch(() => props.prompt, (newVal, oldVal) => {
       </div>
     </div>
 
-    <!-- 提示词 -->
-    <div class="prompt-section">
-      <div class="section-header">
-        <span class="section-title">提示词</span>
-        <span class="section-hint">选择平台后自动填充，可手动修改</span>
-      </div>
-      <NInput
-        :value="props.prompt || ''"
-        type="textarea"
-        :rows="6"
-        placeholder="选择数据源平台后，提示词将自动填充..."
-        :maxlength="5000"
-        show-count
-        @update:value="(val) => { hasManualEdit = true; emit('update:prompt', val) }"
-      />
-    </div>
+    <!-- 提示词联动已移除，由父组件（CreateGuardTaskModal）的提示词输入框接管 -->
   </div>
 </template>
 
+<style scoped lang="css">
+
+.platforms-section .n-card>.n-card-content {
+  padding: 0px 5px !important;
+}
+</style>
 <style scoped lang="scss">
 @use '@/styles/variables' as *;
 
@@ -145,9 +130,9 @@ watch(() => props.prompt, (newVal, oldVal) => {
 }
 
 .section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .section-hint {
@@ -238,9 +223,5 @@ watch(() => props.prompt, (newVal, oldVal) => {
   justify-content: center;
   font-size: 12px;
   font-weight: 600;
-}
-
-.prompt-section {
-  margin-top: 16px;
 }
 </style>

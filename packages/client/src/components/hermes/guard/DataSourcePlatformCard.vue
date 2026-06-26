@@ -16,6 +16,9 @@ const editingAccount = ref<string | null>(null)
 const editingUrl = ref(false)
 const editingUrlValue = ref('')
 
+// 数智大气平台使用当前登录账号，不可修改/删除
+const isShuzhi = computed(() => props.platform.id === 'shuzhi')
+
 // 计算属性
 const accountCount = computed(() => props.platform.accounts.length)
 const hasAccounts = computed(() => accountCount.value > 0)
