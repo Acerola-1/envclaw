@@ -1,0 +1,2204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>envClaw · 创建任务</title>
+<style>
+/* ===== 设计令牌 ===== */
+:root {
+  --bg: #F7F8FC; --sider: #EEF1F8; --card: #FFFFFF; --card-hover: #F5F6FA;
+  --action: #F0F1F5; --border: #E5E7EB; --border-strong: #D1D5DB;
+  --text1: #1F2937; --text2: #5F6368; --text3: #9AA0A6;
+  --primary: #1A73E8; --on-primary: #FFFFFF;
+  --green: #34A853; --green-soft: rgba(52,168,83,0.12);
+  --amber: #FBBC04; --amber-soft: rgba(251,188,4,0.15);
+  --red: #EA4335; --red-soft: rgba(234,67,53,0.12);
+  --blue: #1A73E8; --blue-soft: rgba(26,115,232,0.10);
+  --purple: #7F77DD; --purple-soft: rgba(127,119,221,0.12);
+  --radius: 8px; --radius-sm: 6px; --radius-lg: 12px; --radius-pill: 24px;
+  --font: 'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+svg { stroke-width: 1.6; }
+body { font-family: var(--font); background: var(--bg); color: var(--text1); height: 100vh; overflow: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; }
+.ic, .ic-sm, .ic-lg { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ic { width: 18px; height: 18px; }
+.ic-sm { width: 15px; height: 15px; }
+.ic-lg { width: 22px; height: 22px; }
+.ic svg, .ic-sm svg, .ic-lg svg { width: 100%; height: 100%; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ===== 顶栏 ===== */
+.topbar { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.topbar-left { display: flex; align-items: center; gap: 22px; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14px; letter-spacing: .2px; }
+.brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--purple); color: #fff; display: flex; align-items: center; justify-content: center; }
+.mode-switch { display: flex; background: var(--action); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px; gap: 2px; }
+.mode-btn { display: flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--text2); background: transparent; border: none; cursor: pointer; transition: .15s; text-decoration: none; }
+.mode-btn:hover { color: var(--text1); }
+.mode-btn.active { background: var(--primary); color: var(--on-primary); }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.icon-btn { position: relative; width: 34px; height: 34px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text2); cursor: pointer; transition: .15s; }
+.icon-btn:hover { background: var(--action); color: var(--text1); }
+.dot-badge { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); border: 2px solid var(--card); }
+.avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--action); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--text1); cursor: pointer; }
+
+/* ===== 主体 ===== */
+.body { flex: 1; display: flex; overflow: hidden; }
+
+/* 左侧导航 */
+.railnav { width: 220px; background: var(--sider); border-right: 1px solid var(--border); padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; overflow-y: auto; }
+.rail-group-label { font-size: 10px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: .8px; padding: 14px 10px 6px; }
+.rail-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); color: var(--text2); cursor: pointer; font-size: 13px; transition: .15s; text-decoration: none; }
+.rail-item:hover { background: var(--action); color: var(--text1); }
+.rail-item.active { background: var(--blue-soft); color: var(--primary); font-weight: 500; }
+.rail-item .count { margin-left: auto; font-size: 11px; background: var(--card); border: 1px solid var(--border); padding: 1px 7px; border-radius: 10px; color: var(--text2); }
+.ic { width: 18px; height: 18px; flex-shrink: 0; }
+.ic-sm { width: 15px; height: 15px; flex-shrink: 0; }
+.rail-spacer { flex: 1; }
+
+/* 内容区 */
+.content { flex: 1; overflow-y: auto; }
+.content::-webkit-scrollbar { width: 10px; }
+.content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 3px solid var(--bg); }
+.page { max-width: 960px; margin: 0 auto; padding: 28px 32px 48px; }
+
+/* ===== 页面标题 ===== */
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; }
+.page-header h1 { font-size: 21px; font-weight: 600; letter-spacing: .2px; }
+.page-header .sub { color: var(--text2); font-size: 13px; margin-top: 5px; }
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: .15s; white-space: nowrap; }
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-primary:hover { background: #1565C0; }
+.btn-ghost { background: transparent; color: var(--text1); border-color: var(--border-strong); }
+.btn-ghost:hover { background: var(--action); }
+.btn-sm { padding: 6px 11px; font-size: 12px; }
+
+/* ===== 步骤指示条 ===== */
+.stepper { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 32px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 24px; }
+.step-item { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 12px; border-radius: var(--radius); transition: .15s; }
+.step-item:hover { background: var(--action); }
+.step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; border: 2px solid var(--border-strong); color: var(--text3); transition: .2s; flex-shrink: 0; }
+.step-label { font-size: 13px; color: var(--text3); font-weight: 500; white-space: nowrap; transition: .2s; }
+.step-item.active .step-num { border-color: var(--primary); background: var(--primary); color: var(--on-primary); }
+.step-item.active .step-label { color: var(--primary); font-weight: 600; }
+.step-item.done .step-num { border-color: var(--green); background: var(--green); color: #fff; }
+.step-item.done .step-label { color: var(--green); }
+.step-connector { width: 40px; height: 2px; background: var(--border); flex-shrink: 0; margin: 0 4px; transition: .2s; }
+.step-connector.done { background: var(--green); }
+
+/* ===== 步骤内容区 ===== */
+.step-panel { display: none; animation: fadeSlideIn .25s ease; }
+.step-panel.visible { display: block; }
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== 表单控件 ===== */
+.form-group { margin-bottom: 22px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text1); margin-bottom: 8px; }
+.form-label .hint { font-weight: 400; color: var(--text3); font-size: 12px; margin-left: 6px; }
+.form-input { width: 100%; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text1); font-size: 14px; font-family: var(--font); transition: .15s; outline: none; }
+.form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--blue-soft); }
+.form-input::placeholder { color: var(--text3); }
+.form-select { width: 100%; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text1); font-size: 14px; font-family: var(--font); transition: .15s; outline: none; appearance: none; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239AA0A6' stroke-width='1.6'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+.form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--blue-soft); }
+.form-select option { background: var(--card); color: var(--text1); }
+
+/* ===== 平台复选框列表 ===== */
+.platform-list { display: flex; flex-direction: column; gap: 10px; }
+.platform-check { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: var(--card); border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; transition: .2s; position: relative; }
+.platform-check:hover { border-color: var(--border-strong); background: var(--card-hover); }
+.platform-check.checked { border-color: var(--border-strong); background: var(--card-hover); }
+.platform-check.checked.purple-border { border-color: var(--purple); background: var(--purple-soft); }
+.platform-check.disabled { cursor: default; opacity: 1; }
+.platform-check.disabled:hover { background: var(--purple-soft); }
+
+.platform-check input[type="checkbox"] { display: none; }
+.check-box { width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; }
+.platform-check.checked .check-box { background: var(--primary); border-color: var(--primary); }
+.platform-check.checked.purple-border .check-box { background: var(--purple); border-color: var(--purple); }
+.platform-check.disabled .check-box { background: var(--purple); border-color: var(--purple); }
+.check-box svg { width: 14px; height: 14px; color: var(--on-primary); opacity: 0; transition: .15s; }
+.platform-check.checked .check-box svg,
+.platform-check.disabled .check-box svg { opacity: 1; }
+
+.platform-info { flex: 1; min-width: 0; }
+.platform-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.platform-desc { font-size: 12px; color: var(--text3); margin-top: 3px; }
+.platform-badge { font-size: 10px; padding: 1px 8px; border-radius: 9px; font-weight: 600; white-space: nowrap; }
+.badge-builtin { background: var(--purple-soft); color: var(--purple); }
+.badge-ocr { background: var(--amber-soft); color: #C68A00; }
+.badge-letter { background: var(--blue-soft); color: var(--blue); }
+
+/* ===== 功能挂载矩阵卡片 ===== */
+.func-matrix { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+.func-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: all .35s ease; max-height: 500px; opacity: 1; }
+.func-card.hidden { max-height: 0; opacity: 0; margin: 0; border-width: 0; padding: 0; overflow: hidden; pointer-events: none; }
+.func-card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--card-hover); }
+.func-card-title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; }
+.func-card-title .plat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.func-card-count { font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+.func-card-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+.func-check { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: .15s; }
+.func-check:hover { border-color: var(--border-strong); background: var(--card-hover); }
+.func-check.checked { border-color: var(--green); background: var(--green-soft); }
+.func-check input[type="checkbox"] { display: none; }
+.func-check-box { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; }
+.func-check.checked .func-check-box { background: var(--green); border-color: var(--green); }
+.func-check-box svg { width: 12px; height: 12px; color: var(--on-primary); opacity: 0; transition: .15s; }
+.func-check.checked .func-check-box svg { opacity: 1; }
+.func-check-name { font-size: 13px; font-weight: 500; color: var(--text1); }
+.func-tags-inline { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: middle; }
+.func-tag-inline { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 9px; font-weight: 600; white-space: nowrap; line-height: 1.6; }
+.func-tag-inline.tag-screenshot { background: var(--amber-soft); color: #C68A00; }
+.func-tag-inline.tag-collect { background: var(--blue-soft); color: var(--blue); }
+.func-tag-inline.tag-download { background: var(--green-soft); color: #1A8C3F; }
+.func-tag-inline.tag-analysis { background: var(--purple-soft); color: var(--purple); }
+
+/* ===== 步骤3 执行设置 ===== */
+.radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.radio-item { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--card); border: 2px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: .15s; font-size: 13px; font-weight: 500; color: var(--text2); }
+.radio-item:hover { border-color: var(--border-strong); color: var(--text1); }
+.radio-item.active { border-color: var(--primary); background: var(--blue-soft); color: var(--primary); }
+.radio-item input[type="radio"] { display: none; }
+.radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; }
+.radio-item.active .radio-dot { border-color: var(--primary); }
+.radio-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); opacity: 0; transition: .15s; }
+.radio-item.active .radio-dot::after { opacity: 1; }
+
+.cron-input { margin-top: 10px; display: none; }
+.cron-input.visible { display: block; }
+.cron-input input { width: 300px; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text1); font-family: var(--mono); font-size: 13px; outline: none; transition: .15s; }
+.cron-input input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--blue-soft); }
+.cron-input .cron-hint { font-size: 11px; color: var(--text3); margin-top: 5px; font-family: var(--mono); }
+
+/* ===== SchedulePicker ===== */
+.sched-mode-switch { display: flex; gap: 4px; background: var(--action); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px; margin-bottom: 16px; }
+.sched-mode-btn { flex: 1; padding: 8px 16px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text2); font-size: 13px; font-family: var(--font); cursor: pointer; transition: .15s; }
+.sched-mode-btn:hover { color: var(--text1); }
+.sched-mode-btn.active { background: var(--card); color: var(--text1); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+.sched-preset { margin-bottom: 12px; }
+.sched-cat-tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.sched-cat-btn { padding: 8px 18px; border: none; background: transparent; color: var(--text2); font-size: 13px; font-family: var(--font); cursor: pointer; transition: .15s; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.sched-cat-btn:hover { color: var(--text1); }
+.sched-cat-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+.sched-cat-panel { display: none; }
+.sched-cat-panel.visible { display: block; }
+
+.sched-sub-label { font-size: 12px; color: var(--text3); margin-bottom: 8px; }
+
+.preset-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.preset-chip { padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text2); font-size: 12.5px; font-family: var(--font); cursor: pointer; transition: .15s; }
+.preset-chip:hover { border-color: var(--primary); color: var(--primary); }
+.preset-chip.active { border-color: var(--primary); background: var(--blue-soft); color: var(--primary); }
+
+.sched-custom-row { display: flex; flex-direction: column; gap: 8px; }
+.sched-custom-label { font-size: 12px; color: var(--text3); }
+.sched-custom-inputs { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text1); }
+.sched-num-input { width: 80px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font); text-align: center; outline: none; background: var(--card); }
+.sched-num-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--blue-soft); }
+.sched-unit-select { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font); background: var(--card); cursor: pointer; outline: none; }
+
+.sched-time-row { display: flex; align-items: center; gap: 12px; }
+.sched-time-label { font-size: 13px; color: var(--text2); min-width: 60px; }
+.sched-time-inputs { display: flex; align-items: center; gap: 6px; }
+.sched-time-select { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font); background: var(--card); cursor: pointer; outline: none; }
+.sched-time-select:focus { border-color: var(--primary); }
+
+.sched-day-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.sched-day-chip { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--text2); font-size: 12px; font-family: var(--font); cursor: pointer; transition: .15s; display: flex; align-items: center; justify-content: center; }
+.sched-day-chip:hover { border-color: var(--primary); color: var(--primary); }
+.sched-day-chip.active { border-color: var(--primary); background: var(--primary); color: var(--on-primary); }
+
+.sched-monthly-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text1); margin-bottom: 12px; }
+.sched-monthly-label { font-size: 13px; color: var(--text2); }
+.sched-dom-select { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font); background: var(--card); cursor: pointer; outline: none; }
+
+.sched-cron { margin-bottom: 12px; }
+.sched-cron-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: var(--mono); background: var(--card); outline: none; transition: .15s; }
+.sched-cron-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--blue-soft); }
+.sched-cron-input::placeholder { color: var(--text3); }
+.sched-cron-hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
+.sched-cron-hint code { padding: 2px 6px; background: var(--action); border-radius: 4px; font-family: var(--mono); font-size: 11px; }
+
+.sched-preview { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--action); border: 1px solid var(--border); border-radius: var(--radius); }
+.sched-preview-icon { font-size: 14px; }
+.sched-preview-text { font-size: 13px; color: var(--text1); }
+
+.chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--card); border: 2px solid var(--border); border-radius: var(--radius-pill); cursor: pointer; transition: .15s; font-size: 13px; font-weight: 500; color: var(--text2); user-select: none; }
+.chip:hover { border-color: var(--border-strong); color: var(--text1); }
+.chip.active { border-color: var(--primary); background: var(--blue-soft); color: var(--primary); }
+.chip svg { width: 16px; height: 16px; }
+
+.skill-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+.skill-row + .skill-row { margin-top: 8px; }
+.skill-row .skill-name { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+.skill-row .skill-badge { font-size: 10px; padding: 2px 8px; border-radius: 9px; background: var(--purple-soft); color: var(--purple); font-weight: 600; }
+.skill-row .skill-badge.user { background: var(--blue-soft); color: var(--blue); }
+.skill-row .skill-remove { margin-left: auto; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text3); border: none; background: none; transition: .15s; font-size: 16px; line-height: 1; }
+.skill-row .skill-remove:hover { background: var(--red-soft); color: var(--red); }
+.skill-add-row { margin-top: 8px; }
+.skill-add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius); font-size: 12.5px; color: var(--text2); cursor: pointer; transition: .15s; background: transparent; }
+.skill-add-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--blue-soft); }
+
+/* 技能多选下拉 */
+.skill-multi-select { position: relative; display: inline-block; }
+.skill-ms-trigger { display: none; }
+.skill-ms-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 320px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 20; max-height: 300px; overflow: hidden; }
+.skill-ms-dropdown.show { display: flex; flex-direction: column; }
+.skill-ms-search-wrap { padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.skill-ms-search { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; font-family: var(--font); outline: none; background: var(--bg); }
+.skill-ms-search:focus { border-color: var(--primary); }
+.skill-ms-list { overflow-y: auto; flex: 1; }
+.skill-ms-option { display: flex; align-items: center; gap: 8px; padding: 9px 14px; cursor: pointer; font-size: 13px; transition: .1s; user-select: none; }
+.skill-ms-option:hover { background: var(--action); }
+.skill-ms-option.selected { background: var(--blue-soft); }
+.skill-ms-option .skill-ms-check { width: 16px; height: 16px; border-radius: 3px; border: 2px solid var(--border-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.skill-ms-option.selected .skill-ms-check { background: var(--primary); border-color: var(--primary); }
+.skill-ms-option.selected .skill-ms-check::after { content: ''; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px, 0); }
+.skill-ms-option-name { flex: 1; font-family: var(--mono); font-size: 12.5px; }
+.skill-ms-option-desc { font-size: 11px; color: var(--text3); }
+
+/* ===== 步骤4 确认预览 ===== */
+.preview-box { background: var(--action); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; }
+.preview-section { margin-bottom: 18px; }
+.preview-section:last-child { margin-bottom: 0; }
+.preview-label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+.preview-items { display: flex; flex-wrap: wrap; gap: 8px; }
+.preview-tag { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); font-size: 12.5px; color: var(--text1); }
+.preview-tag .tag-dot { width: 6px; height: 6px; border-radius: 50%; }
+.preview-tag.tag-purple .tag-dot { background: var(--purple); }
+.preview-tag.tag-blue .tag-dot { background: var(--blue); }
+.preview-tag.tag-amber .tag-dot { background: var(--amber); }
+.preview-tag.tag-green .tag-dot { background: var(--green); }
+.preview-line { font-size: 13px; color: var(--text2); line-height: 1.8; }
+.preview-line strong { color: var(--text1); font-weight: 600; }
+
+/* ===== 底部操作栏 ===== */
+.action-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+.action-left { display: flex; gap: 8px; }
+.action-right { display: flex; gap: 8px; }
+
+/* ===== Toast ===== */
+.toast { position: fixed; top: 72px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--card); color: var(--text1); padding: 12px 24px; border-radius: var(--radius); font-size: 14px; font-weight: 600; opacity: 0; transition: all .3s ease; pointer-events: none; z-index: 1000; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); border: 1px solid var(--border); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast-icon { display: flex; align-items: center; }
+.toast-icon svg { width: 18px; height: 18px; }
+
+/* ===== 辅助 ===== */
+.color-blue { background: var(--blue-soft); color: var(--blue); }
+.color-amber { background: var(--amber-soft); color: var(--amber); }
+.color-green { background: var(--green-soft); color: var(--green); }
+.color-red { background: var(--red-soft); color: var(--red); }
+.color-purple { background: var(--purple-soft); color: var(--purple); }
+.color-mute { background: var(--action); color: var(--text2); }
+
+/* ===== AI 引导模式 ===== */
+.ai-guide-toggle { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 500; cursor: pointer; border: 1.5px solid var(--primary); background: transparent; color: var(--primary); transition: .2s; }
+.ai-guide-toggle:hover { background: var(--blue-soft); }
+.ai-guide-toggle.active { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.ai-guide-toggle svg { width: 16px; height: 16px; }
+
+/* 页面主体切换为双栏 */
+.body-wrapper { display: flex; flex: 1; overflow: hidden; }
+.form-col { flex: 1; overflow-y: auto; transition: .3s ease; }
+.ai-col { width: 0; min-width: 0; overflow: hidden; opacity: 0; transition: width .35s ease, min-width .35s ease, opacity .25s ease; border-left: 0 solid var(--border); background: var(--card); display: flex; flex-direction: column; }
+.ai-col.open { width: 420px; min-width: 420px; opacity: 1; border-left-width: 1px; }
+
+/* AI 面板内部 */
+.ai-panel { display: flex; flex-direction: column; height: 100%; }
+.ai-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.ai-panel-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+.ai-panel-title .ai-badge { font-size: 10px; padding: 2px 8px; border-radius: 9px; background: var(--purple-soft); color: var(--purple); font-weight: 600; }
+.ai-panel-close { width: 30px; height: 30px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text3); transition: .15s; border: none; background: none; }
+.ai-panel-close:hover { background: var(--action); color: var(--text1); }
+
+.ai-messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.ai-messages::-webkit-scrollbar { width: 6px; }
+.ai-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.ai-msg { display: flex; gap: 10px; animation: msgIn .3s ease; }
+@keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.ai-msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+.ai-msg-avatar.bot { background: var(--purple-soft); color: var(--purple); }
+.ai-msg-avatar.user { background: var(--blue-soft); color: var(--primary); }
+.ai-msg-body { max-width: 320px; }
+.ai-msg-text { font-size: 13.5px; line-height: 1.7; color: var(--text1); padding: 10px 14px; border-radius: 12px; border-top-left-radius: 4px; }
+.ai-msg.bot .ai-msg-text { background: var(--action); }
+.ai-msg.user { flex-direction: row-reverse; }
+.ai-msg.user .ai-msg-text { background: var(--primary); color: var(--on-primary); border-top-left-radius: 12px; border-top-right-radius: 4px; }
+.ai-msg-time { font-size: 10px; color: var(--text3); margin-top: 4px; padding: 0 4px; }
+.ai-msg.user .ai-msg-time { text-align: right; }
+
+/* AI 填充预览卡片 */
+.ai-fill-card { background: var(--card); border: 1.5px solid var(--green); border-radius: var(--radius); padding: 12px 14px; margin-top: 8px; }
+.ai-fill-card .fill-title { font-size: 11px; color: var(--green); font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+.ai-fill-card .fill-row { font-size: 12.5px; color: var(--text2); line-height: 1.6; display: flex; gap: 4px; }
+.ai-fill-card .fill-row strong { color: var(--text1); font-weight: 600; }
+.ai-fill-actions { display: flex; gap: 6px; margin-top: 10px; }
+.ai-fill-actions .btn { padding: 5px 12px; font-size: 12px; border-radius: var(--radius-sm); }
+
+/* 打字动画 */
+.typing-dots { display: flex; gap: 4px; padding: 10px 14px; background: var(--action); border-radius: 12px; border-top-left-radius: 4px; width: fit-content; }
+.typing-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); animation: dotPulse 1.2s infinite; }
+.typing-dots span:nth-child(2) { animation-delay: .2s; }
+.typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes dotPulse { 0%, 80%, 100% { opacity: .3; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
+
+/* AI 输入区 */
+.ai-input-area { padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.ai-quick-prompts { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.ai-quick-btn { padding: 5px 10px; border-radius: var(--radius-pill); font-size: 11.5px; background: var(--action); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: .15s; }
+.ai-quick-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--blue-soft); }
+.ai-input-row { display: flex; gap: 8px; align-items: flex-end; }
+.ai-input-row input { flex: 1; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 13.5px; font-family: var(--font); outline: none; transition: .15s; background: var(--bg); }
+.ai-input-row input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--blue-soft); }
+.ai-send-btn { width: 38px; height: 38px; border-radius: var(--radius); background: var(--primary); color: var(--on-primary); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: .15s; flex-shrink: 0; }
+.ai-send-btn:hover { background: #1565C0; }
+.ai-send-btn:disabled { background: var(--border); color: var(--text3); cursor: default; }
+
+/* AI 选项按钮 */
+.ai-msg-options { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.ai-opt-btn { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: .15s; text-align: left; font-size: 13px; font-family: var(--font); color: var(--text1); }
+.ai-opt-btn:hover { border-color: var(--primary); background: var(--blue-soft); }
+.ai-opt-btn.selected { border-color: var(--primary); background: var(--blue-soft); }
+.ai-opt-check { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--border-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--on-primary); transition: .15s; }
+.ai-opt-btn.selected .ai-opt-check { background: var(--primary); border-color: var(--primary); }
+.ai-opt-label { flex: 1; font-weight: 500; }
+.ai-opt-desc { font-size: 11px; color: var(--text3); }
+.ai-opt-confirm { margin-top: 4px; padding: 8px 16px; background: var(--primary); color: var(--on-primary); border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; transition: .15s; font-family: var(--font); }
+.ai-opt-confirm:hover { background: #1565C0; }
+
+/* AI 文本输入 */
+.ai-msg-input { display: flex; gap: 8px; margin-top: 10px; }
+.ai-msg-input input { flex: 1; padding: 9px 12px; background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); color: var(--text1); font-size: 13px; font-family: var(--font); outline: none; transition: .15s; }
+.ai-msg-input input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--blue-soft); }
+.ai-text-submit { padding: 9px 14px; background: var(--primary); color: var(--on-primary); border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; transition: .15s; font-family: var(--font); white-space: nowrap; }
+.ai-text-submit:hover { background: #1565C0; }
+.ai-text-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ===== 提示词预览区 (仅自定义平台展示) ===== */
+.prompt-preview-area { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-strong); }
+.prompt-preview-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+.prompt-readonly-tag { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--action); color: var(--text3); font-weight: 500; }
+.prompt-preview-box { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.prompt-segment { font-size: 12.5px; line-height: 1.6; color: var(--text2); }
+.prompt-seg-tag { display: inline-block; font-size: 10.5px; padding: 1px 7px; border-radius: 6px; font-weight: 600; margin-right: 6px; vertical-align: middle; }
+.prompt-seg-tag.tag-platform { background: var(--amber-soft); color: #C68A00; }
+.prompt-seg-tag.tag-function { background: var(--blue-soft); color: var(--blue); }
+.prompt-seg-tag.tag-base { background: var(--purple-soft); color: var(--purple); }
+.prompt-supplement { margin-top: 10px; }
+.prompt-supplement-label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.prompt-supplement-input { width: 100%; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text1); font-size: 13px; font-family: var(--font); outline: none; resize: vertical; transition: .15s; }
+.prompt-supplement-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--blue-soft); }
+.prompt-supplement-input::placeholder { color: var(--text3); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 顶栏 -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>
+        </div>
+        envClaw
+      </div>
+      <div class="mode-switch">
+        <a class="mode-btn active" href="v2-home.html">
+          <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          工作台
+        </a>
+        <a class="mode-btn" href="v2-smart-query.html">
+          <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.7L20 10l-6.1 1.3L12 17l-1.9-5.7L4 10l6.1-1.3z"/></svg>
+          智能问数
+        </a>
+      </div>
+    </div>
+    <div class="topbar-right"></div>
+  </div>
+
+  <div class="body">
+    <!-- 左侧导航 -->
+    <div class="railnav">
+      <div class="rail-group-label">AUTOMATION</div>
+      <a class="rail-item" href="v2-home.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        值守工作台
+      </a>
+      <a class="rail-item" href="v2-plans.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        值守方案
+      </a>
+      <a class="rail-item active" href="v2-jobs.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+        值守任务<span class="count">5</span>
+      </a>
+
+      <div class="rail-group-label">CONFIG</div>
+      <a class="rail-item" href="v2-platforms.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>
+        平台管理
+      </a>
+      <a class="rail-item" href="v2-skills.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        技能库
+      </a>
+      <a class="rail-item" href="v2-history.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        运行历史
+      </a>
+
+      <div class="rail-spacer"></div>
+      <div class="rail-bottom" style="display:flex;align-items:center;padding:8px 10px;gap:6px;border-top:1px solid var(--border);margin-top:4px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--action);border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text1);flex-shrink:0;">张</div>
+        <span style="flex:1;font-size:12.5px;color:var(--text1);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">张工</span>
+        <a href="#" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--text3);text-decoration:none;transition:.15s;" onmouseover="this.style.background='var(--action)';this.style.color='var(--text1)'" onmouseout="this.style.background='';this.style.color='var(--text3)'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- 内容区 (双栏：表单 + AI 引导) -->
+    <div class="body-wrapper">
+    <div class="form-col">
+      <div class="content">
+      <div class="page">
+
+        <!-- 页面标题 -->
+        <div class="page-header">
+          <div>
+            <h1>创建任务</h1>
+            <div class="sub">通过步骤向导配置值守任务的平台、功能与执行策略</div>
+          </div>
+          <button class="ai-guide-toggle" id="aiGuideBtn" onclick="toggleAiGuide()">
+            <svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.7L20 10l-6.1 1.3L12 17l-1.9-5.7L4 10l6.1-1.3z"/></svg>
+            AI 引导模式
+          </button>
+        </div>
+
+        <!-- 步骤指示条 -->
+        <div class="stepper" id="stepper">
+          <div class="step-item active" data-step="1" onclick="goStep(1)">
+            <div class="step-num">1</div>
+            <div class="step-label">基本信息</div>
+          </div>
+          <div class="step-connector" id="conn1"></div>
+          <div class="step-item" data-step="2" onclick="goStep(2)">
+            <div class="step-num">2</div>
+            <div class="step-label">数据平台级联选择</div>
+          </div>
+          <div class="step-connector" id="conn2"></div>
+          <div class="step-item" data-step="3" onclick="goStep(3)">
+            <div class="step-num">3</div>
+            <div class="step-label">执行设置</div>
+          </div>
+          <div class="step-connector" id="conn3"></div>
+          <div class="step-item" data-step="4" onclick="goStep(4)">
+            <div class="step-num">4</div>
+            <div class="step-label">确认</div>
+          </div>
+        </div>
+
+        <!-- ====== 步骤1: 基本信息 ====== -->
+        <div class="step-panel visible" id="panel1">
+          <div class="form-group">
+            <label class="form-label">任务名称</label>
+            <input type="text" class="form-input" id="taskName" value="城市排名分析（荥阳）" placeholder="请输入任务名称">
+          </div>
+          <div class="form-group">
+            <label class="form-label">来源方案 <span class="hint">可选，从已有方案继承配置</span></label>
+            <select class="form-select" id="taskScheme">
+              <option value="">-- 不使用方案 --</option>
+              <option value="city-rank" selected>城市排名分析专家</option>
+              <option value="digital-broadcast">数字播报专家</option>
+              <option value="screenshot-collect">截图采集专家</option>
+              <option value="pollution-monitor">污染超标监控专家</option>
+              <option value="report-gen">报告生成专家</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ====== 步骤2: 数据平台级联选择 ====== -->
+        <div class="step-panel" id="panel2">
+          <div class="form-group">
+            <label class="form-label">选择执行平台 <span class="hint">勾选平台后，下方动态挂载对应功能</span></label>
+            <div class="platform-list">
+              <!-- 数智大气 (内置底座，不可取消) -->
+              <label class="platform-check checked purple-border disabled">
+                <input type="checkbox" checked disabled data-platform="szdq">
+                <div class="check-box">
+                  <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="platform-info">
+                  <div class="platform-name">数智大气 AI 平台 <span class="platform-badge badge-builtin">内置底座</span></div>
+                  <div class="platform-desc">系统默认定位底座，不可取消</div>
+                </div>
+              </label>
+
+              <!-- 中大平台 -->
+              <label class="platform-check checked" data-platform="zd" onclick="togglePlatform(this, 'zd')">
+                <input type="checkbox" checked data-platform="zd">
+                <div class="check-box">
+                  <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="platform-info">
+                  <div class="platform-name">空气质量联网管理平台 <span class="platform-badge badge-ocr">数字OCR验证</span></div>
+                  <div class="platform-desc">政务内网 · 数字OCR验证</div>
+                </div>
+              </label>
+
+              <!-- 省大数据系统 -->
+              <label class="platform-check" data-platform="hnsjk" onclick="togglePlatform(this, 'hnsjk')">
+                <input type="checkbox" data-platform="hnsjk">
+                <div class="check-box">
+                  <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="platform-info">
+                  <div class="platform-name">河南省空气质量大数据系统 <span class="platform-badge badge-letter">字母+数字OCR验证</span></div>
+                  <div class="platform-desc">省级官网 · 字母+数字OCR验证</div>
+                </div>
+              </label>
+
+              <!-- 华东平台 -->
+              <label class="platform-check" data-platform="hdjk" onclick="togglePlatform(this, 'hdjk')">
+                <input type="checkbox" data-platform="hdjk">
+                <div class="check-box">
+                  <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="platform-info">
+                  <div class="platform-name">华东监测数据平台</div>
+                  <div class="platform-desc">区域级监测数据平台</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 功能挂载矩阵 -->
+          <div class="form-group">
+            <label class="form-label">功能挂载矩阵 <span class="hint">勾选功能后可在步骤4查看完整提示词总览</span></label>
+            <div class="func-matrix">
+              <!-- 数智大气 功能卡片 (始终显示, 内置平台提示词不可见) -->
+              <div class="func-card" id="funcCard-szdq">
+                <div class="func-card-header">
+                  <div class="func-card-title">
+                    <span class="plat-dot" style="background:var(--purple)"></span>
+                    数智大气 AI 平台
+                    <span class="platform-badge badge-builtin" style="margin-left:6px;">内置</span>
+                  </div>
+                  <div class="func-card-count"><svg style="width:13px;height:13px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 4个功能可选</div>
+                </div>
+                <div class="func-card-body">
+                  <label class="func-check checked" onclick="toggleFunc(this)">
+                    <input type="checkbox" checked data-func="szdq-trace">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">时空空间全息溯源研判</span>
+                  </label>
+                  <label class="func-check checked" onclick="toggleFunc(this)">
+                    <input type="checkbox" checked data-func="szdq-review">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">昨日历史宏观质量回顾</span>
+                  </label>
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="szdq-rank">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">浓度排名可视化分析</span>
+                  </label>
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="szdq-trend">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">站点单指标趋势对比</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 中大平台 功能卡片 (自定义平台, 提示词可见) -->
+              <div class="func-card" id="funcCard-zd">
+                <div class="func-card-header">
+                  <div class="func-card-title">
+                    <span class="plat-dot" style="background:var(--amber)"></span>
+                    空气质量联网管理平台
+                    <span class="platform-badge badge-ocr" style="margin-left:6px;">自定义</span>
+                  </div>
+                  <div class="func-card-count"><svg style="width:13px;height:13px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 4个功能可选</div>
+                </div>
+                <div class="func-card-body">
+                  <label class="func-check checked" onclick="toggleFunc(this)">
+                    <input type="checkbox" checked data-func="zd-realtime">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">实时监测点位分钟数据流读取</span>
+                  </label>
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="zd-rank-table">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">综合质量排名通报表下载</span>
+                  </label>
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="zd-hour-export">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">小时监测数据导出</span>
+                  </label>
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="zd-minute-screenshot">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">分钟数据截图截取</span>
+                  </label>
+
+                  <!-- 提示词预览已移至步骤4总览 -->
+                </div>
+              </div>
+
+              <!-- 省大数据系统 功能卡片 (自定义平台, 提示词可见) -->
+              <div class="func-card hidden" id="funcCard-hnsjk">
+                <div class="func-card-header">
+                  <div class="func-card-title">
+                    <span class="plat-dot" style="background:var(--blue)"></span>
+                    河南省空气质量大数据系统
+                    <span class="platform-badge badge-letter" style="margin-left:6px;">自定义</span>
+                  </div>
+                  <div class="func-card-count"><svg style="width:13px;height:13px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 3个功能可选</div>
+                </div>
+                <div class="func-card-body">
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="hnsjk-province-rank">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">省级城市综合质量排名查询</span>
+                  </label>
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="hnsjk-hour-data">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">省控站点小时数据提取</span>
+                  </label>
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="hnsjk-alert">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">预警信息汇总导出</span>
+                  </label>
+
+                  <!-- 提示词预览已移至步骤4总览 -->
+                </div>
+              </div>
+
+              <!-- 华东平台 功能卡片 (自定义平台, 提示词可见) -->
+              <div class="func-card hidden" id="funcCard-hdjk">
+                <div class="func-card-header">
+                  <div class="func-card-title">
+                    <span class="plat-dot" style="background:var(--green)"></span>
+                    华东监测数据平台
+                    <span class="platform-badge badge-letter" style="margin-left:6px;background:var(--green-soft);color:var(--green);">自定义</span>
+                  </div>
+                  <div class="func-card-count"><svg style="width:13px;height:13px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 2个功能可选</div>
+                </div>
+                <div class="func-card-body">
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="hdjk-regional">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">区域联防联控数据共享查询</span>
+                  </label>
+                  <label class="func-check" onclick="toggleFunc(this)">
+                    <input type="checkbox" data-func="hdjk-compare">
+                    <div class="func-check-box"><svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <span class="func-check-name">跨区域对比分析报告生成</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== 步骤3: 执行设置 ====== -->
+        <div class="step-panel" id="panel3">
+          <div class="form-group">
+            <label class="form-label">执行频率</label>
+
+            <!-- 模式切换 -->
+            <div class="sched-mode-switch">
+              <button class="sched-mode-btn active" data-sched-mode="preset" onclick="switchSchedMode('preset')">预设选择</button>
+              <button class="sched-mode-btn" data-sched-mode="cron" onclick="switchSchedMode('cron')">Cron 表达式</button>
+            </div>
+
+            <!-- 预设模式 -->
+            <div class="sched-preset" id="schedPreset">
+              <!-- 类别标签 -->
+              <div class="sched-cat-tabs">
+                <button class="sched-cat-btn active" data-cat="interval" onclick="switchSchedCat('interval')">按间隔</button>
+                <button class="sched-cat-btn" data-cat="daily" onclick="switchSchedCat('daily')">每天</button>
+                <button class="sched-cat-btn" data-cat="weekly" onclick="switchSchedCat('weekly')">每周</button>
+                <button class="sched-cat-btn" data-cat="monthly" onclick="switchSchedCat('monthly')">每月</button>
+              </div>
+
+              <!-- 按间隔 -->
+              <div class="sched-cat-panel visible" id="catPanel-interval">
+                <div class="sched-sub-label">常用间隔</div>
+                <div class="preset-chip-grid">
+                  <button class="preset-chip active" data-val="5" data-unit="minute" onclick="selectIntervalPreset(this, 5, 'minute')">5 分钟</button>
+                  <button class="preset-chip" data-val="10" data-unit="minute" onclick="selectIntervalPreset(this, 10, 'minute')">10 分钟</button>
+                  <button class="preset-chip" data-val="15" data-unit="minute" onclick="selectIntervalPreset(this, 15, 'minute')">15 分钟</button>
+                  <button class="preset-chip" data-val="30" data-unit="minute" onclick="selectIntervalPreset(this, 30, 'minute')">30 分钟</button>
+                  <button class="preset-chip" data-val="1" data-unit="hour" onclick="selectIntervalPreset(this, 1, 'hour')">1 小时</button>
+                  <button class="preset-chip" data-val="2" data-unit="hour" onclick="selectIntervalPreset(this, 2, 'hour')">2 小时</button>
+                  <button class="preset-chip" data-val="3" data-unit="hour" onclick="selectIntervalPreset(this, 3, 'hour')">3 小时</button>
+                  <button class="preset-chip" data-val="6" data-unit="hour" onclick="selectIntervalPreset(this, 6, 'hour')">6 小时</button>
+                  <button class="preset-chip" data-val="12" data-unit="hour" onclick="selectIntervalPreset(this, 12, 'hour')">12 小时</button>
+                  <button class="preset-chip" data-val="24" data-unit="hour" onclick="selectIntervalPreset(this, 24, 'hour')">24 小时</button>
+                </div>
+                <div class="sched-custom-row">
+                  <span class="sched-custom-label">自定义</span>
+                  <div class="sched-custom-inputs">
+                    <span>每</span>
+                    <input type="number" class="sched-num-input" id="intervalVal" value="5" min="1" max="60" onchange="onIntervalCustom()">
+                    <select class="sched-unit-select" id="intervalUnit" onchange="onIntervalCustom()">
+                      <option value="minute" selected>分钟</option>
+                      <option value="hour">小时</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 每天 -->
+              <div class="sched-cat-panel" id="catPanel-daily">
+                <div class="sched-time-row">
+                  <span class="sched-time-label">执行时间</span>
+                  <div class="sched-time-inputs">
+                    <select class="sched-time-select" id="dailyHour" onchange="onSchedChange()">
+                      <option value="0">00</option><option value="1">01</option><option value="2">02</option><option value="3">03</option><option value="4">04</option><option value="5">05</option><option value="6">06</option><option value="7">07</option><option value="8">08</option><option value="9" selected>09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                    </select>
+                    <span>:</span>
+                    <select class="sched-time-select" id="dailyMinute" onchange="onSchedChange()">
+                      <option value="0" selected>00</option><option value="5">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 每周 -->
+              <div class="sched-cat-panel" id="catPanel-weekly">
+                <div class="sched-sub-label">选择星期</div>
+                <div class="sched-day-chips" id="weeklyDays">
+                  <button class="sched-day-chip active" data-day="1" onclick="toggleWeekDay(this, 1)">周一</button>
+                  <button class="sched-day-chip" data-day="2" onclick="toggleWeekDay(this, 2)">周二</button>
+                  <button class="sched-day-chip" data-day="3" onclick="toggleWeekDay(this, 3)">周三</button>
+                  <button class="sched-day-chip" data-day="4" onclick="toggleWeekDay(this, 4)">周四</button>
+                  <button class="sched-day-chip" data-day="5" onclick="toggleWeekDay(this, 5)">周五</button>
+                  <button class="sched-day-chip" data-day="6" onclick="toggleWeekDay(this, 6)">周六</button>
+                  <button class="sched-day-chip" data-day="0" onclick="toggleWeekDay(this, 0)">周日</button>
+                </div>
+                <div class="sched-time-row" style="margin-top:12px;">
+                  <span class="sched-time-label">执行时间</span>
+                  <div class="sched-time-inputs">
+                    <select class="sched-time-select" id="weeklyHour" onchange="onSchedChange()">
+                      <option value="0">00</option><option value="1">01</option><option value="2">02</option><option value="3">03</option><option value="4">04</option><option value="5">05</option><option value="6">06</option><option value="7">07</option><option value="8">08</option><option value="9" selected>09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                    </select>
+                    <span>:</span>
+                    <select class="sched-time-select" id="weeklyMinute" onchange="onSchedChange()">
+                      <option value="0" selected>00</option><option value="5">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 每月 -->
+              <div class="sched-cat-panel" id="catPanel-monthly">
+                <div class="sched-monthly-row">
+                  <span class="sched-monthly-label">每月</span>
+                  <select class="sched-dom-select" id="monthlyDay" onchange="onSchedChange()">
+                    <option value="1">1 号</option><option value="2">2 号</option><option value="3">3 号</option><option value="4">4 号</option><option value="5">5 号</option><option value="6">6 号</option><option value="7">7 号</option><option value="8">8 号</option><option value="9">9 号</option><option value="10">10 号</option><option value="11">11 号</option><option value="12">12 号</option><option value="13">13 号</option><option value="14">14 号</option><option value="15">15 号</option><option value="16">16 号</option><option value="17">17 号</option><option value="18">18 号</option><option value="19">19 号</option><option value="20">20 号</option><option value="21">21 号</option><option value="22">22 号</option><option value="23">23 号</option><option value="24">24 号</option><option value="25">25 号</option><option value="26">26 号</option><option value="27">27 号</option><option value="28">28 号</option><option value="29">29 号</option><option value="30">30 号</option><option value="31">31 号</option>
+                  </select>
+                </div>
+                <div class="sched-time-row">
+                  <span class="sched-time-label">执行时间</span>
+                  <div class="sched-time-inputs">
+                    <select class="sched-time-select" id="monthlyHour" onchange="onSchedChange()">
+                      <option value="0">00</option><option value="1">01</option><option value="2">02</option><option value="3">03</option><option value="4">04</option><option value="5">05</option><option value="6">06</option><option value="7">07</option><option value="8">08</option><option value="9" selected>09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option>
+                    </select>
+                    <span>:</span>
+                    <select class="sched-time-select" id="monthlyMinute" onchange="onSchedChange()">
+                      <option value="0" selected>00</option><option value="5">05</option><option value="10">10</option><option value="15">15</option><option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cron 模式 -->
+            <div class="sched-cron" id="schedCron" style="display:none;">
+              <input type="text" class="sched-cron-input" id="cronExpr" value="0 */2 * * *" placeholder="* * * * * (分 时 日 月 周)" oninput="onCronInput()">
+              <div class="sched-cron-hint">
+                格式：<code>分 时 日 月 周</code>，例如 <code>0 9 * * 1-5</code> 表示工作日每天 9:00 执行
+              </div>
+            </div>
+
+            <!-- 频率预览 -->
+            <div class="sched-preview" id="schedPreview">
+              <span class="sched-preview-icon">⏰</span>
+              <span class="sched-preview-text" id="schedPreviewText">每 5 分钟 执行一次</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">推送平台</label>
+            <div class="chip-group" id="pushChips">
+              <div class="chip active" data-push="wecom" onclick="toggleChip(this)">
+                <svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                企业微信
+              </div>
+              <div class="chip" data-push="dingtalk" onclick="toggleChip(this)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                钉钉
+              </div>
+              <div class="chip" data-push="feishu" onclick="toggleChip(this)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                飞书
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">附加技能 <span class="hint">平台技能自动带入，可额外添加</span></label>
+            <div id="skillRows">
+              <!-- 动态渲染 -->
+            </div>
+            <div class="skill-add-row">
+              <div class="skill-multi-select" id="skillMultiSelect">
+                <button class="skill-add-btn" onclick="toggleSkillDropdown()">
+                  <svg style="width:14px;height:14px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  添加技能
+                </button>
+                <div class="skill-ms-trigger"></div>
+                <div class="skill-ms-dropdown" id="skillMsDropdown">
+                  <div class="skill-ms-search-wrap">
+                    <input class="skill-ms-search" id="skillMsSearch" placeholder="搜索技能..." oninput="filterSkillOptions(this.value)">
+                  </div>
+                  <div class="skill-ms-list" id="skillMsList">
+                    <!-- 动态渲染选项 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== 步骤4: 确认 ====== -->
+        <div class="step-panel" id="panel4">
+          <div class="preview-box">
+            <div class="preview-section">
+              <div class="preview-label">任务名称</div>
+              <div class="preview-line" id="previewName"><strong>城市排名分析（荥阳）</strong></div>
+            </div>
+            <div class="preview-section">
+              <div class="preview-label">执行平台</div>
+              <div class="preview-items" id="previewPlatforms">
+                <span class="preview-tag tag-purple"><span class="tag-dot"></span>数智大气(内置底座)</span>
+                <span class="preview-tag tag-amber"><span class="tag-dot"></span>中大平台</span>
+              </div>
+            </div>
+            <div class="preview-section">
+              <div class="preview-label">挂载功能</div>
+              <div class="preview-items" id="previewFuncs">
+                <span class="preview-tag tag-purple"><span class="tag-dot"></span>时空空间全息溯源研判</span>
+                <span class="preview-tag tag-purple"><span class="tag-dot"></span>昨日历史宏观质量回顾</span>
+                <span class="preview-tag tag-amber"><span class="tag-dot"></span>实时监测点位分钟数据流读取</span>
+              </div>
+            </div>
+            <div class="preview-section">
+              <div class="preview-label">执行策略</div>
+              <div class="preview-line" id="previewStrategy">
+                <strong>频率：</strong>每小时 · <strong>推送至：</strong>企业微信-业务值守群
+              </div>
+            </div>
+            <div class="preview-section">
+              <div class="preview-label">附加技能</div>
+              <div class="preview-items" id="previewSkills">
+                <span class="preview-tag tag-purple"><span class="tag-dot"></span>mapairs-automation (平台)</span>
+              </div>
+            </div>
+
+            <div class="preview-section">
+              <div class="preview-label">执行提示词总览 <span class="prompt-readonly-tag" style="margin-left:6px;">自动组装</span></div>
+              <div class="prompt-preview-box" id="finalPromptPreview" style="margin-top:8px;">
+                <div class="prompt-segment" style="color:var(--text3);">请选择平台和功能后查看完整提示词…</div>
+              </div>
+              <div class="prompt-supplement" style="margin-top:12px;">
+                <label class="prompt-supplement-label">统一补充说明 <span style="color:var(--text3);font-weight:400">(可选，追加到总览提示词末尾)</span></label>
+                <textarea class="prompt-supplement-input" id="finalSupplement" placeholder="在此追加你的自定义要求，如：重点关注荥阳市站点数据…" rows="3"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部操作栏 -->
+        <div class="action-bar">
+          <div class="action-left">
+            <button class="btn btn-ghost" id="btnPrev" onclick="prevStep()" style="display:none">
+              <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>
+              上一步
+            </button>
+          </div>
+          <div class="action-right">
+            <button class="btn btn-ghost" onclick="saveDraft()">
+              <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              保存草稿
+            </button>
+            <button class="btn btn-primary" id="btnNext" onclick="nextStep()">
+              下一步
+              <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+      </div>
+    </div><!-- /form-col -->
+
+    <!-- AI 引导面板 -->
+    <div class="ai-col" id="aiCol">
+      <div class="ai-panel">
+        <div class="ai-panel-header">
+          <div class="ai-panel-title">
+            <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.7L20 10l-6.1 1.3L12 17l-1.9-5.7L4 10l6.1-1.3z"/></svg>
+            AI 引导助手
+            <span class="ai-badge">Beta</span>
+          </div>
+          <button class="ai-panel-close" onclick="toggleAiGuide()">
+            <svg style="width:18px;height:18px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="ai-messages" id="aiMessages">
+          <!-- 消息会由 JS 动态插入 -->
+        </div>
+
+        <div class="ai-input-area">
+          <div class="ai-quick-prompts" id="aiQuickPrompts">
+            <button class="ai-quick-btn" onclick="sendQuickPrompt('帮我创建一个荥阳市空气质量排名分析任务')">荥阳排名分析</button>
+            <button class="ai-quick-btn" onclick="sendQuickPrompt('我需要每小时监控荥阳站点数据并推送企业微信')">定时监控推送</button>
+            <button class="ai-quick-btn" onclick="sendQuickPrompt('帮我配置一个多平台数据采集任务')">多平台采集</button>
+            <button class="ai-quick-btn" onclick="sendQuickPrompt('创建每日空气质量播报任务')">每日播报</button>
+          </div>
+          <div class="ai-input-row">
+            <input type="text" id="aiInput" placeholder="描述你的需求，AI 帮你自动填写表单..." onkeydown="if(event.key==='Enter')sendAiMessage()">
+            <button class="ai-send-btn" id="aiSendBtn" onclick="sendAiMessage()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /ai-col -->
+    </div><!-- /body-wrapper -->
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon"></span>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// ===== Lucide 初始化 =====
+
+// ===== 状态管理 =====
+let currentStep = 1;
+const totalSteps = 4;
+
+// 平台选择状态
+const platformState = {
+  szdq: true,   // 内置底座，始终选中
+  zd: true,
+  hnsjk: false,
+  hdjk: false
+};
+
+// 平台内置标记 (builtin=true 的平台提示词不可见)
+const platformBuiltin = {
+  szdq: true,
+  zd: false,
+  hnsjk: false,
+  hdjk: false
+};
+
+// 平台操作提示词 (仅自定义平台有)
+const platformPrompts = {
+  zd: '政务内网登录操作指引：访问空气质量联网管理平台，使用数字OCR验证完成登录认证，确保会话保持稳定…',
+  hnsjk: '省级官网登录指引：访问河南省空气质量大数据系统，使用字母+数字OCR验证完成登录认证…',
+  hdjk: '华东监测数据平台登录指引：访问华东区域监测数据共享平台，使用统一认证完成登录…'
+};
+
+// 功能提示词 (仅自定义平台的功能有)
+const funcPrompts = {
+  'zd-realtime': '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…',
+  'zd-rank-table': '导航至综合质量排名通报页面，下载Excel格式的排名通报表…',
+  'zd-hour-export': '进入小时数据查询页面，按时间范围导出各站点小时监测数据…',
+  'zd-minute-screenshot': '定位至分钟数据展示页面，截取当前分钟数据视图的截图…',
+  'hnsjk-province-rank': '查询省级城市综合质量排名数据，提取各城市AQI排名及变化趋势…',
+  'hnsjk-hour-data': '提取省控站点的小时监测数据，包含PM2.5、PM10、O3等指标…',
+  'hnsjk-alert': '汇总当前预警信息，包括超标站点、预警级别和持续时间…',
+  'hdjk-regional': '查询区域联防联控数据共享信息，提取跨区域传输贡献数据…',
+  'hdjk-compare': '生成跨区域对比分析报告，包含不同区域空气质量对比数据…'
+};
+
+// 功能选择状态
+const funcState = {
+  'szdq-trace': true,
+  'szdq-review': true,
+  'szdq-rank': false,
+  'szdq-trend': false,
+  'zd-realtime': true,
+  'zd-rank-table': false,
+  'zd-hour-export': false,
+  'zd-minute-screenshot': false,
+  'hnsjk-province-rank': false,
+  'hnsjk-hour-data': false,
+  'hnsjk-alert': false,
+  'hdjk-regional': false,
+  'hdjk-compare': false
+};
+
+// 推送
+const pushChannels = new Set(['wecom']);
+
+// ===== 技能管理 =====
+// 可用技能库
+const availableSkills = [
+  { name: 'mapairs-automation', desc: '地图与大气自动化操作', category: 'platform' },
+  { name: 'browser-login', desc: '浏览器自动登录与Cookie管理', category: 'general' },
+  { name: 'ocr-verify', desc: '通用OCR验证码识别', category: 'general' },
+  { name: 'data-export', desc: '数据格式化导出（Excel/CSV）', category: 'general' },
+  { name: 'screenshot-capture', desc: '页面截图与区域裁剪', category: 'general' },
+  { name: 'report-template', desc: '报告模板渲染引擎', category: 'general' },
+  { name: 'wechat-push', desc: '企业微信消息推送', category: 'general' },
+  { name: 'dingtalk-push', desc: '钉钉群消息推送', category: 'general' },
+  { name: 'data-cleanse', desc: '数据清洗与异常检测', category: 'general' },
+];
+
+// 平台自动带入的技能（从选中平台的技能继承）
+const platformSkills = new Set(['mapairs-automation']);
+
+// 用户自行添加的技能
+const userSkills = new Set();
+
+function getSkillDesc(name) {
+  const s = availableSkills.find(s => s.name === name);
+  return s ? s.desc : '';
+}
+
+function renderSkillRows() {
+  const container = document.getElementById('skillRows');
+  let html = '';
+
+  // 平台技能
+  platformSkills.forEach(name => {
+    html += `<div class="skill-row">
+      <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      <span class="skill-name">${name}</span>
+      <span class="skill-badge">平台</span>
+    </div>`;
+  });
+
+  // 用户添加的技能
+  userSkills.forEach(name => {
+    html += `<div class="skill-row">
+      <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      <span class="skill-name">${name}</span>
+      <span class="skill-badge user">用户</span>
+      <button class="skill-remove" onclick="removeUserSkill('${name}')" title="移除">×</button>
+    </div>`;
+  });
+
+  container.innerHTML = html || '<div style="font-size:12.5px;color:var(--text3);padding:8px 0;">暂无附加技能</div>';
+
+  // 更新下拉选项中已选状态
+  renderSkillOptions();
+}
+
+function renderSkillOptions(filter) {
+  const list = document.getElementById('skillMsList');
+  const filterLower = (filter || '').toLowerCase();
+  let html = '';
+  let count = 0;
+
+  availableSkills.forEach(s => {
+    const alreadyAdded = platformSkills.has(s.name) || userSkills.has(s.name);
+    const matches = !filter || s.name.toLowerCase().includes(filterLower) || s.desc.toLowerCase().includes(filterLower);
+    if (!matches) {
+      html += `<div class="skill-ms-option hidden" data-skill="${s.name}"></div>`;
+      return;
+    }
+    count++;
+    html += `<div class="skill-ms-option${alreadyAdded ? ' selected' : ''}" data-skill="${s.name}" onclick="toggleSkillOption(this, '${s.name}')">
+      <span class="skill-ms-check"></span>
+      <span class="skill-ms-option-name">${s.name}</span>
+      <span class="skill-ms-option-desc">${s.desc}</span>
+    </div>`;
+  });
+
+  if (count === 0) {
+    html = '<div style="padding:16px;text-align:center;color:var(--text3);font-size:12.5px;">无匹配技能</div>';
+  }
+
+  list.innerHTML = html;
+}
+
+function toggleSkillDropdown() {
+  const dropdown = document.getElementById('skillMsDropdown');
+  const isOpen = dropdown.classList.contains('show');
+  if (isOpen) {
+    dropdown.classList.remove('show');
+  } else {
+    // 刷新选项列表
+    renderSkillOptions();
+    document.getElementById('skillMsSearch').value = '';
+    dropdown.classList.add('show');
+  }
+}
+
+function filterSkillOptions(value) {
+  renderSkillOptions(value);
+}
+
+function toggleSkillOption(el, name) {
+  if (platformSkills.has(name)) return; // 平台技能不可在此移除
+
+  if (userSkills.has(name)) {
+    userSkills.delete(name);
+  } else {
+    userSkills.add(name);
+  }
+  renderSkillRows();
+  // 保持下拉打开
+  document.getElementById('skillMsDropdown').classList.add('show');
+}
+
+function removeUserSkill(name) {
+  userSkills.delete(name);
+  renderSkillRows();
+}
+
+// 点击外部关闭下拉
+document.addEventListener('click', function(e) {
+  const ms = document.getElementById('skillMultiSelect');
+  if (ms && !ms.contains(e.target)) {
+    document.getElementById('skillMsDropdown').classList.remove('show');
+  }
+});
+
+// 功能名称映射
+const funcNames = {
+  'szdq-trace': '时空空间全息溯源研判',
+  'szdq-review': '昨日历史宏观质量回顾',
+  'szdq-rank': '浓度排名可视化分析',
+  'szdq-trend': '站点单指标趋势对比',
+  'zd-realtime': '实时监测点位分钟数据流读取',
+  'zd-rank-table': '综合质量排名通报表下载',
+  'zd-hour-export': '小时监测数据导出',
+  'zd-minute-screenshot': '分钟数据截图截取',
+  'hnsjk-province-rank': '省级城市综合质量排名查询',
+  'hnsjk-hour-data': '省控站点小时数据提取',
+  'hnsjk-alert': '预警信息汇总导出',
+  'hdjk-regional': '区域联防联控数据共享查询',
+  'hdjk-compare': '跨区域对比分析报告生成'
+};
+
+const platformNames = {
+  szdq: '数智大气(内置底座)',
+  zd: '中大平台',
+  hnsjk: '河南省大数据系统',
+  hdjk: '华东监测数据平台'
+};
+
+// 功能能力标签 (与 v2-platforms.html 平台配置中的标签一致)
+const funcTags = {
+  'szdq-trace': ['数据分析'],
+  'szdq-review': ['数据分析'],
+  'szdq-rank': ['数据采集', '数据分析'],
+  'szdq-trend': ['数据采集', '数据分析'],
+  'zd-realtime': ['数据采集'],
+  'zd-rank-table': ['文件下载'],
+  'zd-hour-export': ['数据采集', '文件下载'],
+  'zd-minute-screenshot': ['截图'],
+  'hnsjk-province-rank': ['数据采集', '数据分析'],
+  'hnsjk-hour-data': ['数据采集'],
+  'hnsjk-alert': ['数据采集', '数据分析'],
+  'hdjk-regional': ['数据采集'],
+  'hdjk-compare': ['数据分析']
+};
+
+// 标签显示名称映射
+const tagLabelMap = {
+  '截图': '截图',
+  '数据采集': '数据采集',
+  '文件下载': '文件下载',
+  '数据分析': '数据分析'
+};
+
+const tagClassMap = {
+  '截图': 'tag-screenshot',
+  '数据采集': 'tag-collect',
+  '文件下载': 'tag-download',
+  '数据分析': 'tag-analysis'
+};
+
+// 能力标签对应的隐藏提示词 (与 v2-platforms.html 一致)
+const tagPromptMap = {
+  '截图': '需要对该功能执行后进行截图并发送给用户',
+  '数据采集': '需要对该功能查询到的数据进行采集并结构化提取',
+  '文件下载': '需要将该功能产出的文件进行下载并保存',
+  '数据分析': '为用户分析该功能查询到的数据，形成分析报告'
+};
+
+const platformTagClass = {
+  szdq: 'tag-purple',
+  zd: 'tag-amber',
+  hnsjk: 'tag-blue',
+  hdjk: 'tag-green'
+};
+
+const pushLabels = {
+  wecom: '企业微信',
+  dingtalk: '钉钉',
+  feishu: '飞书'
+};
+
+// ===== 步骤导航 =====
+function goStep(step) {
+  if (step < 1 || step > totalSteps) return;
+  currentStep = step;
+  renderStep();
+}
+
+function nextStep() {
+  if (currentStep >= totalSteps) {
+    createTask();
+    return;
+  }
+  currentStep++;
+  renderStep();
+}
+
+function prevStep() {
+  if (currentStep <= 1) return;
+  currentStep--;
+  renderStep();
+}
+
+function renderStep() {
+  // 更新面板显示
+  for (let i = 1; i <= totalSteps; i++) {
+    const panel = document.getElementById('panel' + i);
+    if (i === currentStep) {
+      panel.classList.add('visible');
+    } else {
+      panel.classList.remove('visible');
+    }
+  }
+
+  // 更新步骤指示条
+  const items = document.querySelectorAll('.step-item');
+  items.forEach((item, idx) => {
+    const step = idx + 1;
+    item.classList.remove('active', 'done');
+    if (step === currentStep) {
+      item.classList.add('active');
+    } else if (step < currentStep) {
+      item.classList.add('done');
+    }
+  });
+
+  // 更新连接线
+  for (let i = 1; i < totalSteps; i++) {
+    const conn = document.getElementById('conn' + i);
+    if (i < currentStep) {
+      conn.classList.add('done');
+    } else {
+      conn.classList.remove('done');
+    }
+  }
+
+  // 更新按钮
+  document.getElementById('btnPrev').style.display = currentStep === 1 ? 'none' : '';
+  const btnNext = document.getElementById('btnNext');
+  if (currentStep === totalSteps) {
+    btnNext.innerHTML = '创建任务 <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>';
+  } else {
+    btnNext.innerHTML = '下一步 <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+  }
+  // 重新渲染 Lucide 图标
+
+  // 步骤4时更新预览
+  if (currentStep === 4) {
+    updatePreview();
+  }
+}
+
+// ===== 平台勾选 =====
+function togglePlatform(el, platformId) {
+  event.preventDefault();
+  const checkbox = el.querySelector('input[type="checkbox"]');
+  const newState = !checkbox.checked;
+  checkbox.checked = newState;
+  platformState[platformId] = newState;
+
+  if (newState) {
+    el.classList.add('checked');
+  } else {
+    el.classList.remove('checked');
+  }
+
+  // 动态显示/隐藏功能卡片
+  const funcCard = document.getElementById('funcCard-' + platformId);
+  if (funcCard) {
+    if (newState) {
+      funcCard.classList.remove('hidden');
+    } else {
+      funcCard.classList.add('hidden');
+      // 取消该平台下所有功能的选中状态
+      Object.keys(funcState).forEach(funcId => {
+        if (funcId.startsWith(platformId + '-')) {
+          funcState[funcId] = false;
+          const funcCheck = document.querySelector(`[data-func="${funcId}"]`);
+          if (funcCheck) {
+            funcCheck.checked = false;
+            funcCheck.closest('.func-check').classList.remove('checked');
+          }
+        }
+      });
+    }
+  }
+}
+
+// ===== 功能勾选 =====
+function toggleFunc(el) {
+  event.preventDefault();
+  const checkbox = el.querySelector('input[type="checkbox"]');
+  const funcId = checkbox.dataset.func;
+  const newState = !checkbox.checked;
+  checkbox.checked = newState;
+  funcState[funcId] = newState;
+
+  if (newState) {
+    el.classList.add('checked');
+  } else {
+    el.classList.remove('checked');
+  }
+}
+
+// ===== SchedulePicker =====
+let schedMode = 'preset';        // 'preset' | 'cron'
+let schedCategory = 'interval';  // 'interval' | 'daily' | 'weekly' | 'monthly'
+let selectedWeekDays = [1];      // 每周选中的星期 (0=周日, 1=周一, ...)
+let cronExpressionStr = '0 */2 * * *';
+
+function switchSchedMode(mode) {
+  schedMode = mode;
+  document.querySelectorAll('.sched-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.schedMode === mode));
+  document.getElementById('schedPreset').style.display = mode === 'preset' ? '' : 'none';
+  document.getElementById('schedCron').style.display = mode === 'cron' ? '' : 'none';
+  if (mode === 'cron') {
+    cronExpressionStr = document.getElementById('cronExpr').value;
+  }
+  updateSchedPreview();
+}
+
+function switchSchedCat(cat) {
+  schedCategory = cat;
+  document.querySelectorAll('.sched-cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  document.querySelectorAll('.sched-cat-panel').forEach(p => p.classList.toggle('visible', p.id === 'catPanel-' + cat));
+  updateSchedPreview();
+}
+
+function selectIntervalPreset(el, val, unit) {
+  document.querySelectorAll('#catPanel-interval .preset-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('intervalVal').value = val;
+  document.getElementById('intervalUnit').value = unit;
+  updateSchedPreview();
+}
+
+function onIntervalCustom() {
+  // 取消所有预设 chip 的选中
+  document.querySelectorAll('#catPanel-interval .preset-chip').forEach(c => c.classList.remove('active'));
+  updateSchedPreview();
+}
+
+function toggleWeekDay(el, day) {
+  const idx = selectedWeekDays.indexOf(day);
+  if (idx === -1) {
+    selectedWeekDays.push(day);
+    el.classList.add('active');
+  } else {
+    selectedWeekDays.splice(idx, 1);
+    el.classList.remove('active');
+  }
+  onSchedChange();
+}
+
+function onSchedChange() {
+  updateSchedPreview();
+}
+
+function onCronInput() {
+  cronExpressionStr = document.getElementById('cronExpr').value;
+  updateSchedPreview();
+}
+
+function getCurrentCron() {
+  if (schedMode === 'cron') {
+    return cronExpressionStr || '0 9 * * *';
+  }
+
+  switch (schedCategory) {
+    case 'interval': {
+      const val = parseInt(document.getElementById('intervalVal').value) || 5;
+      const unit = document.getElementById('intervalUnit').value;
+      if (unit === 'minute') return `*/${val} * * * *`;
+      return `0 */${val} * * *`;
+    }
+    case 'daily': {
+      const h = document.getElementById('dailyHour').value;
+      const m = document.getElementById('dailyMinute').value;
+      return `${parseInt(m)} ${parseInt(h)} * * *`;
+    }
+    case 'weekly': {
+      const h = document.getElementById('weeklyHour').value;
+      const m = document.getElementById('weeklyMinute').value;
+      const days = selectedWeekDays.length > 0 ? selectedWeekDays.sort((a, b) => a - b).join(',') : '1';
+      return `${parseInt(m)} ${parseInt(h)} * * ${days}`;
+    }
+    case 'monthly': {
+      const h = document.getElementById('monthlyHour').value;
+      const m = document.getElementById('monthlyMinute').value;
+      const dom = document.getElementById('monthlyDay').value;
+      return `${parseInt(m)} ${parseInt(h)} ${dom} * *`;
+    }
+    default:
+      return '0 9 * * *';
+  }
+}
+
+function getScheduleDescription() {
+  if (schedMode === 'cron') {
+    const expr = cronExpressionStr || '';
+    if (!expr) return '请输入 cron 表达式';
+    const parts = expr.trim().split(/\s+/);
+    if (parts.length < 5) return '无效的 cron 表达式';
+    const [minuteStr, hourStr, dom, month, dow] = parts;
+    if (minuteStr.startsWith('*/')) return `每 ${minuteStr.slice(2)} 分钟执行一次`;
+    if (hourStr.startsWith('*/')) return `每 ${hourStr.slice(2)} 小时执行一次`;
+    const time = `${hourStr.padStart(2, '0')}:${minuteStr.padStart(2, '0')}`;
+    if (dow !== '*') {
+      const dayNames = { '0': '周日', '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六' };
+      const names = dow.split(',').map(d => dayNames[d] || d).join('、');
+      return `每周${names} ${time} 执行`;
+    }
+    if (dom !== '*') return `每月 ${dom} 号 ${time} 执行`;
+    return `每天 ${time} 执行`;
+  }
+
+  switch (schedCategory) {
+    case 'interval': {
+      const val = parseInt(document.getElementById('intervalVal').value) || 5;
+      const unit = document.getElementById('intervalUnit').value === 'minute' ? '分钟' : '小时';
+      return `每 ${val} ${unit} 执行一次`;
+    }
+    case 'daily': {
+      const h = document.getElementById('dailyHour').value.padStart(2, '0');
+      const m = document.getElementById('dailyMinute').value.padStart(2, '0');
+      return `每天 ${h}:${m} 执行`;
+    }
+    case 'weekly': {
+      const h = document.getElementById('weeklyHour').value.padStart(2, '0');
+      const m = document.getElementById('weeklyMinute').value.padStart(2, '0');
+      const dayNames = { 0: '周日', 1: '周一', 2: '周二', 3: '周三', 4: '周四', 5: '周五', 6: '周六' };
+      const names = selectedWeekDays.sort((a, b) => a - b).map(d => dayNames[d]).join('、');
+      return names ? `每周${names} ${h}:${m} 执行` : '请选择星期';
+    }
+    case 'monthly': {
+      const h = document.getElementById('monthlyHour').value.padStart(2, '0');
+      const m = document.getElementById('monthlyMinute').value.padStart(2, '0');
+      const dom = document.getElementById('monthlyDay').value;
+      return `每月 ${dom} 号 ${h}:${m} 执行`;
+    }
+    default:
+      return '';
+  }
+}
+
+function updateSchedPreview() {
+  document.getElementById('schedPreviewText').textContent = getScheduleDescription();
+}
+
+// ===== 推送平台chip =====
+function toggleChip(el) {
+  const pushId = el.dataset.push;
+  if (el.classList.contains('active')) {
+    el.classList.remove('active');
+    pushChannels.delete(pushId);
+  } else {
+    el.classList.add('active');
+    pushChannels.add(pushId);
+  }
+}
+
+// ===== 更新预览 =====
+function updatePreview() {
+  // 任务名称
+  const taskName = document.getElementById('taskName').value || '未命名任务';
+  document.getElementById('previewName').innerHTML = '<strong>' + taskName + '</strong>';
+
+  // 平台
+  const platformContainer = document.getElementById('previewPlatforms');
+  let platformHtml = '';
+  Object.keys(platformState).forEach(pid => {
+    if (platformState[pid]) {
+      platformHtml += `<span class="preview-tag ${platformTagClass[pid]}"><span class="tag-dot"></span>${platformNames[pid]}</span>`;
+    }
+  });
+  platformContainer.innerHTML = platformHtml;
+
+  // 功能
+  const funcContainer = document.getElementById('previewFuncs');
+  let funcHtml = '';
+  Object.keys(funcState).forEach(funcId => {
+    if (funcState[funcId]) {
+      // 确定功能所属平台的颜色
+      const platId = funcId.split('-')[0];
+      funcHtml += `<span class="preview-tag ${platformTagClass[platId] || 'tag-purple'}"><span class="tag-dot"></span>${funcNames[funcId]}</span>`;
+    }
+  });
+  funcContainer.innerHTML = funcHtml;
+
+  // 执行策略
+  const pushNames = Array.from(pushChannels).map(id => pushLabels[id]).filter(Boolean);
+  const pushText = pushNames.length > 0 ? pushNames.join('、') : '未选择';
+  const schedDesc = getScheduleDescription();
+  document.getElementById('previewStrategy').innerHTML =
+    `<strong>频率：</strong>${schedDesc} · <strong>推送至：</strong>${pushText}-业务值守群`;
+
+  // 附加技能
+  const allSkills = [...platformSkills, ...userSkills];
+  const skillContainer = document.getElementById('previewSkills');
+  if (skillContainer) {
+    skillContainer.innerHTML = allSkills.length > 0
+      ? allSkills.map(name => {
+          const isPlatform = platformSkills.has(name);
+          return `<span class="preview-tag ${isPlatform ? 'tag-purple' : 'tag-green'}"><span class="tag-dot"></span>${name}${isPlatform ? ' (平台)' : ''}</span>`;
+        }).join('')
+      : '<span class="preview-tag tag-purple" style="opacity:0.5"><span class="tag-dot"></span>无</span>';
+  }
+
+  // 执行提示词总览
+  updateFinalPromptPreview();
+}
+
+// ===== 组装最终提示词总览 =====
+function updateFinalPromptPreview() {
+  const previewBox = document.getElementById('finalPromptPreview');
+  if (!previewBox) return;
+
+  let html = '';
+  const collectedTagPrompts = []; // 收集选中功能的能力标签提示词
+
+  // 1. 角色基底
+  html += `<div class="prompt-segment"><span class="prompt-seg-tag tag-base">角色</span>你是一个环保数据值守智能体，负责从各数据平台采集、分析环境监测数据并自动推送报告。</div>`;
+
+  // 2. 平台操作提示词 (仅自定义平台)
+  Object.keys(platformState).forEach(pid => {
+    if (platformState[pid] && !platformBuiltin[pid] && platformPrompts[pid]) {
+      html += `<div class="prompt-segment"><span class="prompt-seg-tag tag-platform">平台 · ${platformNames[pid] || pid}</span>${platformPrompts[pid]}</div>`;
+    }
+  });
+
+  // 3. 功能操作提示词 + 收集标签提示词
+  Object.keys(funcState).forEach(fid => {
+    if (funcState[fid]) {
+      if (funcPrompts[fid]) {
+        html += `<div class="prompt-segment"><span class="prompt-seg-tag tag-function">功能 · ${funcNames[fid]}</span>${funcPrompts[fid]}</div>`;
+      }
+      // 收集该功能的能力标签提示词
+      const tags = funcTags[fid] || [];
+      tags.forEach(tag => {
+        if (tagPromptMap[tag] && !collectedTagPrompts.includes(tag)) {
+          collectedTagPrompts.push(tag);
+        }
+      });
+    }
+  });
+
+  // 4. 能力标签提示词 (自动注入，去重)
+  if (collectedTagPrompts.length > 0) {
+    html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">';
+    html += '<div style="font-size:11px;color:var(--purple);font-weight:600;margin-bottom:6px;">⚡ 能力标签自动注入（基于选中功能的能力标签）</div>';
+    collectedTagPrompts.forEach(tag => {
+      html += `<div class="prompt-segment"><span class="prompt-seg-tag" style="background:var(--purple-soft);color:var(--purple);">${tag}</span>${tagPromptMap[tag]}</div>`;
+    });
+    html += '</div>';
+  }
+
+  // 5. 补充说明预览 (实时读取)
+  const supplement = document.getElementById('finalSupplement');
+  if (supplement && supplement.value.trim()) {
+    html += `<div class="prompt-segment" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);"><span class="prompt-seg-tag" style="background:var(--amber-soft);color:#C68A00;">补充</span>${supplement.value.trim()}</div>`;
+  }
+
+  if (!html) {
+    html = '<div class="prompt-segment" style="color:var(--text3);">请选择平台和功能后查看完整提示词…</div>';
+  }
+
+  previewBox.innerHTML = html;
+}
+
+// ===== 保存草稿 =====
+function saveDraft() {
+  showToast('草稿已保存', 'amber');
+}
+
+// ===== 创建任务 =====
+function createTask() {
+  showToast('任务创建成功', 'green');
+  setTimeout(() => {
+    window.location.href = 'v2-jobs.html';
+  }, 2000);
+}
+
+// ===== Toast =====
+function showToast(msg, colorKey) {
+  const toast = document.getElementById('toast');
+  const toastIcon = document.getElementById('toastIcon');
+  const toastMsg = document.getElementById('toastMsg');
+  const colorMap = {
+    green: 'var(--green)',
+    amber: 'var(--amber)',
+    red: 'var(--red)',
+    blue: 'var(--primary)'
+  };
+  const iconMap = {
+    green: 'check-circle',
+    amber: 'alert-triangle',
+    red: 'x-circle',
+    blue: 'info'
+  };
+  const icon = iconMap[colorKey] || 'check-circle';
+  const svgMap = {
+    'check-circle': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    'alert-triangle': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    'info': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    'x-circle': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+  };
+  const color = colorMap[colorKey] || colorMap.green;
+  toastIcon.innerHTML = svgMap[icon] ? `<span style="color:${color}">${svgMap[icon]}</span>` : '';
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2000);
+}
+
+// ===== AI 引导模式 =====
+let aiGuideOpen = false;
+let aiStep = 'idle'; // idle → platform → function → schedule → taskName → summary → done
+let aiSelectedPlatforms = [];
+let aiSelectedFunctions = [];
+let aiSchedule = '0 8 * * *';
+let aiTaskName = '';
+let aiMsgId = 0;
+
+function toggleAiGuide() {
+  aiGuideOpen = !aiGuideOpen;
+  const col = document.getElementById('aiCol');
+  const btn = document.getElementById('aiGuideBtn');
+  if (aiGuideOpen) {
+    col.classList.add('open');
+    btn.classList.add('active');
+    // 首次打开，启动对话
+    if (aiStep === 'idle') {
+      aiStep = 'platform';
+      startAiConversation();
+    }
+  } else {
+    col.classList.remove('open');
+    btn.classList.remove('active');
+  }
+}
+
+// ── 消息渲染 ──
+function addAiMsg(content, options, inputType) {
+  const container = document.getElementById('aiMessages');
+  const msgEl = document.createElement('div');
+  msgEl.className = 'ai-msg bot';
+  msgEl.style.animation = 'none';
+  msgEl.offsetHeight; // reflow
+  msgEl.style.animation = '';
+
+  let optionsHtml = '';
+  if (options && options.length > 0) {
+    const isMulti = (aiStep === 'platform' || aiStep === 'function');
+    optionsHtml = '<div class="ai-msg-options">';
+    options.forEach(opt => {
+      optionsHtml += `<button class="ai-opt-btn ${opt.selected ? 'selected' : ''}" data-value="${opt.value}" onclick="handleAiOption(this, '${opt.value}', ${isMulti})">
+        <span class="ai-opt-check">${opt.selected ? '<svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</span>
+        <span class="ai-opt-label">${opt.label}</span>
+        ${opt.desc ? `<span class="ai-opt-desc">${opt.desc}</span>` : ''}
+      </button>`;
+    });
+    if (isMulti) {
+      optionsHtml += `<button class="ai-opt-confirm" id="aiConfirmBtn" onclick="confirmAiMulti()">确认选择</button>`;
+    }
+    optionsHtml += '</div>';
+  }
+
+  let inputHtml = '';
+  if (inputType === 'text') {
+    inputHtml = `<div class="ai-msg-input">
+      <input type="text" id="aiTextInput" placeholder="请输入任务名称…" onkeydown="if(event.key==='Enter')submitAiTextInput()">
+      <button class="ai-text-submit" onclick="submitAiTextInput()">发送</button>
+    </div>`;
+  }
+
+  msgEl.innerHTML = `
+    <div class="ai-msg-avatar bot"><svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.7L20 10l-6.1 1.3L12 17l-1.9-5.7L4 10l6.1-1.3z"/></svg></div>
+    <div class="ai-msg-body">
+      <div class="ai-msg-text">${content}</div>
+      ${optionsHtml}
+      ${inputHtml}
+    </div>
+  `;
+  container.appendChild(msgEl);
+  scrollAiToBottom();
+}
+
+function addUserMsg(content) {
+  const container = document.getElementById('aiMessages');
+  const msgEl = document.createElement('div');
+  msgEl.className = 'ai-msg user';
+  msgEl.innerHTML = `
+    <div class="ai-msg-avatar user"><svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <div class="ai-msg-body">
+      <div class="ai-msg-text">${content}</div>
+    </div>
+  `;
+  container.appendChild(msgEl);
+  scrollAiToBottom();
+}
+
+function addTypingIndicator() {
+  const container = document.getElementById('aiMessages');
+  const el = document.createElement('div');
+  el.className = 'ai-msg bot';
+  el.id = 'aiTyping';
+  el.innerHTML = `
+    <div class="ai-msg-avatar bot"><svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.7L20 10l-6.1 1.3L12 17l-1.9-5.7L4 10l6.1-1.3z"/></svg></div>
+    <div class="ai-msg-body">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+  `;
+  container.appendChild(el);
+  scrollAiToBottom();
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById('aiTyping');
+  if (el) el.remove();
+}
+
+function scrollAiToBottom() {
+  const container = document.getElementById('aiMessages');
+  setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+}
+
+// ── 对话流程 (参考 AiGuideWizard.vue) ──
+async function startAiConversation() {
+  addTypingIndicator();
+  await delay(600);
+  removeTypingIndicator();
+
+  addAiMsg('你好！我是 AI 引导助手，帮你快速配置值守任务。😊<br><br>首先，你想从哪些平台获取数据？<strong>数智大气</strong>已作为内置底座自动选中，你可以再选择其他平台。', [
+    { label: '空气质量联网管理平台（中大）', value: 'zd', desc: '政务内网', selected: false },
+    { label: '河南省空气质量大数据系统', value: 'hnsjk', desc: '省级官网', selected: false },
+    { label: '华东监测数据平台', value: 'hdjk', desc: '区域级', selected: false }
+  ]);
+}
+
+async function handleAiOption(btn, value, isMulti) {
+  if (aiStep === 'platform' || aiStep === 'function') {
+    // 多选切换
+    const optBtns = btn.parentElement.querySelectorAll('.ai-opt-btn');
+    optBtns.forEach(b => {
+      if (b.dataset.value === value) {
+        const wasSelected = b.classList.contains('selected');
+        b.classList.toggle('selected');
+        const checkEl = b.querySelector('.ai-opt-check');
+        if (wasSelected) {
+          checkEl.innerHTML = '';
+          // 从选择列表移除
+          if (aiStep === 'platform') aiSelectedPlatforms = aiSelectedPlatforms.filter(p => p !== value);
+          if (aiStep === 'function') aiSelectedFunctions = aiSelectedFunctions.filter(f => f !== value);
+        } else {
+          checkEl.innerHTML = '<svg style="width:12px;height:12px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>';
+          if (aiStep === 'platform' && !aiSelectedPlatforms.includes(value)) aiSelectedPlatforms.push(value);
+          if (aiStep === 'function' && !aiSelectedFunctions.includes(value)) aiSelectedFunctions.push(value);
+        }
+      }
+    });
+  } else if (aiStep === 'schedule') {
+    // 单选
+    aiSchedule = value;
+    const label = btn.querySelector('.ai-opt-label').textContent;
+    addUserMsg(label);
+    disableAiOptions(btn.parentElement);
+    await askTaskName();
+  } else if (aiStep === 'summary') {
+    if (value === 'confirm') {
+      addUserMsg('确认创建');
+      await aiCreateTask();
+    } else if (value === 'fillForm') {
+      addUserMsg('转到表单微调');
+      fillFormFromAi();
+    } else if (value === 'restart') {
+      addUserMsg('重新开始');
+      resetAiConversation();
+    }
+  }
+}
+
+async function confirmAiMulti() {
+  if (aiStep === 'platform') {
+    if (aiSelectedPlatforms.length === 0) {
+      showToast('请至少选择一个平台', 'amber');
+      return;
+    }
+    const names = ['数智大气(内置底座)', ...aiSelectedPlatforms.map(p => platformNames[p] || p)];
+    addUserMsg('我选择：' + names.join('、'));
+    disableAiOptions(document.getElementById('aiMessages'));
+    await askFunction();
+  } else if (aiStep === 'function') {
+    const names = aiSelectedFunctions.map(f => funcNames[f] || f);
+    if (names.length > 0) {
+      addUserMsg('我选择：' + names.join('、'));
+    } else {
+      addUserMsg('跳过功能选择');
+    }
+    disableAiOptions(document.getElementById('aiMessages'));
+    await askSchedule();
+  }
+}
+
+function disableAiOptions(container) {
+  container.querySelectorAll('.ai-opt-btn, .ai-opt-confirm').forEach(b => {
+    b.disabled = true;
+    b.style.opacity = '0.5';
+    b.style.pointerEvents = 'none';
+  });
+}
+
+async function askFunction() {
+  aiStep = 'function';
+  addTypingIndicator();
+  await delay(500);
+  removeTypingIndicator();
+
+  // 根据选中平台生成功能选项
+  const functions = [];
+  // 内置底座功能始终展示
+  const szdqFuncs = ['szdq-trace', 'szdq-review', 'szdq-rank', 'szdq-trend'];
+  szdqFuncs.forEach(f => functions.push({ label: funcNames[f], value: f, desc: '数智大气', selected: false }));
+
+  aiSelectedPlatforms.forEach(pid => {
+    const prefix = pid + '-';
+    Object.keys(funcNames).forEach(f => {
+      if (f.startsWith(prefix)) functions.push({ label: funcNames[f], value: f, desc: platformNames[pid] || pid, selected: false });
+    });
+  });
+
+  addAiMsg('很好！这些平台提供了以下功能，请选择你需要执行的功能（可多选）：', functions);
+}
+
+async function askSchedule() {
+  aiStep = 'schedule';
+  addTypingIndicator();
+  await delay(500);
+  removeTypingIndicator();
+
+  addAiMsg('接下来选择执行频率：', [
+    { label: '每小时执行', value: '0 * * * *' },
+    { label: '每天 08:00', value: '0 8 * * *' },
+    { label: '每天 18:00', value: '0 18 * * *' },
+    { label: '工作日 08:00', value: '0 8 * * 1-5' },
+    { label: '每周一 08:00', value: '0 8 * * 1' }
+  ]);
+}
+
+async function askTaskName() {
+  aiStep = 'taskName';
+  addTypingIndicator();
+  await delay(400);
+  removeTypingIndicator();
+
+  addAiMsg('最后，给任务起个名字：', null, 'text');
+}
+
+async function submitAiTextInput() {
+  const input = document.getElementById('aiTextInput');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+  aiTaskName = name;
+  addUserMsg(name);
+  // 禁用输入
+  input.disabled = true;
+  const submitBtn = input.parentElement.querySelector('.ai-text-submit');
+  if (submitBtn) submitBtn.disabled = true;
+
+  await showSummary();
+}
+
+async function showSummary() {
+  aiStep = 'summary';
+  addTypingIndicator();
+  await delay(600);
+  removeTypingIndicator();
+
+  const platNames = ['数智大气(内置底座)', ...aiSelectedPlatforms.map(p => platformNames[p] || p)];
+  const funcNameList = aiSelectedFunctions.map(f => funcNames[f] || f);
+  // AI 模式中的频率使用 describeCron 解析
+  const scheduleLabel = describeAiCron(aiSchedule);
+  const funcText = funcNameList.length > 0 ? funcNameList.join('、') : '无';
+
+  const summaryHtml = `
+    <div class="ai-fill-card">
+      <div class="fill-title"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><polyline points="9 14 11 16 15 10"/></svg> 任务方案预览</div>
+      <div class="fill-row"><strong>任务名称：</strong>${aiTaskName}</div>
+      <div class="fill-row"><strong>执行平台：</strong>${platNames.join('、')}</div>
+      <div class="fill-row"><strong>挂载功能：</strong>${funcText}</div>
+      <div class="fill-row"><strong>执行频率：</strong>${scheduleLabel}</div>
+      <div class="fill-row"><strong>推送至：</strong>企业微信-业务值守群</div>
+      <div class="ai-fill-actions">
+        <button class="btn btn-ghost btn-sm" onclick="handleAiOption(this, 'fillForm', false)"><svg style="width:13px;height:13px;display:inline;vertical-align:-2px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> 转表单微调</button>
+        <button class="btn btn-primary btn-sm" onclick="handleAiOption(this, 'confirm', false)"><svg style="width:13px;height:13px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg> 确认创建</button>
+      </div>
+    </div>
+  `;
+
+  addAiMsg('方案已汇总，请确认：' + summaryHtml + '<br>如果需要调整，可以转到表单模式微调。', [
+    { label: '重新配置', value: 'restart' }
+  ]);
+}
+
+async function aiCreateTask() {
+  aiStep = 'done';
+  addTypingIndicator();
+  await delay(800);
+  removeTypingIndicator();
+  addAiMsg('✅ 任务创建成功！已自动配置好所有参数。<br><br>任务将按设定频率自动执行，你可以在值守任务页面查看运行状态。');
+}
+
+function fillFormFromAi() {
+  // 将 AI 选择的结果填入左侧表单
+  // 1. 填入任务名称
+  if (aiTaskName) {
+    document.getElementById('taskName').value = aiTaskName;
+  }
+  // 2. 勾选平台
+  aiSelectedPlatforms.forEach(pid => {
+    if (!platformState[pid]) {
+      const el = document.querySelector(`.platform-check[data-platform="${pid}"]`);
+      if (el) togglePlatform(el, pid);
+    }
+  });
+  // 3. 勾选功能
+  aiSelectedFunctions.forEach(fid => {
+    if (!funcState[fid]) {
+      const el = document.querySelector(`[data-func="${fid}"]`);
+      if (el) {
+        const funcCheck = el.closest('.func-check');
+        if (funcCheck) toggleFunc(funcCheck);
+      }
+    }
+  });
+  // 4. 设置频率 (尝试解析 AI 选择的 cron)
+  if (aiSchedule) {
+    parseAiCronToPicker(aiSchedule);
+  }
+
+  // 关闭 AI 面板，回到表单
+  toggleAiGuide();
+  // 跳到步骤2让用户看到级联效果
+  goStep(2);
+  showToast('AI 配置已填入表单，可继续微调', 'blue');
+}
+
+// AI 选择的 cron 解析到 SchedulePicker
+function parseAiCronToPicker(cron) {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length < 5) return;
+  const [minuteStr, hourStr, dom, month, dow] = parts;
+
+  // 间隔: */N * * * *
+  if (minuteStr.startsWith('*/') && hourStr === '*') {
+    switchSchedMode('preset');
+    switchSchedCat('interval');
+    document.getElementById('intervalVal').value = parseInt(minuteStr.slice(2));
+    document.getElementById('intervalUnit').value = 'minute';
+    updateSchedPreview();
+    return;
+  }
+  // 间隔: 0 */N * * *
+  if (minuteStr === '0' && hourStr.startsWith('*/')) {
+    switchSchedMode('preset');
+    switchSchedCat('interval');
+    document.getElementById('intervalVal').value = parseInt(hourStr.slice(2));
+    document.getElementById('intervalUnit').value = 'hour';
+    updateSchedPreview();
+    return;
+  }
+  // 每周: M H * * dow
+  if (dow !== '*' && dom === '*' && month === '*') {
+    switchSchedMode('preset');
+    switchSchedCat('weekly');
+    selectedWeekDays = dow.split(',').map(Number).filter(n => !isNaN(n));
+    document.getElementById('weeklyHour').value = parseInt(hourStr);
+    document.getElementById('weeklyMinute').value = parseInt(minuteStr);
+    renderWeekDayChips();
+    updateSchedPreview();
+    return;
+  }
+  // 每月: M H dom * *
+  if (dom !== '*' && month === '*' && dow === '*') {
+    switchSchedMode('preset');
+    switchSchedCat('monthly');
+    document.getElementById('monthlyDay').value = parseInt(dom);
+    document.getElementById('monthlyHour').value = parseInt(hourStr);
+    document.getElementById('monthlyMinute').value = parseInt(minuteStr);
+    updateSchedPreview();
+    return;
+  }
+  // 每天: M H * * *
+  if (dom === '*' && month === '*' && dow === '*') {
+    switchSchedMode('preset');
+    switchSchedCat('daily');
+    document.getElementById('dailyHour').value = parseInt(hourStr);
+    document.getElementById('dailyMinute').value = parseInt(minuteStr);
+    updateSchedPreview();
+    return;
+  }
+  // 无法解析，切换到 cron 模式
+  switchSchedMode('cron');
+  document.getElementById('cronExpr').value = cron;
+  updateSchedPreview();
+}
+
+function renderWeekDayChips() {
+  document.querySelectorAll('#weeklyDays .sched-day-chip').forEach(chip => {
+    const day = parseInt(chip.dataset.day);
+    chip.classList.toggle('active', selectedWeekDays.includes(day));
+  });
+}
+
+function resetAiConversation() {
+  aiSelectedPlatforms = [];
+  aiSelectedFunctions = [];
+  aiSchedule = '0 8 * * *';
+  aiTaskName = '';
+  aiStep = 'platform';
+  document.getElementById('aiMessages').innerHTML = '';
+  startAiConversation();
+}
+
+// 快捷提示
+function sendQuickPrompt(text) {
+  addUserMsg(text);
+  // 模拟 AI 根据快捷提示自动填充
+  addTypingIndicator();
+  setTimeout(async () => {
+    removeTypingIndicator();
+
+    if (text.includes('排名分析')) {
+      aiSelectedPlatforms = ['zd'];
+      aiSelectedFunctions = ['szdq-trace', 'szdq-review', 'zd-realtime'];
+      aiSchedule = '0 * * * *';
+      aiTaskName = '城市排名分析（荥阳）';
+    } else if (text.includes('监控') || text.includes('推送')) {
+      aiSelectedPlatforms = ['zd'];
+      aiSelectedFunctions = ['szdq-trace', 'zd-realtime'];
+      aiSchedule = '0 * * * *';
+      aiTaskName = '荥阳站点数据监控推送';
+    } else if (text.includes('多平台')) {
+      aiSelectedPlatforms = ['zd', 'hnsjk'];
+      aiSelectedFunctions = ['szdq-trace', 'zd-realtime', 'hnsjk-province-rank'];
+      aiSchedule = '0 8 * * *';
+      aiTaskName = '多平台数据采集';
+    } else if (text.includes('播报')) {
+      aiSelectedPlatforms = ['zd'];
+      aiSelectedFunctions = ['szdq-review', 'zd-realtime'];
+      aiSchedule = '0 8 * * *';
+      aiTaskName = '每日空气质量播报';
+    }
+
+    aiStep = 'summary';
+    await showSummary();
+  }, 1000);
+}
+
+// 自由输入
+function sendAiMessage() {
+  const input = document.getElementById('aiInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  sendQuickPrompt(text);
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Cron 描述 (AI 汇总预览用)
+function describeAiCron(cron) {
+  if (!cron) return '未知';
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length < 5) return cron;
+  const [minuteStr, hourStr, dom, , dow] = parts;
+  if (minuteStr.startsWith('*/')) return `每 ${minuteStr.slice(2)} 分钟`;
+  if (hourStr.startsWith('*/')) return `每 ${hourStr.slice(2)} 小时`;
+  const time = `${hourStr.padStart(2, '0')}:${minuteStr.padStart(2, '0')}`;
+  if (dow !== '*') return `每周 ${time}`;
+  if (dom !== '*') return `每月 ${dom} 号 ${time}`;
+  return `每天 ${time}`;
+}
+
+// ===== 渲染功能能力标签 =====
+function renderFuncTags() {
+  document.querySelectorAll('.func-check').forEach(el => {
+    const checkbox = el.querySelector('input[type="checkbox"]');
+    if (!checkbox) return;
+    const funcId = checkbox.dataset.func;
+    const tags = funcTags[funcId] || [];
+    if (tags.length === 0) return;
+
+    // 移除旧的标签容器
+    const oldTags = el.querySelector('.func-tags-inline');
+    if (oldTags) oldTags.remove();
+
+    const tagsEl = document.createElement('span');
+    tagsEl.className = 'func-tags-inline';
+    tags.forEach(tag => {
+      const tagEl = document.createElement('span');
+      tagEl.className = 'func-tag-inline ' + (tagClassMap[tag] || '');
+      tagEl.textContent = tag;
+      tagsEl.appendChild(tagEl);
+    });
+    el.appendChild(tagsEl);
+  });
+}
+
+// ===== 初始化 =====
+renderStep();
+renderFuncTags();
+renderSkillRows();
+// 补充说明输入框实时更新提示词总览
+document.getElementById('finalSupplement').addEventListener('input', updateFinalPromptPreview);
+</script>
+</body>
+</html>

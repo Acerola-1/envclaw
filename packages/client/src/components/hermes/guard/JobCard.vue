@@ -10,6 +10,7 @@ import { useJobsStore } from '@/stores/hermes/jobs'
 const props = defineProps<{
   job: Job | null
   profileKey: string
+  showHeader?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -250,7 +251,7 @@ watch(() => [props.job, props.profileKey], () => {
       </div>
 
       <!-- 任务头部 -->
-      <div class="card-header">
+      <div v-if="showHeader !== false" class="card-header">
         <div class="header-title-row">
           <h2 class="card-title">{{ job.name || '未命名任务' }}</h2>
           <NTag :type="statusType" size="small" round>{{ statusLabel }}</NTag>

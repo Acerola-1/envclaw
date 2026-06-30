@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { NSelect, NTimePicker, NInput, NInputNumber } from 'naive-ui'
 
 const props = defineProps<{
   modelValue?: string
@@ -10,14 +9,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-// ==================== 模式切换 ====================
-type Mode = 'preset' | 'cron'
-const mode = ref<Mode>('preset')
-
 // ==================== 预设模式数据 ====================
 type PresetCategory = 'interval' | 'daily' | 'weekly' | 'monthly'
 
-// 当前选中的预设类别
 const presetCategory = ref<PresetCategory>('interval')
 
 // 间隔模式
@@ -25,22 +19,21 @@ const intervalValue = ref(5)
 const intervalUnit = ref<'minute' | 'hour'>('minute')
 
 // 每天模式
-const dailyTime = ref<number | null>(new Date().setHours(9, 0, 0, 0))
+const dailyHour = ref(9)
+const dailyMinute = ref(0)
 
 // 每周模式
 const weeklyDays = ref<number[]>([1])
-const weeklyTime = ref<number | null>(new Date().setHours(9, 0, 0, 0))
+const weeklyHour = ref(9)
+const weeklyMinute = ref(0)
 
 // 每月模式
 const monthlyDay = ref(1)
-const monthlyTime = ref<number | null>(new Date().setHours(9, 0, 0, 0))
+const monthlyHour = ref(9)
+const monthlyMinute = ref(0)
 
-// ==================== Cron 模式数据 ====================
-const cronExpression = ref('')
-
-// ==================== 预设选项 ====================
+// ==================== 选项 ====================
 const intervalPresets = [
-  { label: '1 分钟', value: 1, unit: 'minute' as const },
   { label: '5 分钟', value: 5, unit: 'minute' as const },
   { label: '10 分钟', value: 10, unit: 'minute' as const },
   { label: '15 分钟', value: 15, unit: 'minute' as const },
@@ -53,11 +46,23 @@ const intervalPresets = [
   { label: '24 小时', value: 24, unit: 'hour' as const },
 ]
 
-const categoryOptions = [
-  { label: '按间隔', value: 'interval' },
-  { label: '每天', value: 'daily' },
-  { label: '每周', value: 'weekly' },
-  { label: '每月', value: 'monthly' },
+const hourOptions = computed(() =>
+  Array.from({ length: 24 }, (_, i) => ({ label: String(i).padStart(2, '0'), value: i }))
+)
+
+const minuteOptions = [
+  { label: '00', value: 0 },
+  { label: '05', value: 5 },
+  { label: '10', value: 10 },
+  { label: '15', value: 15 },
+  { label: '20', value: 20 },
+  { label: '25', value: 25 },
+  { label: '30', value: 30 },
+  { label: '35', value: 35 },
+  { label: '40', value: 40 },
+  { label: '45', value: 45 },
+  { label: '50', value: 50 },
+  { label: '55', value: 55 },
 ]
 
 const weekDayOptions = [
@@ -70,24 +75,9 @@ const weekDayOptions = [
   { label: '周日', value: 0 },
 ]
 
-const monthDayOptions = computed(() => {
-  const options = []
-  for (let i = 1; i <= 31; i++) {
-    options.push({ label: `${i} 号`, value: i })
-  }
-  return options
-})
-
-// ==================== 工具函数 ====================
-function formatTime(timestamp: number | null): string {
-  if (!timestamp) return '09:00'
-  const date = new Date(timestamp)
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-}
-
-function parseTimeToTimestamp(hour: number, minute: number): number {
-  return new Date().setHours(hour, minute, 0, 0)
-}
+const monthDayOptions = computed(() =>
+  Array.from({ length: 31 }, (_, i) => ({ label: `${i + 1} 号`, value: i + 1 }))
+)
 
 // ==================== Cron 生成 ====================
 function generateCron(): string {
@@ -99,22 +89,16 @@ function generateCron(): string {
       return `0 */${intervalValue.value} * * *`
     }
     case 'daily': {
-      const time = formatTime(dailyTime.value)
-      const [hour, minute] = time.split(':').map(Number)
-      return `${minute} ${hour} * * *`
+      return `${dailyMinute.value} ${dailyHour.value} * * *`
     }
     case 'weekly': {
-      const time = formatTime(weeklyTime.value)
-      const [hour, minute] = time.split(':').map(Number)
       const days = weeklyDays.value.length > 0
         ? weeklyDays.value.sort((a, b) => a - b).join(',')
         : '1'
-      return `${minute} ${hour} * * ${days}`
+      return `${weeklyMinute.value} ${weeklyHour.value} * * ${days}`
     }
     case 'monthly': {
-      const time = formatTime(monthlyTime.value)
-      const [hour, minute] = time.split(':').map(Number)
-      return `${minute} ${hour} ${monthlyDay.value} * *`
+      return `${monthlyMinute.value} ${monthlyHour.value} ${monthlyDay.value} * *`
     }
     default:
       return '0 9 * * *'
@@ -127,7 +111,7 @@ function parseCron(cron: string) {
   const parts = cron.trim().split(/\s+/)
   if (parts.length < 5) return false
 
-  const [minuteStr, hourStr, dom, month, dow] = parts
+  const [minuteStr, hourStr, dom, , dow] = parts
   const minute = parseInt(minuteStr)
   const hour = parseInt(hourStr)
 
@@ -148,25 +132,28 @@ function parseCron(cron: string) {
   }
 
   // 每周模式: M H * * dow
-  if (dow !== '*' && dom === '*' && month === '*') {
+  if (dow !== '*' && dom === '*' && dow !== '*') {
     presetCategory.value = 'weekly'
-    weeklyTime.value = parseTimeToTimestamp(hour, minute)
+    weeklyHour.value = hour
+    weeklyMinute.value = minute
     weeklyDays.value = dow.split(',').map(Number).filter(n => !isNaN(n))
     return true
   }
 
   // 每月模式: M H dom * *
-  if (dom !== '*' && month === '*' && dow === '*') {
+  if (dom !== '*' && dow === '*') {
     presetCategory.value = 'monthly'
     monthlyDay.value = parseInt(dom) || 1
-    monthlyTime.value = parseTimeToTimestamp(hour, minute)
+    monthlyHour.value = hour
+    monthlyMinute.value = minute
     return true
   }
 
   // 每天模式: M H * * *
-  if (dom === '*' && month === '*' && dow === '*') {
+  if (dom === '*' && dow === '*') {
     presetCategory.value = 'daily'
-    dailyTime.value = parseTimeToTimestamp(hour, minute)
+    dailyHour.value = hour
+    dailyMinute.value = minute
     return true
   }
 
@@ -174,31 +161,29 @@ function parseCron(cron: string) {
 }
 
 // ==================== 描述生成 ====================
-const scheduleDescription = computed(() => {
-  if (mode.value === 'cron') {
-    return describeCron(cronExpression.value)
-  }
+const weekDayLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
+const scheduleDescription = computed(() => {
   switch (presetCategory.value) {
     case 'interval': {
       const unit = intervalUnit.value === 'minute' ? '分钟' : '小时'
       return `每 ${intervalValue.value} ${unit} 执行一次`
     }
     case 'daily': {
-      const time = formatTime(dailyTime.value)
+      const time = `${String(dailyHour.value).padStart(2, '0')}:${String(dailyMinute.value).padStart(2, '0')}`
       return `每天 ${time} 执行`
     }
     case 'weekly': {
-      const time = formatTime(weeklyTime.value)
-      const dayNames = weeklyDays.value
+      const time = `${String(weeklyHour.value).padStart(2, '0')}:${String(weeklyMinute.value).padStart(2, '0')}`
+      const names = weeklyDays.value
         .sort((a, b) => a - b)
-        .map(d => weekDayOptions.find(w => w.value === d)?.label || '')
+        .map(d => weekDayLabels[d])
         .filter(Boolean)
         .join('、')
-      return dayNames ? `每周${dayNames} ${time} 执行` : '请选择星期'
+      return names ? `每周${names} ${time} 执行` : '请选择星期'
     }
     case 'monthly': {
-      const time = formatTime(monthlyTime.value)
+      const time = `${String(monthlyHour.value).padStart(2, '0')}:${String(monthlyMinute.value).padStart(2, '0')}`
       return `每月 ${monthlyDay.value} 号 ${time} 执行`
     }
     default:
@@ -206,107 +191,36 @@ const scheduleDescription = computed(() => {
   }
 })
 
-function describeCron(cron: string): string {
-  if (!cron) return '请输入 cron 表达式'
-  const parts = cron.trim().split(/\s+/)
-  if (parts.length < 5) return '无效的 cron 表达式'
-
-  const [minuteStr, hourStr, dom, , dow] = parts
-
-  // 间隔
-  if (minuteStr.startsWith('*/')) {
-    return `每 ${minuteStr.slice(2)} 分钟执行一次`
-  }
-  if (hourStr.startsWith('*/')) {
-    return `每 ${hourStr.slice(2)} 小时执行一次`
-  }
-
-  const time = `${hourStr.padStart(2, '0')}:${minuteStr.padStart(2, '0')}`
-
-  if (dow !== '*') {
-    const dayNames = dow.split(',').map(d => {
-      const num = parseInt(d)
-      return weekDayOptions.find(w => w.value === num)?.label || d
-    }).join('、')
-    return `每周${dayNames} ${time} 执行`
-  }
-  if (dom !== '*') {
-    return `每月 ${dom} 号 ${time} 执行`
-  }
-  return `每天 ${time} 执行`
-}
-
-// ==================== 验证 ====================
-const isIntervalValid = computed(() => {
-  if (intervalUnit.value === 'minute') {
-    return intervalValue.value >= 1 && intervalValue.value <= 60
-  }
-  return intervalValue.value >= 1 && intervalValue.value <= 24
-})
-
-const isWeeklyValid = computed(() => weeklyDays.value.length > 0)
-
-const isCronValid = computed(() => {
-  if (!cronExpression.value) return false
-  const parts = cronExpression.value.trim().split(/\s+/)
-  return parts.length === 5
-})
-
 // ==================== 同步到父组件 ====================
 function syncToParent() {
-  if (mode.value === 'cron') {
-    if (isCronValid.value) {
-      emit('update:modelValue', cronExpression.value)
-    }
-  } else {
-    if (presetCategory.value === 'interval' && !isIntervalValid.value) return
-    if (presetCategory.value === 'weekly' && !isWeeklyValid.value) return
-    emit('update:modelValue', generateCron())
-  }
+  emit('update:modelValue', generateCron())
 }
 
 // ==================== 监听变化 ====================
-watch([presetCategory, intervalValue, intervalUnit, dailyTime, weeklyDays, weeklyTime, monthlyDay, monthlyTime], () => {
-  if (mode.value === 'preset') syncToParent()
+watch([presetCategory, intervalValue, intervalUnit, dailyHour, dailyMinute, weeklyDays, weeklyHour, weeklyMinute, monthlyDay, monthlyHour, monthlyMinute], () => {
+  syncToParent()
 }, { deep: true })
-
-watch(cronExpression, () => {
-  if (mode.value === 'cron') syncToParent()
-})
-
-watch(mode, (newMode) => {
-  if (newMode === 'preset') {
-    syncToParent()
-  } else {
-    cronExpression.value = props.modelValue || generateCron()
-  }
-})
 
 // ==================== 监听外部值变化 ====================
 watch(() => props.modelValue, (newVal) => {
   if (!newVal) return
-  // 尝试解析为预设模式
-  if (parseCron(newVal)) {
-    mode.value = 'preset'
-  } else {
-    mode.value = 'cron'
-    cronExpression.value = newVal
+  if (!parseCron(newVal)) {
+    // 无法解析的 cron，保持当前状态
   }
 }, { immediate: true })
 
 // ==================== 初始化 ====================
 onMounted(() => {
-  if (props.modelValue) {
-    if (!parseCron(props.modelValue)) {
-      mode.value = 'cron'
-      cronExpression.value = props.modelValue
-    }
-  } else {
+  if (!props.modelValue) {
     syncToParent()
   }
 })
 
-// ==================== 间隔预设点击 ====================
+// ==================== 交互方法 ====================
+function switchCategory(cat: PresetCategory) {
+  presetCategory.value = cat
+}
+
 function selectIntervalPreset(value: number, unit: 'minute' | 'hour') {
   intervalValue.value = value
   intervalUnit.value = unit
@@ -324,136 +238,159 @@ function toggleWeekDay(day: number) {
 
 <template>
   <div class="schedule-picker">
-    <!-- 模式切换 -->
-    <div class="mode-switch">
+    <!-- 类别标签 -->
+    <div class="sched-cat-tabs">
       <button
-        :class="['mode-btn', { active: mode === 'preset' }]"
-        @click="mode = 'preset'"
-      >
-        预设选择
-      </button>
+        class="sched-cat-btn"
+        :class="{ active: presetCategory === 'interval' }"
+        @click="switchCategory('interval')"
+      >按间隔</button>
       <button
-        :class="['mode-btn', { active: mode === 'cron' }]"
-        @click="mode = 'cron'"
-      >
-        Cron 表达式
-      </button>
+        class="sched-cat-btn"
+        :class="{ active: presetCategory === 'daily' }"
+        @click="switchCategory('daily')"
+      >每天</button>
+      <button
+        class="sched-cat-btn"
+        :class="{ active: presetCategory === 'weekly' }"
+        @click="switchCategory('weekly')"
+      >每周</button>
+      <button
+        class="sched-cat-btn"
+        :class="{ active: presetCategory === 'monthly' }"
+        @click="switchCategory('monthly')"
+      >每月</button>
     </div>
 
-    <!-- 预设模式 -->
-    <div v-if="mode === 'preset'" class="preset-mode">
-      <!-- 类别选择 -->
-      <div class="category-select">
-        <NSelect
-          v-model:value="presetCategory"
-          :options="categoryOptions"
-          style="width: 140px"
-        />
+    <!-- 按间隔 -->
+    <div v-if="presetCategory === 'interval'" class="sched-cat-panel">
+      <div class="sched-sub-label">常用间隔</div>
+      <div class="preset-chip-grid">
+        <button
+          v-for="preset in intervalPresets"
+          :key="`${preset.value}-${preset.unit}`"
+          class="preset-chip"
+          :class="{ active: intervalValue === preset.value && intervalUnit === preset.unit }"
+          @click="selectIntervalPreset(preset.value, preset.unit)"
+        >
+          {{ preset.label }}
+        </button>
       </div>
-
-      <!-- 按间隔 -->
-      <div v-if="presetCategory === 'interval'" class="section">
-        <div class="interval-presets">
-          <span class="section-label">常用间隔</span>
-          <div class="preset-grid">
-            <button
-              v-for="preset in intervalPresets"
-              :key="`${preset.value}-${preset.unit}`"
-              :class="['preset-chip', { active: intervalValue === preset.value && intervalUnit === preset.unit }]"
-              @click="selectIntervalPreset(preset.value, preset.unit)"
-            >
-              {{ preset.label }}
-            </button>
-          </div>
-        </div>
-        <div class="custom-row">
-          <span class="custom-label">自定义</span>
-          <div class="custom-inputs">
-            <span>每</span>
-            <NInputNumber
-              v-model:value="intervalValue"
-              :min="1"
-              :max="intervalUnit === 'minute' ? 60 : 24"
-              style="width: 80px"
-              :status="!isIntervalValid ? 'error' : undefined"
-            />
-            <NSelect
-              v-model:value="intervalUnit"
-              :options="[
-                { label: '分钟', value: 'minute' },
-                { label: '小时', value: 'hour' }
-              ]"
-              style="width: 80px"
-            />
-          </div>
-        </div>
-        <div v-if="!isIntervalValid" class="error-tip">
-          {{ intervalUnit === 'minute' ? '请输入 1-60 之间的数字' : '请输入 1-24 之间的数字' }}
-        </div>
-      </div>
-
-      <!-- 每天 -->
-      <div v-if="presetCategory === 'daily'" class="section">
-        <div class="time-row">
-          <span class="time-label">执行时间</span>
-          <NTimePicker v-model:value="dailyTime" format="HH:mm" style="width: 120px" />
-        </div>
-      </div>
-
-      <!-- 每周 -->
-      <div v-if="presetCategory === 'weekly'" class="section">
-        <div class="week-days-row">
-          <span class="section-label">选择星期</span>
-          <div class="day-chips">
-            <button
-              v-for="day in weekDayOptions"
-              :key="day.value"
-              :class="['day-chip', { active: weeklyDays.includes(day.value) }]"
-              @click="toggleWeekDay(day.value)"
-            >
-              {{ day.label }}
-            </button>
-          </div>
-        </div>
-        <div v-if="!isWeeklyValid" class="error-tip">请至少选择一天</div>
-        <div class="time-row">
-          <span class="time-label">执行时间</span>
-          <NTimePicker v-model:value="weeklyTime" format="HH:mm" style="width: 120px" />
-        </div>
-      </div>
-
-      <!-- 每月 -->
-      <div v-if="presetCategory === 'monthly'" class="section">
-        <div class="monthly-row">
-          <span class="monthly-label">每月</span>
-          <NSelect
-            v-model:value="monthlyDay"
-            :options="monthDayOptions"
-            style="width: 100px"
+      <div class="sched-custom-row">
+        <span class="sched-custom-label">自定义</span>
+        <div class="sched-custom-inputs">
+          <span>每</span>
+          <input
+            type="number"
+            class="sched-num-input"
+            :value="intervalValue"
+            :min="1"
+            :max="intervalUnit === 'minute' ? 60 : 24"
+            @input="intervalValue = parseInt(($event.target as HTMLInputElement).value) || 1"
           />
-          <span>号</span>
-        </div>
-        <div class="time-row">
-          <span class="time-label">执行时间</span>
-          <NTimePicker v-model:value="monthlyTime" format="HH:mm" style="width: 120px" />
+          <select
+            class="sched-unit-select"
+            :value="intervalUnit"
+            @change="intervalUnit = ($event.target as HTMLSelectElement).value as 'minute' | 'hour'"
+          >
+            <option value="minute">分钟</option>
+            <option value="hour">小时</option>
+          </select>
         </div>
       </div>
     </div>
 
-    <!-- Cron 模式 -->
-    <div v-if="mode === 'cron'" class="cron-mode">
-      <div class="cron-input-row">
-        <NInput
-          v-model:value="cronExpression"
-          placeholder="* * * * * (分 时 日 月 周)"
-          :status="!isCronValid ? 'error' : undefined"
-        />
+    <!-- 每天 -->
+    <div v-if="presetCategory === 'daily'" class="sched-cat-panel">
+      <div class="sched-time-row">
+        <span class="sched-time-label">执行时间</span>
+        <div class="sched-time-inputs">
+          <select
+            class="sched-time-select"
+            :value="dailyHour"
+            @change="dailyHour = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in hourOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <span>:</span>
+          <select
+            class="sched-time-select"
+            :value="dailyMinute"
+            @change="dailyMinute = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in minuteOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
       </div>
-      <div class="cron-hint">
-        格式：<code>分 时 日 月 周</code>，例如 <code>0 9 * * 1-5</code> 表示工作日每天 9:00
+    </div>
+
+    <!-- 每周 -->
+    <div v-if="presetCategory === 'weekly'" class="sched-cat-panel">
+      <div class="sched-sub-label">选择星期</div>
+      <div class="sched-day-chips">
+        <button
+          v-for="day in weekDayOptions"
+          :key="day.value"
+          class="sched-day-chip"
+          :class="{ active: weeklyDays.includes(day.value) }"
+          @click="toggleWeekDay(day.value)"
+        >
+          {{ day.label }}
+        </button>
       </div>
-      <div v-if="!isCronValid && cronExpression" class="error-tip">
-        请输入有效的 5 段 cron 表达式
+      <div class="sched-time-row" style="margin-top: 12px;">
+        <span class="sched-time-label">执行时间</span>
+        <div class="sched-time-inputs">
+          <select
+            class="sched-time-select"
+            :value="weeklyHour"
+            @change="weeklyHour = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in hourOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <span>:</span>
+          <select
+            class="sched-time-select"
+            :value="weeklyMinute"
+            @change="weeklyMinute = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in minuteOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 每月 -->
+    <div v-if="presetCategory === 'monthly'" class="sched-cat-panel">
+      <div class="sched-monthly-row">
+        <span class="sched-monthly-label">每月</span>
+        <select
+          class="sched-dom-select"
+          :value="monthlyDay"
+          @change="monthlyDay = parseInt(($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="opt in monthDayOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
+      <div class="sched-time-row">
+        <span class="sched-time-label">执行时间</span>
+        <div class="sched-time-inputs">
+          <select
+            class="sched-time-select"
+            :value="monthlyHour"
+            @change="monthlyHour = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in hourOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <span>:</span>
+          <select
+            class="sched-time-select"
+            :value="monthlyMinute"
+            @change="monthlyMinute = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in minuteOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -474,80 +411,65 @@ function toggleWeekDay(day: number) {
   gap: 16px;
 }
 
-// 模式切换
-.mode-switch {
+// 类别标签
+.sched-cat-tabs {
   display: flex;
-  gap: 4px;
-  background: $bg-secondary;
-  border-radius: $radius-md;
-  padding: 4px;
+  gap: 2px;
+  border-bottom: 1px solid $border-color;
+  padding-bottom: 0;
 }
 
-.mode-btn {
-  flex: 1;
-  padding: 8px 16px;
+.sched-cat-btn {
+  padding: 8px 18px;
   border: none;
-  border-radius: $radius-sm;
   background: transparent;
   color: $text-secondary;
   font-size: 13px;
+  font-family: inherit;
   cursor: pointer;
   transition: all 0.15s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
 
   &:hover {
     color: $text-primary;
   }
 
   &.active {
-    background: $bg-primary;
-    color: $text-primary;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+    font-weight: 600;
   }
 }
 
-// 预设模式
-.preset-mode {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.category-select {
-  display: flex;
-}
-
-.section {
+.sched-cat-panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.section-label {
+.sched-sub-label {
   font-size: 12px;
   color: $text-muted;
   margin-bottom: 4px;
 }
 
 // 间隔预设
-.interval-presets {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.preset-grid {
+.preset-chip-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-bottom: 14px;
 }
 
 .preset-chip {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border: 1px solid $border-color;
   border-radius: $radius-sm;
   background: $bg-primary;
   color: $text-secondary;
-  font-size: 12px;
+  font-size: 12.5px;
+  font-family: inherit;
   cursor: pointer;
   transition: all 0.15s;
 
@@ -558,24 +480,24 @@ function toggleWeekDay(day: number) {
 
   &.active {
     border-color: var(--accent-primary);
-    background: rgba(var(--accent-primary-rgb), 0.08);
+    background: rgba(26, 115, 232, 0.10);
     color: var(--accent-primary);
   }
 }
 
 // 自定义输入
-.custom-row {
+.sched-custom-row {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.custom-label {
+.sched-custom-label {
   font-size: 12px;
   color: $text-muted;
 }
 
-.custom-inputs {
+.sched-custom-inputs {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -583,39 +505,87 @@ function toggleWeekDay(day: number) {
   color: $text-primary;
 }
 
+.sched-num-input {
+  width: 80px;
+  padding: 8px 10px;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: center;
+  outline: none;
+  background: $bg-primary;
+  color: $text-primary;
+
+  &:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.10);
+  }
+}
+
+.sched-unit-select {
+  padding: 8px 10px;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-family: inherit;
+  background: $bg-primary;
+  cursor: pointer;
+  outline: none;
+  color: $text-primary;
+}
+
 // 时间选择行
-.time-row {
+.sched-time-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.time-label {
+.sched-time-label {
   font-size: 13px;
   color: $text-secondary;
   min-width: 60px;
 }
 
-// 星期选择
-.week-days-row {
+.sched-time-inputs {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.day-chips {
-  display: flex;
+  align-items: center;
   gap: 6px;
 }
 
-.day-chip {
-  width: 40px;
-  height: 40px;
+.sched-time-select {
+  padding: 8px 10px;
   border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-family: inherit;
+  background: $bg-primary;
+  cursor: pointer;
+  outline: none;
+  color: $text-primary;
+
+  &:focus {
+    border-color: var(--accent-primary);
+  }
+}
+
+// 星期选择
+.sched-day-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sched-day-chip {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
+  border: 1px solid $border-color;
   background: $bg-primary;
   color: $text-secondary;
   font-size: 12px;
+  font-family: inherit;
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
@@ -635,41 +605,30 @@ function toggleWeekDay(day: number) {
 }
 
 // 每月选择
-.monthly-row {
+.sched-monthly-row {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
   color: $text-primary;
+  margin-bottom: 12px;
 }
 
-.monthly-label {
+.sched-monthly-label {
   font-size: 13px;
   color: $text-secondary;
 }
 
-// Cron 模式
-.cron-mode {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cron-input-row {
-  width: 100%;
-}
-
-.cron-hint {
-  font-size: 12px;
-  color: $text-muted;
-
-  code {
-    padding: 2px 6px;
-    background: $bg-secondary;
-    border-radius: 4px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 11px;
-  }
+.sched-dom-select {
+  padding: 8px 10px;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  font-family: inherit;
+  background: $bg-primary;
+  cursor: pointer;
+  outline: none;
+  color: $text-primary;
 }
 
 // 描述预览
@@ -677,9 +636,10 @@ function toggleWeekDay(day: number) {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   background: $bg-secondary;
-  border-radius: $radius-sm;
+  border: 1px solid $border-color;
+  border-radius: $radius;
 }
 
 .preview-icon {
@@ -689,11 +649,5 @@ function toggleWeekDay(day: number) {
 .preview-text {
   font-size: 13px;
   color: $text-primary;
-}
-
-// 错误提示
-.error-tip {
-  font-size: 12px;
-  color: var(--error-color, #e53e3e);
 }
 </style>

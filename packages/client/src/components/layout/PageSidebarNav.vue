@@ -79,7 +79,7 @@ function switchMode(mode: AppMode) {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 60px;
+  height: 61px;
   -webkit-app-region: drag;
 }
 

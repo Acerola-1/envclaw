@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { NInput, NSpin } from 'naive-ui'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
-import JobCard from '@/components/envclaw/jobs/JobCard.vue'
+import JobCardList from '@/components/hermes/guard/JobCardList.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -47,7 +47,6 @@ const filteredJobs = computed(() => {
   return result
 })
 
-// 各状态计数
 const countAll = computed(() => jobsStore.jobs.length)
 const countRunning = computed(() =>
   jobsStore.jobs.filter(j => j.enabled && j.state !== 'paused' && (j.last_status === null || j.last_status === 'ok')).length
@@ -73,25 +72,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="jobs-page">
-    <!-- 页面标题 -->
+  <div class="guard-page">
     <div class="page-header">
       <div>
-        <h1>{{ t('envclaw.jobs.title') }}</h1>
-        <div class="page-sub">{{ t('envclaw.jobs.description') }}</div>
-      </div>
-      <div class="page-actions">
-        <button class="btn btn-primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          {{ t('envclaw.jobs.createTask') }}
-        </button>
+        <h1>{{ t('envclaw.guard.title') }}</h1>
+        <div class="page-sub">{{ t('envclaw.guard.description') }}</div>
       </div>
     </div>
 
-    <!-- 筛选条 -->
     <div class="filter-bar">
       <div
         v-for="f in filters"
@@ -125,7 +113,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 任务卡片网格 -->
     <NSpin :show="jobsStore.loading && jobsStore.jobs.length === 0">
       <div v-if="!jobsStore.loading && jobsStore.jobs.length === 0" class="empty-state">
         <p>{{ t('envclaw.jobs.noJobs') }}</p>
@@ -137,7 +124,7 @@ onMounted(() => {
       </div>
 
       <div v-else class="card-grid">
-        <JobCard
+        <JobCardList
           v-for="job in filteredJobs"
           :key="getJobId(job)"
           :job="job"
@@ -153,7 +140,7 @@ onMounted(() => {
 <style scoped lang="scss">
 @use '@/styles/variables' as *;
 
-.jobs-page {
+.guard-page {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -161,7 +148,6 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-/* 页面标题 */
 .page-header {
   display: flex;
   align-items: flex-end;
@@ -180,37 +166,8 @@ onMounted(() => {
     font-size: 13px;
     margin-top: 5px;
   }
-
-  .page-actions {
-    display: flex;
-    gap: 8px;
-  }
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
-  border-radius: $radius-md;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: 0.15s;
-  white-space: nowrap;
-
-  &.btn-primary {
-    background: var(--accent-primary);
-    color: var(--text-on-accent);
-
-    &:hover {
-      background: var(--accent-hover);
-    }
-  }
-}
-
-/* 筛选条 */
 .filter-bar {
   display: flex;
   gap: 8px;
@@ -287,7 +244,6 @@ onMounted(() => {
   width: 220px;
 }
 
-/* 卡片网格 */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));

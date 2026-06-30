@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import JobsPanel from '@/components/hermes/jobs/JobsPanel.vue'
 import JobRunHistory from '@/components/hermes/jobs/JobRunHistory.vue'
 import JobFormModal from '@/components/hermes/jobs/JobFormModal.vue'
+import EditTask from '@/views/hermes/EditTask.vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import { useProfilesStore } from '@/stores/hermes/profiles'
 
@@ -49,7 +50,10 @@ function openCreateModal() {
 
 function openEditModal(jobId: string) {
   editingJob.value = jobId
-  showModal.value = true
+}
+
+function closeEdit() {
+  editingJob.value = null
 }
 
 function handleModalClose() {
@@ -80,7 +84,7 @@ function handleSelectJob(jobId: string | null) {
     </header>
 
     <div class="jobs-split">
-      <div class="jobs-top">
+      <div class="jobs-left">
         <NSpin :show="jobsStore.loading && jobsStore.jobs.length === 0">
           <JobsPanel
             :selected-job-id="selectedJobId"
@@ -92,8 +96,15 @@ function handleSelectJob(jobId: string | null) {
 
       <div class="splitter" />
 
-      <div class="jobs-bottom">
+      <div class="jobs-right">
+        <EditTask
+          v-if="editingJob"
+          :job-id="editingJob"
+          @close="closeEdit"
+          @created="closeEdit"
+        />
         <JobRunHistory
+          v-else
           :selected-job-id="selectedJobId"
           :job-name-map="jobNameMap"
           :profile-key="activeProfileName"
@@ -122,26 +133,27 @@ function handleSelectJob(jobId: string | null) {
 .jobs-split {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   min-height: 0;
 }
 
-.jobs-top {
-  flex: 1;
+.jobs-left {
+  width: 380px;
+  flex-shrink: 0;
   overflow-y: auto;
   padding: 20px;
-  min-height: 120px;
+  border-right: 1px solid $border-light;
 }
 
 .splitter {
-  height: 1px;
+  width: 1px;
   background: $border-light;
   flex-shrink: 0;
 }
 
-.jobs-bottom {
+.jobs-right {
   flex: 1;
-  min-height: 120px;
+  min-width: 0;
   overflow: hidden;
 }
 </style>

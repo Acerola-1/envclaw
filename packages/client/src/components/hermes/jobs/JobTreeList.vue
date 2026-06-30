@@ -14,9 +14,14 @@ const props = withDefaults(defineProps<{
   expanded: true,
 })
 
-const visibleJobs = computed(() =>
-  props.expanded ? jobsStore.jobs : jobsStore.jobs.slice(0, props.maxItems)
-)
+const visibleJobs = computed(() => {
+  const sorted = [...jobsStore.jobs].sort((a, b) => {
+    const aTime = a.created_at || ''
+    const bTime = b.created_at || ''
+    return bTime.localeCompare(aTime)
+  })
+  return props.expanded ? sorted : sorted.slice(0, props.maxItems)
+})
 
 const emit = defineEmits<{
   selectJob: [jobId: string]

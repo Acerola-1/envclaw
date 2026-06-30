@@ -11,7 +11,7 @@ import LanguageSwitch from "@/components/layout/LanguageSwitch.vue";
 import ThemeSwitch from "@/components/layout/ThemeSwitch.vue";
 import VersionManagementModal from "@/components/layout/VersionManagementModal.vue";
 import { changelog } from "@/data/changelog";
-import { isStoredSuperAdmin } from "@/api/client";
+import { getStoredUsername, isStoredSuperAdmin } from "@/api/client";
 
 const { t } = useI18n();
 const message = useMessage();
@@ -21,6 +21,7 @@ const selectedKey = computed(() => {
   return route.name as string;
 });
 const isSuperAdmin = computed(() => isStoredSuperAdmin());
+const currentUsername = computed(() => getStoredUsername());
 const isVersionPreview = import.meta.env.VITE_HERMES_PREVIEW === '1';
 const isDesktopShell = computed(() =>
   (window as typeof window & { hermesDesktop?: { isDesktop?: boolean } }).hermesDesktop?.isDesktop === true,
@@ -71,6 +72,12 @@ function handleReloadClient() {
   appStore.reloadClient();
 }
 
+function handleLogout() {
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.href = '/';
+}
+
 function openChangelog() {
   showChangelog.value = true;
 }
@@ -95,7 +102,7 @@ function openVersionManagement() {
           </svg>
         </div>
         <div v-show="!isGroupCollapsed('agent')" class="nav-group-items">
-          <RouteLinkItem class="nav-item" :to="{ name: 'hermes.jobs' }" :active="selectedKey === 'hermes.jobs'">
+          <!-- <RouteLinkItem class="nav-item" :to="{ name: 'hermes.jobs' }" :active="selectedKey === 'hermes.jobs'">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
               stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -104,7 +111,7 @@ function openVersionManagement() {
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
             <span>{{ t("sidebar.jobs") }}</span>
-          </RouteLinkItem>
+          </RouteLinkItem> -->
           <!-- <RouteLinkItem class="nav-item" :to="{ name: 'hermes.kanban' }" :active="selectedKey === 'hermes.kanban'">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="5" height="18" rx="1" />
@@ -346,6 +353,16 @@ function openVersionManagement() {
         主题
         <ThemeSwitch />
       </div>
+      
+      <button class="nav-item logout-item" @click="handleLogout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        <span>{{ t("sidebar.logout") }}</span>
+        <span v-if="currentUsername" class="logout-username" :title="currentUsername">{{ currentUsername }}</span>
+      </button>
       <NButton v-if="isDesktopShell" type="primary" size="tiny" block class="update-btn" @click="openVersionManagement">
         {{ t('sidebar.versionManagement') }}
       </NButton>

@@ -142,6 +142,8 @@ $bg-input: var(--bg-input);
 // Borders
 $border-color: var(--border-color);
 $border-light: var(--border-light);
+$border-strong: var(--border-strong, $border-color);
+$radius: var(--radius, 8px);
 
 // Accent
 $accent-primary: var(--accent-primary);

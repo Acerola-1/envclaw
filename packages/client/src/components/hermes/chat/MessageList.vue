@@ -20,6 +20,7 @@ import { useI18n } from "vue-i18n";
 import { NButton, NInput } from "naive-ui";
 import VirtualMessageList from "./VirtualMessageList.vue";
 import MessageItem from "./MessageItem.vue";
+import QuestionBubbles from "./QuestionBubbles.vue";
 import { LIVE_CHAT_MAX_LOADED_MESSAGES, useChatStore, type Message } from "@/stores/hermes/chat";
 import thinkingImage from "@/assets/thinking.gif";
 import { useToolTraceVisibility } from "@/composables/useToolTraceVisibility";
@@ -115,6 +116,12 @@ const emptyState = computed(() => {
     alt: "Hermes",
     text: t("chat.emptyState"),
   };
+});
+
+const isCodingAgentEmpty = computed(() => {
+  const session = chatStore.activeSession;
+  const codingAgentId = session?.codingAgentId || (session?.agent === "codex" ? "codex" : session?.agent === "claude" ? "claude-code" : undefined);
+  return !!codingAgentId;
 });
 
 const displayMessages = computed(() => {
@@ -480,8 +487,11 @@ defineExpose({
     >
       <template #empty>
         <div class="empty-state">
-          <img :src="emptyState.logo" :alt="emptyState.alt" class="empty-logo" />
-          <p>{{ emptyState.text }}</p>
+          <QuestionBubbles v-if="!isCodingAgentEmpty" />
+          <template v-else>
+            <img :src="emptyState.logo" :alt="emptyState.alt" class="empty-logo" />
+            <p>{{ emptyState.text }}</p>
+          </template>
         </div>
       </template>
       <template #before>

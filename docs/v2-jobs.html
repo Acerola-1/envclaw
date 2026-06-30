@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>envClaw · 值守任务</title>
+
+<style>
+/* ===== 设计令牌 ===== */
+:root {
+  --bg: #F7F8FC; --sider: #EEF1F8; --card: #FFFFFF; --card-hover: #F5F6FA;
+  --action: #F0F1F5; --border: #E5E7EB; --border-strong: #D1D5DB;
+  --text1: #1F2937; --text2: #5F6368; --text3: #9AA0A6;
+  --primary: #1A73E8; --on-primary: #FFFFFF;
+  --green: #34A853; --green-soft: rgba(52,168,83,0.12);
+  --amber: #FBBC04; --amber-soft: rgba(251,188,4,0.15);
+  --red: #EA4335; --red-soft: rgba(234,67,53,0.12);
+  --blue: #1A73E8; --blue-soft: rgba(26,115,232,0.10);
+  --purple: #7F77DD; --purple-soft: rgba(127,119,221,0.12);
+  --radius: 8px; --radius-sm: 6px; --radius-lg: 12px; --radius-pill: 24px;
+  --font: 'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+svg { stroke-width: 1.6; }
+body { font-family: var(--font); background: var(--bg); color: var(--text1); height: 100vh; overflow: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ===== 顶栏 ===== */
+.topbar { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.topbar-left { display: flex; align-items: center; gap: 22px; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14px; letter-spacing: .2px; color: var(--text1); }
+.brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--purple); color: #fff; display: flex; align-items: center; justify-content: center; }
+.brand-mark i { width: 15px; height: 15px; }
+.mode-switch { display: flex; background: var(--action); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px; gap: 2px; }
+.mode-btn { display: flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--text2); background: transparent; border: none; cursor: pointer; transition: .15s; text-decoration: none; }
+.mode-btn:hover { color: var(--text1); }
+.mode-btn.active { background: var(--primary); color: var(--on-primary); }
+.mode-btn i { width: 14px; height: 14px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.icon-btn { position: relative; width: 34px; height: 34px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text2); cursor: pointer; transition: .15s; }
+.icon-btn:hover { background: var(--action); color: var(--text1); }
+.icon-btn i { width: 18px; height: 18px; }
+.dot-badge { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); border: 2px solid var(--card); }
+.avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--action); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--text1); cursor: pointer; }
+
+/* ===== 主体 ===== */
+.body { flex: 1; display: flex; overflow: hidden; }
+
+/* 左侧导航 */
+.railnav { width: 220px; background: var(--sider); border-right: 1px solid var(--border); padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; overflow-y: auto; }
+.rail-group-label { font-size: 10px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: .8px; padding: 14px 10px 6px; }
+.rail-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); color: var(--text2); cursor: pointer; font-size: 13px; transition: .15s; text-decoration: none; }
+.rail-item:hover { background: var(--action); color: var(--text1); }
+.rail-item.active { background: var(--blue-soft); color: var(--primary); font-weight: 500; }
+.rail-item i { width: 16px; height: 16px; flex-shrink: 0; }
+.rail-item .count { margin-left: auto; font-size: 11px; background: var(--card); border: 1px solid var(--border); padding: 1px 7px; border-radius: 10px; color: var(--text2); }
+.ic { width: 18px; height: 18px; flex-shrink: 0; }
+.ic-sm { width: 15px; height: 15px; flex-shrink: 0; }
+.rail-spacer { flex: 1; }
+
+/* 内容区 */
+.content { flex: 1; overflow-y: auto; }
+.content::-webkit-scrollbar { width: 10px; }
+.content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 3px solid var(--bg); }
+.page { max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; }
+
+/* ===== 页面标题 ===== */
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; }
+.page-header h1 { font-size: 21px; font-weight: 600; letter-spacing: .2px; }
+.page-header .sub { color: var(--text2); font-size: 13px; margin-top: 5px; }
+.page-actions { display: flex; gap: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: .15s; white-space: nowrap; }
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-primary:hover { background: #1565C0; }
+.btn-ghost { background: transparent; color: var(--text1); border-color: var(--border-strong); }
+.btn-ghost:hover { background: var(--action); }
+.btn-sm { padding: 6px 11px; font-size: 12px; }
+.btn i { width: 14px; height: 14px; }
+
+/* ===== 总览筛选条 ===== */
+.filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 500; background: var(--card); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: .15s; user-select: none; }
+.filter-pill:hover { border-color: var(--border-strong); color: var(--text1); }
+.filter-pill.active { border-color: var(--primary); background: var(--blue-soft); color: var(--primary); }
+.filter-pill.active[data-filter="running"] { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+.filter-pill.active[data-filter="draft"] { border-color: var(--amber); background: var(--amber-soft); color: #B88608; }
+.filter-pill.active[data-filter="error"] { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+.filter-pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.filter-pill .num { font-weight: 600; margin-left: 2px; }
+
+/* ===== 任务卡片看板 ===== */
+.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+.job-card { background: var(--card); border: 2px solid var(--border); border-radius: var(--radius-lg); padding: 20px; cursor: pointer; transition: .2s; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.job-card:hover { border-color: var(--border-strong); background: var(--card-hover); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.job-card.selected { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue), 0 4px 20px rgba(26,115,232,0.10); }
+.job-card-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+.job-card-title { font-size: 14.5px; font-weight: 600; line-height: 1.4; flex: 1; margin-right: 10px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 11px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.pill-run { background: var(--green-soft); color: var(--green); }
+.pill-draft { background: var(--amber-soft); color: #B88608; }
+.pill-error { background: var(--red-soft); color: var(--red); }
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+.job-card-body { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.job-info-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text2); }
+.job-info-row .label { color: var(--text3); min-width: 52px; }
+.job-info-row .val { color: var(--text2); }
+.job-info-row .val.highlight-green { color: var(--green); }
+.job-info-row .val.highlight-red { color: var(--red); }
+
+.job-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.act-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: var(--radius-sm); font-size: 11.5px; font-weight: 500; background: transparent; border: none; color: var(--primary); cursor: pointer; transition: .15s; white-space: nowrap; text-decoration: none; }
+.act-btn:hover { background: var(--blue-soft); }
+.act-btn i { width: 13px; height: 13px; }
+.act-btn.act-danger { color: var(--red); }
+.act-btn.act-danger:hover { background: var(--red-soft); }
+.act-btn.act-primary { color: var(--green); }
+.act-btn.act-primary:hover { background: var(--green-soft); }
+
+/* ===== 执行流沙盘 ===== */
+.sandbox { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.sandbox-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--card); }
+.sandbox-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.sandbox-title .icon { color: var(--amber); display: flex; }
+.sandbox-title .icon i { width: 18px; height: 18px; }
+.sandbox-subtitle { font-size: 12px; color: var(--text3); font-weight: 400; margin-left: 4px; }
+.sandbox-actions { display: flex; gap: 8px; }
+
+/* 流程步骤 */
+.flow-area { padding: 28px 24px 24px; display: flex; flex-direction: column; gap: 22px; }
+.flow-steps { display: flex; align-items: center; justify-content: center; gap: 0; }
+.flow-step { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 130px; flex-shrink: 0; }
+.flow-step-box { width: 110px; height: 68px; background: var(--card); border: 2px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: .3s; position: relative; }
+.flow-step-box .step-name { font-size: 11.5px; font-weight: 500; color: var(--text1); text-align: center; line-height: 1.3; }
+.flow-step-box .step-detail { font-size: 10px; color: var(--text3); text-align: center; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flow-step-box .step-status-dot { position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--card); }
+
+/* 步骤状态 */
+.flow-step-box.status-success { border-color: var(--green); }
+.flow-step-box.status-success .step-status-dot { background: var(--green); }
+.flow-step-box.status-success .step-name { color: var(--green); }
+
+.flow-step-box.status-running { border-color: var(--amber); animation: stepPulse 2s infinite; }
+.flow-step-box.status-running .step-status-dot { background: var(--amber); animation: dotPulse 1.5s infinite; }
+.flow-step-box.status-running .step-name { color: #B88608; }
+
+.flow-step-box.status-error { border-color: var(--red); }
+.flow-step-box.status-error .step-status-dot { background: var(--red); }
+.flow-step-box.status-error .step-name { color: var(--red); }
+
+.flow-step-box.status-waiting { border-color: var(--border); opacity: .6; }
+.flow-step-box.status-waiting .step-status-dot { background: var(--text3); }
+.flow-step-box.status-waiting .step-name { color: var(--text3); }
+
+.flow-step-label { font-size: 10.5px; color: var(--text3); text-align: center; }
+
+.flow-arrow { display: flex; align-items: center; color: var(--border-strong); margin: 0 2px; padding-bottom: 20px; }
+.flow-arrow i { width: 28px; height: 28px; }
+.flow-arrow.arrow-active { color: var(--green); }
+
+@keyframes stepPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251,188,4,0); }
+  50% { box-shadow: 0 0 0 6px rgba(251,188,4,0.15); }
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+/* 实时日志 */
+.log-area { background: #1F2937; border-top: 1px solid var(--border); padding: 16px 20px; max-height: 220px; overflow-y: auto; font-family: var(--mono); font-size: 12px; line-height: 1.8; }
+.log-area::-webkit-scrollbar { width: 8px; }
+.log-area::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+.log-line { display: flex; gap: 0; }
+.log-time { color: #6B7280; margin-right: 10px; white-space: nowrap; }
+.log-tag { font-weight: 600; margin-right: 8px; white-space: nowrap; }
+.log-tag.tag-sys { color: #60A5FA; }
+.log-tag.tag-flow { color: #34D399; }
+.log-tag.tag-core { color: #A78BFA; }
+.log-tag.tag-func { color: #FBBF24; }
+.log-tag.tag-ai { color: #F59E0B; }
+.log-msg { color: #D1D5DB; }
+.log-cursor { display: inline-block; width: 8px; height: 15px; background: var(--green); animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 2px; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ===== 颜色辅助 ===== */
+.color-blue { background: var(--blue-soft); color: var(--blue); }
+.color-amber { background: var(--amber-soft); color: #B88608; }
+.color-green { background: var(--green-soft); color: var(--green); }
+.color-red { background: var(--red-soft); color: var(--red); }
+.color-mute { background: var(--action); color: var(--text2); }
+.color-purple { background: var(--purple-soft); color: var(--purple); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 顶栏 -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+        </div>
+        envClaw
+      </div>
+      <div class="mode-switch">
+        <a class="mode-btn active" href="v2-home.html">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          工作台
+        </a>
+        <a class="mode-btn" href="v2-smart-query.html">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+          智能问数
+        </a>
+      </div>
+    </div>
+    <div class="topbar-right"></div>
+  </div>
+
+  <div class="body">
+    <!-- 左侧导航 -->
+    <div class="railnav">
+      <div class="rail-group-label">AUTOMATION</div>
+      <a class="rail-item" href="v2-home.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        值守工作台
+      </a>
+      <a class="rail-item" href="v2-plans.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        值守方案
+      </a>
+      <a class="rail-item active" href="v2-jobs.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        值守任务<span class="count">5</span>
+      </a>
+
+      <div class="rail-group-label">CONFIG</div>
+      <a class="rail-item" href="v2-platforms.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>
+        平台管理
+      </a>
+      <a class="rail-item" href="v2-skills.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        技能库
+      </a>
+      <a class="rail-item" href="v2-history.html">
+        <svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        运行历史
+      </a>
+
+      <div class="rail-spacer"></div>
+      <div class="rail-bottom" style="display:flex;align-items:center;padding:8px 10px;gap:6px;border-top:1px solid var(--border);margin-top:4px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--action);border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text1);flex-shrink:0;">张</div>
+        <span style="flex:1;font-size:12.5px;color:var(--text1);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">张工</span>
+        <a href="#" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--text3);text-decoration:none;transition:.15s;" onmouseover="this.style.background='var(--action)';this.style.color='var(--text1)'" onmouseout="this.style.background='';this.style.color='var(--text3)'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="content">
+      <div class="page">
+
+        <!-- 页面标题 -->
+        <div class="page-header">
+          <div>
+            <h1>值守任务</h1>
+            <div class="sub">管理所有值守任务的运行状态与执行配置</div>
+          </div>
+          <div class="page-actions">
+            <a class="btn btn-primary" href="v2-create-task.html">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              新建任务
+            </a>
+          </div>
+        </div>
+
+        <!-- 总览筛选条 -->
+        <div class="filter-bar">
+          <div class="filter-pill active" data-filter="all" onclick="setFilter(this)">
+            全部任务 <span class="num">5</span>
+          </div>
+          <div class="filter-pill" data-filter="running" onclick="setFilter(this)">
+            <span class="dot" style="background:var(--green)"></span>
+            运行中 <span class="num">3</span>
+          </div>
+          <div class="filter-pill" data-filter="draft" onclick="setFilter(this)">
+            <span class="dot" style="background:var(--amber)"></span>
+            暂存草稿 <span class="num">1</span>
+          </div>
+          <div class="filter-pill" data-filter="error" onclick="setFilter(this)">
+            <span class="dot" style="background:var(--red)"></span>
+            异常告警 <span class="num">1</span>
+          </div>
+        </div>
+
+        <!-- 任务卡片看板 -->
+        <div class="card-grid" id="cardGrid">
+          <!-- 卡片 A: 平阴县 -->
+          <div class="job-card selected" data-status="running" data-id="a" onclick="selectCard(this, 'a')">
+            <div class="job-card-head">
+              <div class="job-card-title">平阴县每日城市排名分析任务</div>
+              <span class="pill pill-run"><span class="pill-dot"></span>运行中</span>
+            </div>
+            <div class="job-card-body">
+              <div class="job-info-row">
+                <span class="label">核心资产</span>
+                <span class="val">数智大气 → 城市排名</span>
+              </div>
+              <div class="job-info-row">
+                <span class="label">推送渠道</span>
+                <span class="val">企业微信值守大群</span>
+              </div>
+              <div class="job-info-row">
+                <span class="label">下次执行</span>
+                <span class="val highlight-green">今日 09:00</span>
+              </div>
+            </div>
+            <div class="job-card-actions">
+              <button class="act-btn act-primary" onclick="event.stopPropagation(); runExecution('a')"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>立即执行一次</button>
+              <button class="act-btn" title="日志"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a1 1 0 0 0 1 1h4"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>日志</button>
+              <button class="act-btn" title="编辑"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>编辑</button>
+              <button class="act-btn" title="暂停"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>暂停</button>
+              <a class="act-btn" href="v2-job-detail.html" onclick="event.stopPropagation()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>对话</a>
+            </div>
+          </div>
+
+          <!-- 卡片 B: 国控点 -->
+          <div class="job-card" data-status="running" data-id="b" onclick="selectCard(this, 'b')">
+            <div class="job-card-head">
+              <div class="job-card-title">国控点小时数据播报任务</div>
+              <span class="pill pill-run"><span class="pill-dot"></span>运行中</span>
+            </div>
+            <div class="job-card-body">
+              <div class="job-info-row">
+                <span class="label">核心资产</span>
+                <span class="val">中大 → 小时播报</span>
+              </div>
+              <div class="job-info-row">
+                <span class="label">推送渠道</span>
+                <span class="val">企业微信生产群</span>
+              </div>
+              <div class="job-info-row">
+                <span class="label">下次执行</span>
+                <span class="val highlight-green">10:00</span>
+              </div>
+            </div>
+            <div class="job-card-actions">
+              <button class="act-btn act-primary" onclick="event.stopPropagation(); runExecution('b')"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>立即执行一次</button>
+              <button class="act-btn" title="日志"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a1 1 0 0 0 1 1h4"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>日志</button>
+              <button class="act-btn" title="编辑"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>编辑</button>
+              <button class="act-btn" title="暂停"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>暂停</button>
+              <a class="act-btn" href="v2-job-detail.html" onclick="event.stopPropagation()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>对话</a>
+            </div>
+          </div>
+
+          <!-- 卡片 C: 污染源 -->
+          <div class="job-card" data-status="error" data-id="c" onclick="selectCard(this, 'c')">
+            <div class="job-card-head">
+              <div class="job-card-title">污染源超标异常监控</div>
+              <span class="pill pill-error"><span class="pill-dot"></span>异常</span>
+            </div>
+            <div class="job-card-body">
+              <div class="job-info-row">
+                <span class="label">核心资产</span>
+                <span class="val">数智大气 + 中大</span>
+              </div>
+              <div class="job-info-row">
+                <span class="label">推送渠道</span>
+                <span class="val">企业微信告警群</span>
+              </div>
+              <div class="job-info-row">
+                <span class="label">错误信息</span>
+                <span class="val highlight-red">账号凭证失效</span>
+              </div>
+            </div>
+            <div class="job-card-actions">
+              <button class="act-btn act-danger" onclick="event.stopPropagation()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>立即修复</button>
+              <button class="act-btn" onclick="event.stopPropagation()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a1 1 0 0 0 1 1h4"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>查看日志</button>
+              <a class="act-btn" href="v2-job-detail.html" onclick="event.stopPropagation()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>对话</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// 当前选中的任务
+let currentTask = 'a';
+
+// 任务数据映射
+const taskData = {
+  a: {
+    name: '平阴县每日城市排名分析',
+    steps: [
+      { name: '读取凭据', detail: 'AES-256', status: 'success' },
+      { name: '登录环保平台', detail: 'RPA 代填', status: 'success' },
+      { name: '执行专属功能', detail: '城市排名', status: 'success' },
+      { name: 'AI 研判与报告', detail: '深度比对', status: 'running' },
+      { name: '渠道推送', detail: '企业微信', status: 'waiting' }
+    ],
+    logs: [
+      { time: '09:00:01', tag: 'sys', label: '系统', msg: '触发定时器，自动化值守实例创建成功。' },
+      { time: '09:00:02', tag: 'flow', label: '流程', msg: '成功获取 AES-256 加密的数智大气平台多凭据账户' },
+      { time: '09:00:05', tag: 'core', label: '内核', msg: 'RPA 引擎顺利打开浏览器并代填登录成功' },
+      { time: '09:00:12', tag: 'func', label: '功能', msg: "成功定位'综合报表-城市排名'子页面，正在导出 Excel 数据表格..." },
+      { time: '09:00:18', tag: 'ai', label: 'AI', msg: 'Excel 提取成功，数据已输入至内置智能体进行深度比对...' }
+    ],
+    execLogs: [
+      { time: '09:00:01', tag: 'sys', label: '系统', msg: '手动触发执行，自动化值守实例创建成功。' },
+      { time: '09:00:02', tag: 'flow', label: '流程', msg: '成功获取 AES-256 加密的数智大气平台多凭据账户' },
+      { time: '09:00:05', tag: 'core', label: '内核', msg: 'RPA 引擎顺利打开浏览器并代填登录成功' },
+      { time: '09:00:12', tag: 'func', label: '功能', msg: "成功定位'综合报表-城市排名'子页面，正在导出 Excel 数据表格..." },
+      { time: '09:00:18', tag: 'ai', label: 'AI', msg: 'Excel 提取成功，数据已输入至内置智能体进行深度比对...' },
+      { time: '09:00:24', tag: 'ai', label: 'AI', msg: '深度比对完成，生成城市排名分析报告。' },
+      { time: '09:00:25', tag: 'flow', label: '流程', msg: '报告已提交至企业微信值守大群推送队列。' },
+      { time: '09:00:26', tag: 'sys', label: '系统', msg: '全部流程执行完毕，任务状态正常。' }
+    ]
+  },
+  b: {
+    name: '国控点小时数据播报',
+    steps: [
+      { name: '读取凭据', detail: 'AES-256', status: 'success' },
+      { name: '登录环保平台', detail: '中大平台', status: 'success' },
+      { name: '执行专属功能', detail: '小时播报', status: 'success' },
+      { name: 'AI 研判与报告', detail: '数据播报', status: 'success' },
+      { name: '渠道推送', detail: '企业微信', status: 'success' }
+    ],
+    logs: [
+      { time: '09:00:01', tag: 'sys', label: '系统', msg: '定时触发（整点），实例创建成功。' },
+      { time: '09:00:02', tag: 'flow', label: '流程', msg: '获取中大平台凭据成功。' },
+      { time: '09:00:04', tag: 'core', label: '内核', msg: 'RPA 引擎登录中大平台成功。' },
+      { time: '09:00:09', tag: 'func', label: '功能', msg: '成功提取国控点小时数据。' },
+      { time: '09:00:14', tag: 'ai', label: 'AI', msg: '数据播报内容生成完毕。' },
+      { time: '09:00:15', tag: 'sys', label: '系统', msg: '推送至企业微信生产群成功。' }
+    ],
+    execLogs: [
+      { time: '09:00:01', tag: 'sys', label: '系统', msg: '手动触发执行，实例创建成功。' },
+      { time: '09:00:02', tag: 'flow', label: '流程', msg: '获取中大平台凭据成功。' },
+      { time: '09:00:04', tag: 'core', label: '内核', msg: 'RPA 引擎登录中大平台成功。' },
+      { time: '09:00:09', tag: 'func', label: '功能', msg: '成功提取国控点小时数据。' },
+      { time: '09:00:14', tag: 'ai', label: 'AI', msg: '数据播报内容生成完毕。' },
+      { time: '09:00:15', tag: 'sys', label: '系统', msg: '推送至企业微信生产群成功。全部流程执行完毕。' }
+    ]
+  },
+  c: {
+    name: '污染源超标异常监控',
+    steps: [
+      { name: '读取凭据', detail: 'AES-256', status: 'error' },
+      { name: '登录环保平台', detail: '多平台', status: 'waiting' },
+      { name: '执行专属功能', detail: '异常监控', status: 'waiting' },
+      { name: 'AI 研判与报告', detail: '预警研判', status: 'waiting' },
+      { name: '渠道推送', detail: '企业微信', status: 'waiting' }
+    ],
+    logs: [
+      { time: '08:30:01', tag: 'sys', label: '系统', msg: '触发定时器，自动化值守实例创建成功。' },
+      { time: '08:30:02', tag: 'flow', label: '流程', msg: '尝试获取数智大气平台凭据...' },
+      { time: '08:30:03', tag: 'flow', label: '流程', msg: '凭据读取失败：账号凭证已失效，请重新配置。' },
+      { time: '08:30:03', tag: 'sys', label: '系统', msg: '任务异常终止，已标记为异常状态。' }
+    ],
+    execLogs: [
+      { time: '08:30:01', tag: 'sys', label: '系统', msg: '触发定时器，自动化值守实例创建成功。' },
+      { time: '08:30:02', tag: 'flow', label: '流程', msg: '尝试获取数智大气平台凭据...' },
+      { time: '08:30:03', tag: 'flow', label: '流程', msg: '凭据读取失败：账号凭证已失效，请重新配置。' },
+      { time: '08:30:03', tag: 'sys', label: '系统', msg: '任务异常终止，已标记为异常状态。' }
+    ]
+  }
+};
+
+// 渲染沙盘
+function renderSandbox(taskId) {
+  currentTask = taskId;
+  const data = taskData[taskId];
+
+  // 更新副标题
+  document.getElementById('sandboxSub').textContent =
+    '实时状态配置与行为跟踪 — 选中：' + data.name;
+
+  // 更新步骤
+  const steps = data.steps;
+  for (let i = 0; i < 5; i++) {
+    const box = document.getElementById('step' + (i + 1));
+    box.className = 'flow-step-box';
+    if (steps[i].status === 'success') box.classList.add('status-success');
+    else if (steps[i].status === 'running') box.classList.add('status-running');
+    else if (steps[i].status === 'error') box.classList.add('status-error');
+    else box.classList.add('status-waiting');
+    box.querySelector('.step-name').textContent = steps[i].name;
+    box.querySelector('.step-detail').textContent = steps[i].detail;
+  }
+
+  // 更新箭头
+  const arrows = document.querySelectorAll('.flow-arrow');
+  arrows.forEach((arrow, i) => {
+    if (steps[i].status === 'success') {
+      arrow.classList.add('arrow-active');
+    } else {
+      arrow.classList.remove('arrow-active');
+    }
+  });
+
+  // 更新日志
+  renderLogs(data.logs);
+}
+
+// 渲染日志
+function renderLogs(logs) {
+  const logArea = document.getElementById('logArea');
+  logArea.innerHTML = '';
+  logs.forEach(log => {
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-time">[${log.time}]</span><span class="log-tag tag-${log.tag}">[${log.label}]</span><span class="log-msg">${log.msg}</span>`;
+    logArea.appendChild(line);
+  });
+  logArea.scrollTop = logArea.scrollHeight;
+}
+
+// 选中卡片
+function selectCard(el, taskId) {
+  document.querySelectorAll('.job-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  renderSandbox(taskId);
+  
+}
+
+// 筛选
+function setFilter(el) {
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const filter = el.dataset.filter;
+  document.querySelectorAll('.job-card').forEach(card => {
+    if (filter === 'all') {
+      card.style.display = '';
+    } else {
+      card.style.display = card.dataset.status === filter ? '' : 'none';
+    }
+  });
+}
+
+// 模拟执行动画
+let isRunning = false;
+function runExecution(taskId) {
+  if (isRunning) return;
+  isRunning = true;
+
+  const data = taskData[taskId];
+  currentTask = taskId;
+
+  // 重置所有步骤为等待
+  const steps = document.querySelectorAll('.flow-step-box');
+  steps.forEach(box => {
+    box.className = 'flow-step-box status-waiting';
+  });
+
+  // 重置箭头
+  const arrows = document.querySelectorAll('.flow-arrow');
+  arrows.forEach(a => a.classList.remove('arrow-active'));
+
+  // 清空日志
+  const logArea = document.getElementById('logArea');
+  logArea.innerHTML = '';
+
+  // 逐步骤执行
+  const execLogs = data.execLogs;
+  let logIndex = 0;
+  let stepIndex = 0;
+
+  // 日志逐行显示
+  function showNextLog() {
+    if (logIndex < execLogs.length) {
+      const log = execLogs[logIndex];
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `<span class="log-time">[${log.time}]</span><span class="log-tag tag-${log.tag}">[${log.label}]</span><span class="log-msg">${log.msg}</span>`;
+      logArea.appendChild(line);
+      logArea.scrollTop = logArea.scrollHeight;
+      logIndex++;
+
+      // 根据日志推进步骤
+      if (logIndex === 2 && stepIndex < 1) advanceStep(0);
+      if (logIndex === 3 && stepIndex < 2) advanceStep(1);
+      if (logIndex === 4 && stepIndex < 3) advanceStep(2);
+      if (logIndex === 5 && stepIndex < 4) advanceStep(3);
+      if (logIndex >= execLogs.length - 1 && stepIndex < 5) advanceStep(4);
+
+      setTimeout(showNextLog, 600 + Math.random() * 400);
+    } else {
+      isRunning = false;
+    }
+  }
+
+  function advanceStep(idx) {
+    if (idx > 4) return;
+    stepIndex = idx + 1;
+
+    // 前一步变成功
+    for (let i = 0; i < idx; i++) {
+      steps[i].className = 'flow-step-box status-success';
+    }
+
+    // 当前步变进行中
+    steps[idx].className = 'flow-step-box status-running';
+
+    // 已完成的箭头高亮
+    for (let i = 0; i < idx; i++) {
+      arrows[i].classList.add('arrow-active');
+    }
+
+    // 800ms后当前步变成功
+    setTimeout(() => {
+      steps[idx].className = 'flow-step-box status-success';
+      if (idx < 4) arrows[idx].classList.add('arrow-active');
+    }, 500);
+  }
+
+  // 开始执行
+  setTimeout(showNextLog, 300);
+}
+
+// 初始化
+renderSandbox('a');
+</script>
+</body>
+</html>

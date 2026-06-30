@@ -1,7 +1,7 @@
 export default {
   // 登录
   login: {
-    title: 'Hermes Web UI',
+    title: 'envClaw',
     description: '输入用户名和密码以继续。',
     placeholder: '访问令牌',
     submit: '登录',
@@ -801,6 +801,8 @@ export default {
       resumeJob: '恢复任务',
       runNow: '立即运行',
       triggerImmediately: '立即触发',
+      fix: '修复',
+      fixJob: '修复任务',
     },
     runHistory: {
       title: '运行历史',
@@ -2105,10 +2107,15 @@ export default {
     nav: {
       home: '工作台首页',
       jobs: '值守任务',
+      guard: '自动化值守',
       platforms: '平台管理',
       skills: '技能库',
       history: '运行历史',
       resourceGroup: '资源',
+    },
+    guard: {
+      title: '自动化值守',
+      description: '管理和调度自动化值守任务，监控任务运行状态。',
     },
     home: {
       greeting: {

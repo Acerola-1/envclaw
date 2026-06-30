@@ -6,7 +6,10 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/envclaw',
+      name: 'login',
+      component: () => import('@/views/LoginView.vue'),
+      meta: { public: true },
+      // redirect: '/envclaw',
     },
     // Envclaw workstation routes
     {
@@ -16,6 +19,7 @@ const router = createRouter({
         { path: '', name: 'envclaw.home', component: () => import('@/views/envclaw/WorkstationHome.vue') },
         { path: 'jobs', name: 'envclaw.jobs', component: () => import('@/views/envclaw/JobsPage.vue') },
         { path: 'jobs/:jobId', name: 'envclaw.jobDetail', component: () => import('@/views/envclaw/JobDetailPage.vue') },
+        { path: 'guard', name: 'envclaw.guard', component: () => import('@/views/envclaw/GuardPage.vue') },
         { path: 'platforms', name: 'envclaw.platforms', component: () => import('@/views/envclaw/PlatformsPage.vue') },
         { path: 'skills', name: 'envclaw.skills', component: () => import('@/views/envclaw/SkillsPage.vue') },
         { path: 'history', name: 'envclaw.history', component: () => import('@/views/envclaw/HistoryPage.vue') },

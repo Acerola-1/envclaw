@@ -12,6 +12,7 @@ const { isDark } = useTheme()
 const navItems = computed(() => [
   { key: 'home', label: t('envclaw.nav.home'), route: '/envclaw', icon: 'layout-dashboard' },
   { key: 'jobs', label: t('envclaw.nav.jobs'), route: '/envclaw/jobs', icon: 'clock' },
+  { key: 'guard', label: t('envclaw.nav.guard'), route: '/envclaw/guard', icon: 'shield' },
   { key: 'platforms', label: t('envclaw.nav.platforms'), route: '/envclaw/platforms', icon: 'link' },
 ])
 const resourceItems = computed(() => [

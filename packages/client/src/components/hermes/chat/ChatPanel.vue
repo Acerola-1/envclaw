@@ -32,7 +32,7 @@ import SessionListItem from "./SessionListItem.vue";
 import OutlinePanel from "./OutlinePanel.vue";
 import FilesPanel from "./FilesPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
-import AgentPanel from "./AgentPanel.vue";
+// import AgentPanel from "./AgentPanel.vue";
 import type { AgentItem } from "./AgentPanel.vue";
 import AgentMorePanel from "./AgentMorePanel.vue";
 import type { AgentMoreItem } from "./AgentMorePanel.vue";
@@ -43,8 +43,11 @@ import { readCronRun } from '@/api/hermes/cron-history'
 import { useJobsStore } from "@/stores/hermes/jobs";
 import { isStoredSuperAdmin } from "@/api/client";
 import GuardPanel from "@/components/hermes/guard/GuardPanel.vue";
+import GuardJobCardList from "@/components/hermes/guard/JobCardList.vue";
 import JobCard from "@/components/hermes/guard/JobCard.vue";
 import CreateGuardTaskModal from "@/components/hermes/guard/CreateGuardTaskModal.vue";
+import CreateTask from "@/views/hermes/CreateTask.vue";
+import EditTask from "@/views/hermes/EditTask.vue";
 
 const chatStore = useChatStore();
 const appStore = useAppStore();
@@ -83,15 +86,13 @@ const historyExpanded = ref(false);
 const jobsCollapsed = ref(false);
 const jobsExpanded = ref(false);
 const MAX_VISIBLE_ITEMS = 5;
+const maxVisibleItems = computed(() => appMode.value === 'smartQuery' ? 10 : 5);
 const visibleSessions = computed(() =>
-  historyExpanded.value ? unpinnedSessions.value : unpinnedSessions.value.slice(0, MAX_VISIBLE_ITEMS)
+  historyExpanded.value ? unpinnedSessions.value : unpinnedSessions.value.slice(0, maxVisibleItems.value)
 );
 
 // Settings popover
 const showSettingsPopover = ref(false);
-function handleSettingsPopoverShowChange(show: boolean) {
-  showSettingsPopover.value = show;
-}
 const profileModalOpen = ref(false);
 const modelModalOpen = ref(false);
 
@@ -125,13 +126,6 @@ const currentUsername = computed(() => {
   return '';
 });
 
-// Logout
-function handleLogout() {
-  localStorage.removeItem('hermes_api_key');
-  localStorage.removeItem('hermes_user');
-  router.push({ name: 'login' });
-}
-
 // Client reload
 function handleReloadClient() {
   window.location.reload();
@@ -156,8 +150,10 @@ const activeJobSessionId = ref<string | null>(null)
 const activeRunSessionId = ref<string | null>(null)
 const activeRunContext = ref<{ jobId: string; fileName: string; runTime: string } | null>(null)
 
-type RightPanelMode = 'guard' | 'chat' | 'run-chat' | 'task-info'
+type RightPanelMode = 'guard' | 'chat' | 'run-chat' | 'task-info' | 'create-task' | 'edit-task'
 const rightPanelMode = computed<RightPanelMode>(() => {
+  if (showCreateTaskPanel.value) return 'create-task'
+  if (editingJobId.value) return 'edit-task'
   if (activeRunSessionId.value) return 'run-chat'
   if (activeJobSessionId.value) return 'chat'
   if (selectedTaskJob.value) return 'task-info'
@@ -183,6 +179,7 @@ interface GuardRobot {
 const showGuardPanel = ref(true)
 const selectedRobot = ref<GuardRobot | null>(null)
 const showCreateGuardModal = ref(false)
+const showCreateTaskPanel = ref(false)
 const selectedTaskJob = ref<any>(null)
 
 // Initialize synchronously from the media query so first paint is correct.
@@ -348,6 +345,7 @@ function handleCreateGuardTask() {
 function handleBackToGuardPanel() {
   selectedJobId.value = null;
   selectedTaskJob.value = null;
+  editingJobId.value = null;
 }
 
 function handleOpenAgentMore() {
@@ -419,9 +417,14 @@ async function handleSelectRunForChat(jobId: string, fileName: string, runTime: 
 }
 
 function handleEditJobFromTree(jobId: string) {
+  currentMode.value = 'jobs'
   editingJobId.value = jobId
   selectedRobot.value = null
-  showCreateGuardModal.value = true
+  showCreateGuardModal.value = false
+  selectedTaskJob.value = null
+  activeJobSessionId.value = null
+  activeRunSessionId.value = null
+  activeRunContext.value = null
 }
 
 function handleBackToGuard() {
@@ -451,6 +454,35 @@ function openCreateJobModal() {
   editingJobId.value = null;
   selectedRobot.value = null;
   showCreateGuardModal.value = true;
+}
+
+function openCreateTaskPanel() {
+  currentMode.value = 'jobs';
+  showCreateTaskPanel.value = true;
+  // 清除其他状态
+  activeJobSessionId.value = null;
+  activeRunSessionId.value = null;
+  activeRunContext.value = null;
+  selectedJobId.value = null;
+  selectedTaskJob.value = null;
+  editingJobId.value = null;
+  selectedRobot.value = null;
+  showCreateGuardModal.value = false;
+}
+
+function closeCreateTaskPanel() {
+  showCreateTaskPanel.value = false;
+  handleBackToGuard();
+}
+
+function handleCreateTaskCreated() {
+  showCreateTaskPanel.value = false;
+  void jobsStore.fetchJobs();
+}
+
+function handleEditTaskSaved() {
+  editingJobId.value = null;
+  void jobsStore.fetchJobs();
 }
 
 onMounted(() => {
@@ -728,6 +760,30 @@ function handleNewChatProfileChange(value: string) {
   syncNewChatModelSelection();
 }
 
+async function createNewChatDirectly() {
+  if (profilesStore.profiles.length === 0) await profilesStore.fetchProfiles();
+  if (appStore.modelGroups.length === 0 && appStore.profileModelGroups.length === 0) {
+    await appStore.loadModels();
+  }
+  const profile =
+    profilesStore.activeProfileName ||
+    profilesStore.profiles.find((p) => p.active)?.name ||
+    profilesStore.profiles[0]?.name ||
+    "default";
+  const defaults = getDefaultModelForProfile(profile);
+  const session = chatStore.newChat({
+    profile,
+    provider: defaults.provider,
+    model: defaults.model,
+    source: "cli",
+    agent: "hermes",
+  });
+  await router.push({
+    name: chatStore.runtimeMode === "global_agent" ? "hermes.globalAgentSession" : "hermes.session",
+    params: { sessionId: session.id },
+  });
+}
+
 function handleNewChatProviderChange(value: string) {
   newChatProvider.value = value;
   newChatModel.value = newChatModelOptions.value[0]?.value || "";
@@ -903,6 +959,16 @@ const contextMenuOptions = computed(() => {
 
 function openSettingsPage() {
   router.push({ name: "hermes.settings" });
+}
+
+function handleLogout() {
+  localStorage.clear();
+  window.location.reload();
+}
+
+function handleSettingsPopoverShowChange(show: boolean) {
+  if (!show && (profileModalOpen.value || modelModalOpen.value)) return;
+  showSettingsPopover.value = show;
 }
 
 function handleContextMenu(e: MouseEvent, sessionId: string) {
@@ -1153,7 +1219,8 @@ async function handleSessionModelCustomSubmit() {
         <!-- 中部：新建对话/新建任务按钮 -->
         <div class="sidebar-action-bar">
           <button class="sidebar-primary-btn"
-            @click="appMode === 'smartQuery' ? openNewChatModal() : openCreateJobModal()">
+            @click="appMode === 'smartQuery' ? createNewChatDirectly() : openCreateTaskPanel()"
+            v-show="rightPanelMode !== 'edit-task'">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -1305,15 +1372,15 @@ async function handleSessionModelCustomSubmit() {
               :selected="isSessionSelected(s)" :show-profile="true" :to="sessionHref(s.id)"
               @select="handleSessionClick(s.id)" @contextmenu="handleContextMenu($event, s.id)"
               @delete="handleDeleteSession(s.id)" @toggle-select="toggleSessionSelection(s)" />
-            <button v-if="unpinnedSessions.length > MAX_VISIBLE_ITEMS" class="session-more-btn"
+            <button v-if="unpinnedSessions.length > maxVisibleItems" class="session-more-btn"
               @click="historyExpanded = !historyExpanded">
-              {{ historyExpanded ? '收起' : `查看更多（${unpinnedSessions.length - MAX_VISIBLE_ITEMS}）` }}
+              {{ historyExpanded ? '收起' : `查看更多（${unpinnedSessions.length - maxVisibleItems}）` }}
             </button>
           </template>
         </div>
 
         <!-- 定时任务（折叠区域） -->
-        <div v-if="showSessions" class="session-section">
+        <div v-if="showSessions && appMode != 'smartQuery'" class="session-section">
           <div class="session-group-header" @click="jobsCollapsed = !jobsCollapsed">
             <span class="session-group-label">定时任务</span>
             <span class="session-group-count">({{ jobsStore.jobs.length }})</span>
@@ -1515,7 +1582,7 @@ async function handleSessionModelCustomSubmit() {
           </NButton>
           <span class="header-session-title">
             <template v-if="currentMode === 'jobs'">
-              {{ selectedTaskJob ? selectedTaskJob.name : '值守方案' }}
+              {{ rightPanelMode === 'create-task' ? '创建任务' : (rightPanelMode === 'edit-task' ? '编辑任务' : (selectedTaskJob ? selectedTaskJob.name : '值守方案')) }}
             </template>
             <template v-else>
               {{ headerTitle }}
@@ -1539,7 +1606,7 @@ async function handleSessionModelCustomSubmit() {
         </div>
         <div class="header-actions">
           <!-- 值守模式：返回值守方案按钮 -->
-          <NTooltip v-if="currentMode === 'jobs' && selectedTaskJob" trigger="hover">
+          <NTooltip v-if="currentMode === 'jobs' && (selectedTaskJob || editingJobId)" trigger="hover">
             <template #trigger>
               <NButton class="header-tool-toggle" quaternary size="small" @click="handleBackToGuardPanel" circle>
                 <template #icon>
@@ -1553,7 +1620,7 @@ async function handleSessionModelCustomSubmit() {
           </NTooltip>
           <!-- chat/live mode toggle hidden -->
           <template v-if="currentMode === 'chat'">
-            <NTooltip v-if="appMode === 'smartQuery'" trigger="hover">
+            <!-- <NTooltip v-if="appMode === 'smartQuery'" trigger="hover">
               <template #trigger>
                 <NButton class="header-tool-toggle" :class="{ active: showAgentPanel }" quaternary size="small"
                   @click="showAgentPanel = !showAgentPanel" circle>
@@ -1569,8 +1636,8 @@ async function handleSessionModelCustomSubmit() {
                 </NButton>
               </template>
               智能体列表
-            </NTooltip>
-            <NTooltip v-if="isSuperAdmin" trigger="hover">
+            </NTooltip> -->
+            <!-- <NTooltip v-if="isSuperAdmin" trigger="hover">
               <template #trigger>
                 <NButton class="header-tool-toggle" :class="{ active: showToolPanel }" quaternary size="small"
                   @click="showToolPanel = !showToolPanel" circle>
@@ -1585,7 +1652,7 @@ async function handleSessionModelCustomSubmit() {
                 </NButton>
               </template>
               {{ t("drawer.files") }} / {{ t("drawer.terminal") }}
-            </NTooltip>
+            </NTooltip> -->
             <NTooltip trigger="hover">
               <template #trigger>
                 <NButton quaternary size="small" @click="showOutline = !showOutline" circle>
@@ -1599,7 +1666,7 @@ async function handleSessionModelCustomSubmit() {
               </template>
               {{ t("chat.outlineTitle") }}
             </NTooltip>
-            <NTooltip trigger="hover">
+            <!-- <NTooltip trigger="hover">
               <template #trigger>
                 <NButton quaternary size="small" @click="copySessionId()" circle>
                   <template #icon>
@@ -1612,7 +1679,7 @@ async function handleSessionModelCustomSubmit() {
                 </NButton>
               </template>
               {{ t("chat.copySessionId") }}
-            </NTooltip>
+            </NTooltip> -->
             <NButton class="header-model-button"
               :class="{ 'header-model-button--readonly': isActiveSessionCodingAgent }" size="small" :circle="isMobile"
               :title="activeSessionModelLabel" @click="handleHeaderModelClick">
@@ -1633,7 +1700,7 @@ async function handleSessionModelCustomSubmit() {
               <template v-if="!isMobile">{{ activeSessionModelLabel }}</template>
             </NButton>
           </template>
-          <template v-if="currentMode === 'jobs'">
+          <!-- <template v-if="currentMode === 'jobs' && rightPanelMode !== 'create-task' && rightPanelMode !== 'edit-task'">
             <NButton type="primary" size="small" @click="openCreateJobModal">
               <template #icon>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1643,14 +1710,14 @@ async function handleSessionModelCustomSubmit() {
               </template>
               {{ t('jobs.createJob') }}
             </NButton>
-          </template>
+          </template> -->
         </div>
       </header>
 
       <template v-if="currentMode === 'chat'">
         <div ref="chatContentWrapperRef" class="chat-content-wrapper">
-          <AgentPanel v-if="showAgentPanel && appMode === 'smartQuery'" :active-agent-id="activeAgentId"
-            @select="handleAgentSelect" @fill-prompt="handleFillPrompt" @open-more="handleOpenAgentMore" />
+          <!-- <AgentPanel v-if="showAgentPanel && appMode === 'smartQuery'" :active-agent-id="activeAgentId"
+            @select="handleAgentSelect" @fill-prompt="handleFillPrompt" @open-more="handleOpenAgentMore" /> -->
           <AgentMorePanel v-if="showAgentMorePanel" @select="handleAgentMoreSelect"
             @close="showAgentMorePanel = false" />
           <template v-if="!showAgentMorePanel">
@@ -1685,7 +1752,9 @@ async function handleSessionModelCustomSubmit() {
       <template v-else-if="currentMode === 'jobs'">
         <div class="guard-content-area">
           <!-- GuardPanel：未选中任何 Job 时展示 -->
-          <GuardPanel v-if="rightPanelMode === 'guard'" @select="handleRobotSelect" @create-task="handleRobotSelect" />
+           <GuardJobCardList v-if="rightPanelMode === 'guard'" @select="handleSelectJobForInfo" @edit="handleEditJobFromTree" @create="openCreateTaskPanel" />
+
+          <!-- <GuardPanel v-if="rightPanelMode === 'guard'" @select="handleRobotSelect" @create-task="handleRobotSelect" /> -->
 
           <!-- Job 对话：选中 Job 时展示 -->
           <div v-else-if="rightPanelMode === 'chat'" class="job-chat-panel">
@@ -1724,8 +1793,32 @@ async function handleSessionModelCustomSubmit() {
           <!-- 任务信息：选中 Job 行时展示 -->
           <div v-else-if="rightPanelMode === 'task-info'" class="task-info-panel">
             <JobCard :job="selectedTaskJob" :profile-key="profilesStore.activeProfileName || ''"
+              :show-header="false"
               @edit="handleEditJobFromTree" @back="handleBackToGuard" @select-run="handleSelectRunForChat"
               @deleted="handleJobDeleted" />
+          </div>
+
+          <!-- 创建任务向导 -->
+          <div v-else-if="rightPanelMode === 'create-task'" class="create-task-panel">
+            <div class="create-task-header">
+              <button class="create-task-back" @click="closeCreateTaskPanel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                返回
+              </button>
+              <span class="create-task-title">创建任务</span>
+            </div>
+            <div class="create-task-body">
+              <CreateTask @created="handleCreateTaskCreated" @close="closeCreateTaskPanel" />
+            </div>
+          </div>
+
+          <!-- 编辑任务 -->
+          <div v-else-if="rightPanelMode === 'edit-task'" class="create-task-panel">
+            <div class="create-task-body">
+              <EditTask :job-id="editingJobId!" @close="editingJobId = null" @created="handleEditTaskSaved" />
+            </div>
           </div>
         </div>
       </template>
@@ -2647,7 +2740,7 @@ async function handleSessionModelCustomSubmit() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 21px 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid $border-color;
   flex-shrink: 0;
 }
@@ -3001,5 +3094,53 @@ async function handleSessionModelCustomSubmit() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.create-task-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.create-task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid $border-color;
+  flex-shrink: 0;
+}
+
+.create-task-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.create-task-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $text-secondary;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: $border-strong;
+    color: $text-primary;
+    // background: $bg-hover;
+  }
+}
+
+.create-task-body {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 </style>

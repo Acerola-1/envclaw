@@ -24,7 +24,8 @@ const usesPageSidebar = computed(() =>
   ['hermes.chat', 'hermes.session', 'hermes.history', 'hermes.historySession', 'hermes.globalAgent', 'hermes.globalAgentSession', 'hermes.groupChat', 'hermes.groupChatRoom'].includes(route.name as string),
 )
 const isEnvclawRoute = computed(() => route.path.startsWith('/envclaw'))
-const showAppSidebar = computed(() => !usesPageSidebar.value && !isEnvclawRoute.value)
+const isLoginRoute = computed(() => route.name === 'login')
+const showAppSidebar = computed(() => !usesPageSidebar.value && !isEnvclawRoute.value && !isLoginRoute.value)
 const showMobileMenuButton = computed(() => showAppSidebar.value || usesPageSidebar.value)
 
 const nodeVersionLow = computed(() => {

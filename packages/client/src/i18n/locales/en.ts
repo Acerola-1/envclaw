@@ -1,7 +1,7 @@
 export default {
   // Login
   login: {
-    title: 'Hermes Web UI',
+    title: 'envClaw',
     description: 'Enter your username and password to continue.',
     placeholder: 'Access token',
     submit: 'Login',
@@ -801,6 +801,8 @@ export default {
       resumeJob: 'Resume job',
       runNow: 'Run Now',
       triggerImmediately: 'Trigger immediately',
+      fix: 'Fix',
+      fixJob: 'Fix job',
     },
     runHistory: {
       title: 'Run History',
@@ -2103,10 +2105,15 @@ export default {
     nav: {
       home: 'Home',
       jobs: 'Watch Jobs',
+      guard: 'Guard Duty',
       platforms: 'Platforms',
       skills: 'Skills',
       history: 'Run History',
       resourceGroup: 'Resources',
+    },
+    guard: {
+      title: 'Guard Duty',
+      description: 'Manage and schedule automated guard tasks, monitor task execution status.',
     },
     home: {
       greeting: {

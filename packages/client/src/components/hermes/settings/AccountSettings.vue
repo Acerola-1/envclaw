@@ -283,7 +283,7 @@ onMounted(() => { loadLockedIps(); });
     </div>
 
     <!-- Locked IPs management -->
-    <div class="locked-ips-section">
+    <div class="locked-ips-section" v-if=false>
       <h3 class="section-title">{{ t("settings.lockedIps.title") }}</h3>
       <div class="action-row" style="margin-bottom: 12px;">
         <span class="action-label">{{ t("settings.lockedIps.count", { count: lockedIps.length }) }}</span>

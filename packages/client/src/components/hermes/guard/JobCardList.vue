@@ -11,6 +11,12 @@ const { t } = useI18n()
 const router = useRouter()
 const jobsStore = useJobsStore()
 
+const emit = defineEmits<{
+  select: [jobId: string]
+  edit: [jobId: string]
+  create: []
+}>()
+
 const searchQuery = ref('')
 const activeFilter = ref<'all' | 'running' | 'paused' | 'error'>('all')
 const selectedJobId = ref<string | null>(null)
@@ -61,10 +67,11 @@ const countError = computed(() =>
 
 function handleSelect(jobId: string) {
   selectedJobId.value = selectedJobId.value === jobId ? null : jobId
+  emit('select', jobId)
 }
 
 function handleEdit(jobId: string) {
-  router.push({ name: 'envclaw.jobDetail', params: { jobId } })
+  emit('edit', jobId)
 }
 
 onMounted(() => {
@@ -81,7 +88,7 @@ onMounted(() => {
         <div class="page-sub">{{ t('envclaw.jobs.description') }}</div>
       </div>
       <div class="page-actions">
-        <button class="btn btn-primary">
+        <button class="btn btn-primary" @click="emit('create')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
