@@ -89,6 +89,47 @@ export function initTable(): void {
   `)
   tableInitialized = true
   logger.info('[envclaw/platforms] Tables initialized')
+
+  // 初始化内置平台数据
+  seedBuiltinPlatforms(db)
+}
+
+/** 初始化内置平台数据（如果不存在） */
+function seedBuiltinPlatforms(db: any): void {
+  const builtins = [
+    {
+      id: 'szdq',
+      type: 'mapairs',
+      name: '数智大气平台',
+      url: 'https://www.mapairs.com',
+      operation_prompt: '政务内网登录操作指引：访问空气质量联网管理平台，使用数字OCR验证完成登录认证，确保会话保持稳定…',
+      skills: ['mapairs-automation', 'vercel-labs/agent-browser'],
+      functions: [
+        { name: '小时播报', prompt: '定位到小时播报页面，勾选行政区、污染因子，截取页面图片' },
+        { name: '浓度排名', prompt: '定位到浓度排名页面，查询平顶山市的数据,实现推送,附带对数据的文字总结' },
+        { name: '数据监测', prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
+      ],
+    },
+  ]
+
+  for (const p of builtins) {
+    const existing = db.prepare('SELECT id FROM envclaw_platforms WHERE id = ?').get(p.id)
+    if (!existing) {
+      const ts = now()
+      db.prepare(
+        'INSERT INTO envclaw_platforms (id, type, name, url, operation_prompt, skills, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(p.id, p.type, p.name, p.url, p.operation_prompt, JSON.stringify(p.skills), ts, ts)
+
+      for (const fn of p.functions) {
+        const fnId = randomUUID()
+        db.prepare(
+          'INSERT INTO envclaw_platform_functions (id, platform_id, name, prompt, created_at) VALUES (?, ?, ?, ?, ?)'
+        ).run(fnId, p.id, fn.name, fn.prompt, ts)
+      }
+
+      logger.info('[envclaw/platforms] seeded builtin platform: %s', p.id)
+    }
+  }
 }
 
 // --- 辅助 ---

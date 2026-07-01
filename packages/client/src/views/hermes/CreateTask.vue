@@ -7,6 +7,10 @@ import { useJobsStore } from '@/stores/hermes/jobs'
 import { useSettingsStore } from '@/stores/hermes/settings'
 import { getJob, scheduleToEditableInput, jobRepeatToEditValue } from '@/api/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
+import { fetchSkills } from '@/api/hermes/skills'
+import type { SkillInfo } from '@/api/hermes/skills'
+import { listPlatforms } from '@/api/envclaw/platforms'
+import type { Platform } from '@/api/envclaw/platforms'
 import { useMessage } from 'naive-ui'
 
 // ==================== Props / Emits ====================
@@ -82,21 +86,50 @@ function togglePushChip(chipId: string) {
 }
 
 // 技能行管理：平台技能（自动带入，不可移除）+ 用户技能（可移除）
-const platformSkills = ref<Set<string>>(new Set(['mapairs-automation']))
+// 平台技能从选中的平台动态读取
+const platformSkills = computed(() => {
+  const skills = new Set<string>()
+  for (const pid of selectedPlatforms.value) {
+    const platform = platforms.value.find(p => p.id === pid)
+    if (platform && platform.skills) {
+      for (const skill of platform.skills) {
+        skills.add(skill)
+      }
+    }
+  }
+  return skills
+})
 const userSkills = ref<Set<string>>(new Set())
 
-// 可用技能库
-const availableSkills = [
-  { name: 'mapairs-automation', desc: '地图与大气自动化操作', category: 'platform' },
-  { name: 'browser-login', desc: '浏览器自动登录与Cookie管理', category: 'general' },
-  { name: 'ocr-verify', desc: '通用OCR验证码识别', category: 'general' },
-  { name: 'data-export', desc: '数据格式化导出（Excel/CSV）', category: 'general' },
-  { name: 'screenshot-capture', desc: '页面截图与区域裁剪', category: 'general' },
-  { name: 'report-template', desc: '报告模板渲染引擎', category: 'general' },
-  { name: 'wechat-push', desc: '企业微信消息推送', category: 'general' },
-  { name: 'dingtalk-push', desc: '钉钉群消息推送', category: 'general' },
-  { name: 'data-cleanse', desc: '数据清洗与异常检测', category: 'general' },
-]
+// 从 API 加载可用技能
+const allSystemSkills = ref<SkillInfo[]>([])
+const skillsLoading = ref(false)
+
+async function loadSkills() {
+  skillsLoading.value = true
+  try {
+    const data = await fetchSkills()
+    const skills: SkillInfo[] = []
+    for (const cat of data.categories) {
+      for (const s of cat.skills) {
+        skills.push({ ...s, source: s.source || 'local' })
+      }
+    }
+    allSystemSkills.value = skills
+  } catch {
+    allSystemSkills.value = []
+  } finally {
+    skillsLoading.value = false
+  }
+}
+
+const availableSkills = computed(() => {
+  return allSystemSkills.value.map(s => ({
+    name: s.name,
+    desc: s.description || s.name,
+    category: s.source || 'local',
+  }))
+})
 
 // function getSkillDesc(name: string): string {
 //   const s = availableSkills.find(s => s.name === name)
@@ -121,7 +154,8 @@ const skillSearchQuery = ref('')
 
 const filteredSkillOptions = computed(() => {
   const query = skillSearchQuery.value.toLowerCase()
-  return availableSkills.filter(s =>
+  const skills = availableSkills.value
+  return skills.filter((s: any) =>
     !query || s.name.toLowerCase().includes(query) || s.desc.toLowerCase().includes(query)
   )
 })
@@ -150,7 +184,7 @@ function handleSkillOptionClick(name: string) {
   }
 }
 
-// ==================== Platform / Function State (HTML 原型) ====================
+// ==================== Platform / Function State ====================
 interface PlatformDef {
   id: string
   name: string
@@ -160,50 +194,34 @@ interface PlatformDef {
   color: string
   builtin: boolean
   prompt?: string
+  skills: string[]
 }
 
-const platforms: PlatformDef[] = [
-  {
-    id: 'szdq',
-    name: '数智大气平台',
-    desc: '系统默认定位底座，不可取消',
-    badge: '内置底座',
-    prompt: '政务内网登录操作指引：访问空气质量联网管理平台，使用数字OCR验证完成登录认证，确保会话保持稳定…',
-    badgeClass: 'badge-builtin',
-    color: 'purple',
-    builtin: true,
-  },
-  // {
-  //   id: 'zd',
-  //   name: '空气质量联网管理平台',
-  //   desc: '政务内网 · 数字OCR验证',
-  //   badge: '数字OCR验证',
-  //   badgeClass: 'badge-ocr',
-  //   color: 'amber',
-  //   builtin: false,
-  //   prompt: '政务内网登录操作指引：访问空气质量联网管理平台，使用数字OCR验证完成登录认证，确保会话保持稳定…',
-  // },
-  // {
-  //   id: 'hnsjk',
-  //   name: '河南省空气质量大数据系统',
-  //   desc: '省级官网 · 字母+数字OCR验证',
-  //   badge: '字母+数字OCR验证',
-  //   badgeClass: 'badge-letter',
-  //   color: 'blue',
-  //   builtin: false,
-  //   prompt: '省级官网登录指引：访问河南省空气质量大数据系统，使用字母+数字OCR验证完成登录认证…',
-  // },
-  // {
-  //   id: 'hdjk',
-  //   name: '华东监测数据平台',
-  //   desc: '区域级监测数据平台',
-  //   badge: '自定义',
-  //   badgeClass: 'badge-letter',
-  //   color: 'green',
-  //   builtin: false,
-  //   prompt: '华东监测数据平台登录指引：访问华东区域监测数据共享平台，使用统一认证完成登录…',
-  // },
-]
+// 从 API 加载平台列表
+const platforms = ref<PlatformDef[]>([])
+const platformsLoading = ref(false)
+
+async function loadPlatforms() {
+  platformsLoading.value = true
+  try {
+    const data = await listPlatforms()
+    platforms.value = data.map((p: Platform) => ({
+      id: p.id,
+      name: p.name,
+      desc: p.operationPrompt || '自动登录并采集数据',
+      badge: p.type === 'mapairs' ? '内置底座' : '自定义',
+      badgeClass: p.type === 'mapairs' ? 'badge-builtin' : 'badge-custom',
+      color: 'purple',
+      builtin: false, // 允许取消勾选
+      prompt: p.operationPrompt || '',
+      skills: p.skills || [],
+    }))
+  } catch {
+    platforms.value = []
+  } finally {
+    platformsLoading.value = false
+  }
+}
 
 interface FuncDef {
   id: string
@@ -271,7 +289,7 @@ function prevStep() {
 
 // ==================== Platform / Function Toggle ====================
 function togglePlatform(platformId: string) {
-  if (platforms.find(p => p.id === platformId)?.builtin) return
+  // 所有平台都可以取消勾选
   if (selectedPlatforms.value.has(platformId)) {
     selectedPlatforms.value.delete(platformId)
     // 取消该平台下所有功能
@@ -338,15 +356,15 @@ const scheduleDescription = computed(() => {
 })
 
 const activePlatforms = computed(() =>
-  platforms.filter(p => selectedPlatforms.value.has(p.id))
+  platforms.value.filter((p: any) => selectedPlatforms.value.has(p.id))
 )
 
 const activeFunctions = computed(() =>
-  functions.filter(f => selectedFunctions.value.has(f.id))
+  functions.filter((f: any) => selectedFunctions.value.has(f.id))
 )
 
 const platformFunctions = computed(() =>
-  functions.filter(f => selectedPlatforms.value.has(f.platformId))
+  functions.filter((f: any) => selectedPlatforms.value.has(f.platformId))
 )
 
 // 组装最终提示词
@@ -581,7 +599,6 @@ function resetForm() {
   promptSupplement.value = ''
   selectedPlatforms.value = new Set(['szdq'])
   selectedFunctions.value = new Set(['szdq-trace', 'szdq-review'])
-  platformSkills.value = new Set(['mapairs-automation'])
   userSkills.value = new Set()
   originalJob.value = null
 }
@@ -589,6 +606,8 @@ function resetForm() {
 // ==================== Lifecycle ====================
 onMounted(async () => {
   resetForm()
+  // 加载平台列表和系统技能
+  await Promise.all([loadPlatforms(), loadSkills()])
 
   // 编辑模式：加载已有任务数据
   if (props.jobId) {
@@ -628,6 +647,7 @@ const functionPlatformColor = (platformId: string): string => {
   return map[platformId] || 'purple'
 }
 
+/*
 const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => {
   const map: Record<string, any> = {
     '截图': 'warning',
@@ -637,6 +657,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   }
   return map[tag] || 'default'
 }
+*/
 </script>
 
 <template>
@@ -647,7 +668,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
         :class="{ active: step === currentStep, done: step < currentStep }" @click="goStep(step)">
         <div class="step-num">{{ step < currentStep ? '✓' : step }}</div>
             <div class="step-label">
-              {{ ['数据平台选择', '执行设置', '确认'][step - 1] }}
+              {{ ['选择要做什么', '设置推送方式', '确认任务'][step - 1] }}
             </div>
         </div>
         <div v-for="i in totalSteps - 1" :key="'conn-' + i" class="step-connector" :class="{ done: i < currentStep }" />
@@ -680,11 +701,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
             </div>
 
             <div class="form-group">
-              <label class="form-label">执行提示词 <span class="form-label-optional">（可选，也可在后续步骤中由平台功能自动组装）</span></label>
-              <NInput v-model:value="taskPrompt" type="textarea" placeholder="请输入分析提示词" :rows="4" maxlength="500" />
-            </div>
-
-            <div class="form-group">
               <label class="form-label">选择执行平台</label>
               <div class="platform-list">
                 <div v-for="platform in platforms" :key="platform.id" class="platform-check" :class="{
@@ -705,6 +721,14 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                         platform.badge }}</span>
                     </div>
                     <div class="platform-desc">{{ platform.desc }}</div>
+                    <div v-if="platform.builtin" class="platform-capability">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                      </svg>
+                      <span>支持自动登录、截图、数据推送</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -743,51 +767,9 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- ====== 步骤3: 执行设置 ====== -->
-        <div v-show="currentStep === 2" class="step-panel">
-          <div class="form-section">
-            <div class="form-group">
-              <label class="form-label">执行频率 <span class="form-label-optional2">（*必填）</span></label>
-              <SchedulePicker v-model="schedule" />
-            </div>
 
             <div class="form-group">
-              <label class="form-label">推送平台 <span class="form-label-optional2">（*必填）</span></label>
-              <div class="chip-group">
-                <div v-for="chip in pushChipList" :key="chip.id" class="chip" :class="{
-                  active: selectedPushChips.has(chip.id),
-                  disabled: chip.id !== 'origin' && chip.id !== 'local' && !isPlatformConfigured(chip.id),
-                }"
-                  @click="chip.id === 'origin' || chip.id === 'local' || isPlatformConfigured(chip.id) ? togglePushChip(chip.id) : null">
-                  <span class="chip-icon">{{ chip.icon }}</span>
-                  {{ chip.name }}
-                  <span v-if="chip.id !== 'origin' && chip.id !== 'local'" class="chip-status"
-                    :class="{ configured: isPlatformConfigured(chip.id) }">
-                    {{ isPlatformConfigured(chip.id) ? '已配置' : '未配置' }}
-                  </span>
-                </div>
-              </div>
-              <div class="chip-config-hint">
-                <span class="hint-text">未配置的平台无法使用，</span>
-                <a class="hint-link" @click="goToChannels">前往配置 →</a>
-              </div>
-            </div>
-
-            <!-- <div class="form-group">
-            <label class="form-label">推送群ID</label>
-            <NInput v-model:value="notifyGroupId" placeholder="请输入推送群ID" />
-          </div> -->
-
-            <div class="form-group">
-              <label class="form-label">重复次数 <span class="form-label-optional">（可选）</span></label>
-              <NInputNumber v-model:value="repeat_times" :min="1" placeholder="不限制" clearable style="width: 100%" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">附加技能 <span class="form-label-optional">平台技能自动带入，可额外添加</span></label>
+              <label class="form-label">附加技能 <span class="form-label-optional">可额外添加</span></label>
               <div class="skill-rows">
                 <div v-for="skill in allSkillNames" :key="skill.name" class="skill-row">
                   <svg class="skill-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -834,6 +816,48 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== 步骤3: 执行设置 ====== -->
+        <div v-show="currentStep === 2" class="step-panel">
+          <div class="form-section">
+            <div class="form-group">
+              <label class="form-label">执行频率 <span class="form-label-optional2">（*必填）</span></label>
+              <SchedulePicker v-model="schedule" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">推送平台 <span class="form-label-optional2">（*必填）</span></label>
+              <div class="chip-group">
+                <div v-for="chip in pushChipList" :key="chip.id" class="chip" :class="{
+                  active: selectedPushChips.has(chip.id),
+                  disabled: chip.id !== 'origin' && chip.id !== 'local' && !isPlatformConfigured(chip.id),
+                }"
+                  @click="chip.id === 'origin' || chip.id === 'local' || isPlatformConfigured(chip.id) ? togglePushChip(chip.id) : null">
+                  <span class="chip-icon">{{ chip.icon }}</span>
+                  {{ chip.name }}
+                  <span v-if="chip.id !== 'origin' && chip.id !== 'local'" class="chip-status"
+                    :class="{ configured: isPlatformConfigured(chip.id) }">
+                    {{ isPlatformConfigured(chip.id) ? '已配置' : '未配置' }}
+                  </span>
+                </div>
+              </div>
+              <div class="chip-config-hint">
+                <span class="hint-text">未配置的平台无法使用，</span>
+                <a class="hint-link" @click="goToChannels">前往配置 →</a>
+              </div>
+            </div>
+
+            <!-- <div class="form-group">
+            <label class="form-label">推送群ID</label>
+            <NInput v-model:value="notifyGroupId" placeholder="请输入推送群ID" />
+          </div> -->
+
+            <div class="form-group">
+              <label class="form-label">重复次数 <span class="form-label-optional">（可选）</span></label>
+              <NInputNumber v-model:value="repeat_times" :min="1" placeholder="不限制" clearable style="width: 100%" />
             </div>
           </div>
         </div>
@@ -891,6 +915,9 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
             <div class="preview-section">
               <div class="preview-label">执行提示词总览 <span class="prompt-readonly-tag">自动组装</span></div>
+              <div class="prompt-preview-desc">
+                <span>系统将自动执行以下操作：打开网站 → 登录 → 截取数据 → 推送至指定渠道</span>
+              </div>
               <div class="prompt-preview-box">
                 <div v-for="(seg, idx) in promptSegments" :key="idx" class="prompt-segment">
                   <span class="prompt-seg-tag" :class="`seg-${seg.type}`">{{ seg.label }}</span>
@@ -898,10 +925,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 </div>
               </div>
               <div class="prompt-supplement">
-                <label class="prompt-supplement-label">统一补充说明 <span
-                    class="prompt-supplement-hint">（可选，追加到总览提示词末尾）</span></label>
-                <NInput v-model:value="promptSupplement" type="textarea" placeholder="在此追加你的自定义要求，如：重点关注荥阳市站点数据…"
-                  :rows="3" />
+                <label class="prompt-supplement-label">补充要求 <span class="prompt-supplement-hint">（可选）</span></label>
+                <NInput v-model:value="promptSupplement" type="textarea" placeholder="您还想补充或者修改什么需求，请写在这里" :rows="3" />
               </div>
             </div>
           </div>
@@ -1386,6 +1411,30 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   font-size: 11px;
   color: var(--text-muted);
   margin-left: 8px;
+}
+
+.platform-capability {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #1A73E8;
+
+  svg {
+    flex-shrink: 0;
+    color: #1A73E8;
+  }
+}
+
+.prompt-preview-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: rgba(52, 168, 83, 0.06);
+  border: 1px solid rgba(52, 168, 83, 0.12);
+  border-radius: 6px;
 }
 
 // ===== 确认预览 =====
