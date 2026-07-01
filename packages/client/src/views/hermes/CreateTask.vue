@@ -192,6 +192,7 @@ interface PlatformDef {
   id: string
   name: string
   desc: string
+  url: string | null
   badge: string
   badgeClass: string
   color: string
@@ -212,6 +213,7 @@ async function loadPlatforms() {
       id: p.id,
       name: p.name,
       desc: p.operationPrompt || '自动登录并采集数据',
+      url: p.url || null,
       badge: p.type === 'mapairs' ? '内置底座' : '自定义',
       badgeClass: p.type === 'mapairs' ? 'badge-builtin' : 'badge-custom',
       color: 'purple',
@@ -563,6 +565,14 @@ async function handleSubmit() {
       message.warning('请设置执行频率')
       return
     }
+    return
+  }
+
+  // 校验任务名是否重复（编辑模式下排除自身）
+  const trimmedName = taskName.value.trim()
+  const existing = jobsStore.jobs.find(j => j.name === trimmedName && (!isEdit.value || (j.job_id !== props.jobId && j.id !== props.jobId)))
+  if (existing) {
+    message.warning('已存在同名任务，请修改任务名称')
     return
   }
 
@@ -1284,6 +1294,13 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   font-size: 12px;
   color: $text-muted;
   margin-top: 3px;
+}
+
+.platform-url {
+  font-size: 11px;
+  color: #1A73E8;
+  margin-top: 2px;
+  font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 }
 
 .platform-badge {

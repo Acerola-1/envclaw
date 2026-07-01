@@ -101,8 +101,8 @@ function seedBuiltinPlatforms(db: any): void {
       id: 'szdq',
       type: 'mapairs',
       name: '数智大气平台',
-      url: 'https://www.mapairs.com',
-      operation_prompt: '政务内网登录操作指引：访问空气质量联网管理平台，使用数字OCR验证完成登录认证，确保会话保持稳定…',
+      url: 'https://www.mapairs.com/lock',
+      operation_prompt: '数智大气平台，对数据观测、污染防治提供了丰富的数据支持',
       skills: ['mapairs-automation', 'vercel-labs/agent-browser'],
       functions: [
         { name: '小时播报', prompt: '定位到小时播报页面，勾选行政区、污染因子，截取页面图片' },
