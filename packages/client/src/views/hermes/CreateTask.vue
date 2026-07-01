@@ -874,6 +874,10 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <span class="hint-text">尚未配置任何推送平台，</span>
                 <a class="hint-link" @click="goToChannels">前往配置 →</a>
               </div>
+              <div v-else class="chip-config-hint">
+                <span class="hint-text">需要更多推送平台？</span>
+                <a class="hint-link" @click="goToChannels">前往配置 →</a>
+              </div>
             </div>
 
             <!-- <div class="form-group">
