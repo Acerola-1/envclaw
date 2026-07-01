@@ -215,10 +215,10 @@ interface FuncDef {
 
 const functions: FuncDef[] = [
   // 数智大气
-  { id: 'szdq-trace', platformId: 'szdq', name: '小时播报', tags: ['数据分析'], prompt: '定位到小时播报页面，勾选行政区、污染因子，截取页面图片' },
-  { id: 'szdq-rank', platformId: 'szdq', name: '浓度排名', tags: ['数据采集', '数据分析'], prompt: '定位到浓度排名页面，查询平顶山市的数据,实现推送,附带对数据的文字总结' },
-  { id: 'szdq-review', platformId: 'szdq', name: '数据监测', tags: ['数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
-  { id: 'szdq-trend', platformId: 'szdq', name: '站点单指标趋势对比', tags: ['数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
+  { id: 'szdq-trace', platformId: 'szdq', name: '小时播报', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到小时播报页面，勾选行政区、污染因子，截取页面图片' },
+  { id: 'szdq-rank', platformId: 'szdq', name: '浓度排名', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到浓度排名页面，查询平顶山市的数据,实现推送,附带对数据的文字总结' },
+  { id: 'szdq-review', platformId: 'szdq', name: '数据监测', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
+  // { id: 'szdq-trend', platformId: 'szdq', name: '站点单指标趋势对比', tags: ['数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
   // 中大平台
   { id: 'zd-realtime', platformId: 'zd', name: '实时监测点位分钟数据流读取', tags: ['数据采集'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
   { id: 'zd-rank-table', platformId: 'zd', name: '综合质量排名通报表下载', tags: ['文件下载'], prompt: '导航至综合质量排名通报页面，下载Excel格式的排名通报表…' },
@@ -685,7 +685,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
             </div>
 
             <div class="form-group">
-              <label class="form-label">选择执行平台 <span class="form-label-optional">勾选平台后，下方动态挂载对应功能</span></label>
+              <label class="form-label">选择执行平台</label>
               <div class="platform-list">
                 <div v-for="platform in platforms" :key="platform.id" class="platform-check" :class="{
                   checked: selectedPlatforms.has(platform.id),
@@ -712,7 +712,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
             <!-- 功能挂载矩阵 -->
             <div class="form-group" v-if="activePlatforms.length > 0">
-              <label class="form-label">功能挂载矩阵 <span class="form-label-optional">勾选功能后可在步骤4查看完整提示词总览</span></label>
+              <label class="form-label">功能选择</label>
               <div class="func-matrix">
                 <div v-for="platform in activePlatforms" :key="platform.id" class="func-card">
                   <div class="func-card-header">
@@ -737,12 +737,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                         </svg>
                       </div>
                       <span class="func-check-name">{{ func.name }}</span>
-                      <div class="func-tags-inline" v-if="func.tags.length > 0">
-                        <span v-for="tag in func.tags" :key="tag" class="func-tag-inline"
-                          :class="`tag-${tagTypeMap(tag)}`">
-                          {{ tag }}
-                        </span>
-                      </div>
+                      <span class="func-support-text">支持:{{ func.tags.join('、') }}</span>
                     </div>
                   </div>
                 </div>
@@ -1385,6 +1380,12 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 .func-tag-inline.tag-default {
   background: rgba(127, 119, 221, 0.12);
   color: #7F77DD;
+}
+
+.func-support-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
 }
 
 // ===== 确认预览 =====
