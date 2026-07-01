@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NInput, NInputNumber, NButton } from 'naive-ui'
+import { NInput, NInputNumber, NButton, NModal } from 'naive-ui'
 import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import { useSettingsStore } from '@/stores/hermes/settings'
@@ -238,7 +238,7 @@ const functions: FuncDef[] = [
   // 数智大气
   { id: 'szdq-trace', platformId: 'szdq', name: '小时播报', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到小时播报页面，勾选行政区、污染因子，截取页面图片' },
   { id: 'szdq-rank', platformId: 'szdq', name: '浓度排名', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到浓度排名页面，查询平顶山市的数据,实现推送,附带对数据的文字总结' },
-  { id: 'szdq-review', platformId: 'szdq', name: '数据监测', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
+  { id: 'szdq-review', platformId: 'szdq', name: '监测数据', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
   // { id: 'szdq-trend', platformId: 'szdq', name: '站点单指标趋势对比', tags: ['数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
   // 中大平台
   { id: 'zd-realtime', platformId: 'zd', name: '实时监测点位分钟数据流读取', tags: ['数据采集'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
@@ -589,7 +589,14 @@ async function handleSubmit() {
       await jobsStore.createJob(payload)
       message.success('任务创建成功')
     }
-    emit('created', payload)
+
+    // 如果选择了外部推送频道，弹出激活引导
+    if (!isEdit.value && shouldShowChannelGuide()) {
+      channelGuideCommand.value = `请你把'${taskName.value}'任务推送频道设置为当前窗口，并立即执行一次查看效果`
+      showChannelGuide.value = true
+    } else {
+      emit('created', payload)
+    }
   } catch (e: any) {
     message.error((isEdit.value ? '任务更新失败' : '任务创建失败') + ': ' + (e.message || e))
   } finally {
@@ -597,7 +604,23 @@ async function handleSubmit() {
   }
 }
 
-// ==================== Reset / Load ====================
+const showChannelGuide = ref(false)
+const channelGuideCommand = ref('')
+
+function copyCommand() {
+  navigator.clipboard.writeText(channelGuideCommand.value).then(() => {
+    message.success('已复制到剪贴板')
+  }).catch(() => {
+    message.error('复制失败')
+  })
+}
+
+function shouldShowChannelGuide(): boolean {
+  const chipIds = Array.from(selectedPushChips.value)
+  if (chipIds.length === 0) return false
+  const external = chipIds.filter(id => id !== 'origin' && id !== 'local')
+  return external.length > 0
+}
 function resetForm() {
   taskName.value = ''
   taskPrompt.value = ''
@@ -962,7 +985,30 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
           </NButton>
         </div>
       </div>
-    </div>
+      <!-- 推送频道激活引导弹窗 -->
+    <NModal v-model:show="showChannelGuide" preset="card" title="激活推送频道" style="width: 520px;" :mask-closable="false">
+      <div class="channel-guide">
+        <p class="channel-guide-desc">建议您在对应频道发送以下文本以激活任务：</p>
+        <div class="channel-guide-command-box">
+          <code class="channel-guide-command">{{ channelGuideCommand }}</code>
+          <button class="channel-guide-copy-btn" @click="copyCommand">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            复制
+          </button>
+        </div>
+        <div class="channel-guide-screenshot">
+          <p class="channel-guide-screenshot-label">以微信为例：</p>
+          <img src="/assets/tutorials/weixin-channel-setup.png" alt="微信激活示例" class="channel-guide-img" />
+        </div>
+      </div>
+      <template #footer>
+        <NButton type="primary" @click="showChannelGuide = false; emit('created', { name: taskName })">我知道了</NButton>
+      </template>
+    </NModal>
+  </div>
 </template>
 
 <style scoped lang="scss">
@@ -1941,5 +1987,80 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 .prompt-seg-tag.seg-user {
   background: rgba(26, 115, 232, 0.10);
   color: #1A73E8;
+}
+
+// ===== 推送频道激活引导 =====
+.channel-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.channel-guide-desc {
+  font-size: 14px;
+  color: $text-primary;
+  margin: 0;
+}
+
+.channel-guide-command-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius;
+}
+
+.channel-guide-command {
+  flex: 1;
+  font-size: 13px;
+  color: $text-primary;
+  word-break: break-word;
+  line-height: 1.5;
+  font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+
+.channel-guide-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: $radius;
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.channel-guide-copy-btn:hover {
+  opacity: 0.85;
+}
+
+.channel-guide-copy-btn:active {
+  opacity: 0.7;
+}
+
+.channel-guide-screenshot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.channel-guide-screenshot-label {
+  font-size: 12px;
+  color: $text-muted;
+  margin: 0;
+}
+
+.channel-guide-img {
+  width: 100%;
+  border-radius: $radius;
+  border: 1px solid $border-color;
 }
 </style>

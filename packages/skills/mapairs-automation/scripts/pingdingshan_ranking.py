@@ -53,8 +53,12 @@ def run(cmd, timeout=30):
         return "", "not found", -1
 
 def safe_eval(page_js):
-    """通过 agent-browser evaluate 执行 JS"""
-    out, err, code = run(["agent-browser", "evaluate", page_js], timeout=10)
+    """通过 agent-browser eval 执行 JS"""
+    # ⚠️ agent-browser 不支持箭头函数，自动转换为传统函数
+    js = page_js
+    if js.strip().startswith('() =>'):
+        js = 'function' + js[4:]
+    out, err, code = run(["agent-browser", "eval", js], timeout=10)
     if code != 0:
         return None
     try:
