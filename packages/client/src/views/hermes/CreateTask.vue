@@ -50,7 +50,7 @@ function isPlatformConfigured(key: string): boolean {
 // ==================== Step State ====================
 const currentStep = ref(1)
 const totalSteps = 3
-const loading = ref(false)
+// const loading = ref(false)
 const submitting = ref(false)
 
 // ==================== Form Data (与 CreateGuardTaskModal 一致) ====================
@@ -98,18 +98,18 @@ const availableSkills = [
   { name: 'data-cleanse', desc: '数据清洗与异常检测', category: 'general' },
 ]
 
-function getSkillDesc(name: string): string {
-  const s = availableSkills.find(s => s.name === name)
-  return s ? s.desc : ''
-}
+// function getSkillDesc(name: string): string {
+//   const s = availableSkills.find(s => s.name === name)
+//   return s ? s.desc : ''
+// }
 
-function isSkillAdded(name: string): boolean {
-  return platformSkills.value.has(name) || userSkills.value.has(name)
-}
+// function isSkillAdded(name: string): boolean {
+//   return platformSkills.value.has(name) || userSkills.value.has(name)
+// }
 
-function addUserSkill(name: string) {
-  userSkills.value.add(name)
-}
+// function addUserSkill(name: string) {
+//   userSkills.value.add(name)
+// }
 
 function removeUserSkill(name: string) {
   userSkills.value.delete(name)
@@ -133,8 +133,12 @@ function toggleSkillDropdown() {
   }
 }
 
-function closeSkillDropdown() {
-  skillDropdownOpen.value = false
+// function closeSkillDropdown() {
+//   skillDropdownOpen.value = false
+// }
+
+function isSkillAdded(name: string): boolean {
+  return platformSkills.value.has(name) || userSkills.value.has(name)
 }
 
 function handleSkillOptionClick(name: string) {
@@ -414,7 +418,7 @@ const finalPrompt = computed(() => {
 
 // 提示词分段（用于确认页面彩色标签展示）
 interface PromptSegment {
-  type: 'base' | 'platform' | 'function' | 'tag' | 'supplement'
+  type: 'base' | 'user' | 'platform' | 'function' | 'tag' | 'supplement'
   label: string
   text: string
 }

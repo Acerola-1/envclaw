@@ -33,7 +33,7 @@ import OutlinePanel from "./OutlinePanel.vue";
 import FilesPanel from "./FilesPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 // import AgentPanel from "./AgentPanel.vue";
-import type { AgentItem } from "./AgentPanel.vue";
+// import type { AgentItem } from "./AgentPanel.vue";
 import AgentMorePanel from "./AgentMorePanel.vue";
 import type { AgentMoreItem } from "./AgentMorePanel.vue";
 import PageSidebarNav from "@/components/layout/PageSidebarNav.vue";
@@ -41,8 +41,8 @@ import PageSidebarNav from "@/components/layout/PageSidebarNav.vue";
 import JobTreeList from "@/components/hermes/jobs/JobTreeList.vue";
 import { readCronRun } from '@/api/hermes/cron-history'
 import { useJobsStore } from "@/stores/hermes/jobs";
-import { isStoredSuperAdmin } from "@/api/client";
-import GuardPanel from "@/components/hermes/guard/GuardPanel.vue";
+// import { isStoredSuperAdmin } from "@/api/client";
+// import GuardPanel from "@/components/hermes/guard/GuardPanel.vue";
 import GuardJobCardList from "@/components/hermes/guard/JobCardList.vue";
 import JobCard from "@/components/hermes/guard/JobCard.vue";
 import CreateGuardTaskModal from "@/components/hermes/guard/CreateGuardTaskModal.vue";
@@ -57,7 +57,7 @@ const jobsStore = useJobsStore();
 const router = useRouter();
 const message = useMessage();
 const { t } = useI18n();
-const isSuperAdmin = computed(() => isStoredSuperAdmin());
+// const isSuperAdmin = computed(() => isStoredSuperAdmin());
 
 const showOutline = ref(false);
 const messageListRef = ref<InstanceType<typeof MessageList> | null>(null);
@@ -77,7 +77,7 @@ const currentMode = ref<"chat" | "live" | "jobs">("chat");
 type AppMode = 'smartQuery' | 'automation';
 const appMode = ref<AppMode>('smartQuery');
 const activeAgentId = ref<string | null>(null);
-const showAgentPanel = ref(true);
+// const showAgentPanel = ref(true);
 const showAgentMorePanel = ref(false);
 
 // 侧边栏折叠/展开状态
@@ -92,39 +92,38 @@ const visibleSessions = computed(() =>
 );
 
 // Settings popover
-const showSettingsPopover = ref(false);
-const profileModalOpen = ref(false);
-const modelModalOpen = ref(false);
+// const showSettingsPopover = ref(false);
+// const profileModalOpen = ref(false);
+// const modelModalOpen = ref(false);
 
-// Changelog
-const showChangelog = ref(false);
-const changelog = ref<Array<{ version: string; date: string; changes: string[] }>>([]);
-function openChangelog() {
-  showChangelog.value = true;
-}
+// const showChangelog = ref(false);
+// const changelog = ref<Array<{ version: string; date: string; changes: string[] }>>([]);
+// function openChangelog() {
+//   showChangelog.value = true;
+// }
 
 // Version management
-const showVersionManagement = ref(false);
-function openVersionManagement() {
-  showVersionManagement.value = true;
-}
+// const showVersionManagement = ref(false);
+// function openVersionManagement() {
+//   showVersionManagement.value = true;
+// }
 
 // Desktop shell detection
-const isDesktopShell = computed(() => {
-  return (window as any).hermesDesktop?.isDesktop === true;
-});
+// const isDesktopShell = computed(() => {
+//   return (window as any).hermesDesktop?.isDesktop === true;
+// });
 
 // Current username
-const currentUsername = computed(() => {
-  try {
-    const stored = localStorage.getItem('hermes_user');
-    if (stored) {
-      const user = JSON.parse(stored);
-      return user.username || user.name || '';
-    }
-  } catch { }
-  return '';
-});
+// const currentUsername = computed(() => {
+//   try {
+//     const stored = localStorage.getItem('hermes_user');
+//     if (stored) {
+//       const user = JSON.parse(stored);
+//       return user.username || user.name || '';
+//     }
+//   } catch { }
+//   return '';
+// });
 
 // Client reload
 function handleReloadClient() {
@@ -329,10 +328,10 @@ function handleAppModeChange(mode: 'smartQuery' | 'automation') {
 }
 
 // 值守模式处理函数
-function handleRobotSelect(robot: GuardRobot) {
-  selectedRobot.value = robot;
-  showCreateGuardModal.value = true;
-}
+// function handleRobotSelect(robot: GuardRobot) {
+//   selectedRobot.value = robot;
+//   showCreateGuardModal.value = true;
+// }
 
 function handleCreateGuardTask() {
   showCreateGuardModal.value = false;
@@ -348,22 +347,22 @@ function handleBackToGuardPanel() {
   editingJobId.value = null;
 }
 
-function handleOpenAgentMore() {
-  showAgentMorePanel.value = true
-}
+// function handleOpenAgentMore() {
+//   showAgentMorePanel.value = true
+// }
 
-async function handleAgentSelect(agent: AgentItem) {
-  activeAgentId.value = agent.id
-  // 关闭更多面板（如果打开的话）
-  if (showAgentMorePanel.value) showAgentMorePanel.value = false
-  // 自动填充 prompt 到对话框
-  if (agent.prompt) {
-    await nextTick()
-    if (chatInputRef.value) {
-      chatInputRef.value.setInputText?.(agent.prompt)
-    }
-  }
-}
+// async function handleAgentSelect(agent: AgentItem) {
+//   activeAgentId.value = agent.id
+//   // 关闭更多面板（如果打开的话）
+//   if (showAgentMorePanel.value) showAgentMorePanel.value = false
+//   // 自动填充 prompt 到对话框
+//   if (agent.prompt) {
+//     await nextTick()
+//     if (chatInputRef.value) {
+//       chatInputRef.value.setInputText?.(agent.prompt)
+//     }
+//   }
+// }
 
 async function handleAgentMoreSelect(agent: AgentMoreItem) {
   showAgentMorePanel.value = false
@@ -375,14 +374,14 @@ async function handleAgentMoreSelect(agent: AgentMoreItem) {
   }
 }
 
-async function handleFillPrompt(text: string) {
-  const needClose = showAgentMorePanel.value
-  if (needClose) showAgentMorePanel.value = false
-  await nextTick()
-  if (chatInputRef.value) {
-    chatInputRef.value.setInputText?.(text)
-  }
-}
+// async function handleFillPrompt(text: string) {
+//   const needClose = showAgentMorePanel.value
+//   if (needClose) showAgentMorePanel.value = false
+//   await nextTick()
+//   if (chatInputRef.value) {
+//     chatInputRef.value.setInputText?.(text)
+//   }
+// }
 
 function handleSelectJobForInfo(jobId: string) {
   currentMode.value = 'jobs';
@@ -961,15 +960,15 @@ function openSettingsPage() {
   router.push({ name: "hermes.settings" });
 }
 
-function handleLogout() {
-  localStorage.clear();
-  window.location.reload();
-}
+// function handleLogout() {
+//   localStorage.clear();
+//   window.location.reload();
+// }
 
-function handleSettingsPopoverShowChange(show: boolean) {
-  if (!show && (profileModalOpen.value || modelModalOpen.value)) return;
-  showSettingsPopover.value = show;
-}
+// function handleSettingsPopoverShowChange(show: boolean) {
+//   if (!show && (profileModalOpen.value || modelModalOpen.value)) return;
+//   showSettingsPopover.value = show;
+// }
 
 function handleContextMenu(e: MouseEvent, sessionId: string) {
   e.preventDefault();

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+// import { useRouter } from 'vue-router'
 import { NInput, NSpin } from 'naive-ui'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
 import JobCard from '@/components/envclaw/jobs/JobCard.vue'
 
 const { t } = useI18n()
-const router = useRouter()
+// const router = useRouter()
 const jobsStore = useJobsStore()
 
 const emit = defineEmits<{

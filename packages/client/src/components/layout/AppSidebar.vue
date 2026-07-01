@@ -22,13 +22,13 @@ const selectedKey = computed(() => {
 });
 const isSuperAdmin = computed(() => isStoredSuperAdmin());
 const currentUsername = computed(() => getStoredUsername());
-const isVersionPreview = import.meta.env.VITE_HERMES_PREVIEW === '1';
+// const isVersionPreview = import.meta.env.VITE_HERMES_PREVIEW === '1';
 const isDesktopShell = computed(() =>
   (window as typeof window & { hermesDesktop?: { isDesktop?: boolean } }).hermesDesktop?.isDesktop === true,
 );
 const showChangelog = ref(false);
 const showVersionManagement = ref(false);
-const isSettingsRoute = computed(() => route.name === 'hermes.settings');
+// const isSettingsRoute = computed(() => route.name === 'hermes.settings');
 
 const { record: collapsedGroups, persist: persistCollapsedGroups } = usePersistentRecord('hermes.sidebar.collapsedGroups');
 
@@ -78,13 +78,13 @@ function handleLogout() {
   window.location.href = '/';
 }
 
-function openChangelog() {
-  showChangelog.value = true;
-}
+// function openChangelog() {
+//   showChangelog.value = true;
+// }
 
-function openVersionManagement() {
-  showVersionManagement.value = true;
-}
+// function openVersionManagement() {
+//   showVersionManagement.value = true;
+// }
 </script>
 
 <template>
@@ -363,7 +363,7 @@ function openVersionManagement() {
         <span>{{ t("sidebar.logout") }}</span>
         <span v-if="currentUsername" class="logout-username" :title="currentUsername">{{ currentUsername }}</span>
       </button>
-      <NButton v-if="isDesktopShell" type="primary" size="tiny" block class="update-btn" @click="openVersionManagement">
+      <NButton v-if="isDesktopShell" type="primary" size="tiny" block class="update-btn" @click="showVersionManagement = true">
         {{ t('sidebar.versionManagement') }}
       </NButton>
       <NButton v-if="appStore.clientOutdated" type="warning" size="tiny" block class="update-btn"
