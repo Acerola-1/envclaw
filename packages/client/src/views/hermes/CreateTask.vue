@@ -69,18 +69,21 @@ const promptSupplement = ref('') // 用户补充说明
 
 // 推送平台 chip 定义
 const pushChipList = [
-  { id: 'origin', name: '原始会话', icon: '💬' },
-  { id: 'local', name: '本地', icon: '🖥️' },
-  { id: 'wecom', name: '企业微信', icon: '💬' },
-  { id: 'dingtalk', name: '钉钉', icon: '🔷' },
-  { id: 'feishu', name: '飞书', icon: '🐦' },
-  { id: 'qqbot', name: 'QQBot', icon: '🐧' },
+  { id: 'origin', name: '原始会话' },
+  { id: 'local', name: '本地' },
+  { id: 'wecom', name: '企业微信' },
+  { id: 'weixin', name: '微信' },
+  { id: 'dingtalk', name: '钉钉' },
+  { id: 'feishu', name: '飞书' },
+  { id: 'qqbot', name: 'QQBot' },
 ]
 
 function togglePushChip(chipId: string) {
+  // 单选：选中一个时取消其他
   if (selectedPushChips.value.has(chipId)) {
     selectedPushChips.value.delete(chipId)
   } else {
+    selectedPushChips.value.clear()
     selectedPushChips.value.add(chipId)
   }
 }
@@ -324,6 +327,13 @@ const pushChipNames = computed(() =>
     const chip = pushChipList.find(c => c.id === id)
     return chip ? chip.name : id
   })
+)
+
+// 只显示已配置的推送平台
+const configuredPushChips = computed(() =>
+  pushChipList.filter(chip =>
+    chip.id === 'origin' || chip.id === 'local' || isPlatformConfigured(chip.id)
+  )
 )
 
 // Cron 表达式转人类可读描述
@@ -696,7 +706,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
           <div class="form-section">
 
             <div class="form-group">
-              <label class="form-label">任务名称<span class="form-label-optional2">（*必填）</span></label>
+              <label class="form-label">任务名称<span class="required-mark">*</span></label>
               <NInput v-model:value="taskName" placeholder="请输入任务名称" maxlength="50" />
             </div>
 
@@ -824,28 +834,21 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
         <div v-show="currentStep === 2" class="step-panel">
           <div class="form-section">
             <div class="form-group">
-              <label class="form-label">执行频率 <span class="form-label-optional2">（*必填）</span></label>
+              <label class="form-label">执行频率 <span class="required-mark">*</span></label>
               <SchedulePicker v-model="schedule" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">推送平台 <span class="form-label-optional2">（*必填）</span></label>
+              <label class="form-label">推送平台 <span class="required-mark">*</span></label>
               <div class="chip-group">
-                <div v-for="chip in pushChipList" :key="chip.id" class="chip" :class="{
+                <div v-for="chip in configuredPushChips" :key="chip.id" class="chip" :class="{
                   active: selectedPushChips.has(chip.id),
-                  disabled: chip.id !== 'origin' && chip.id !== 'local' && !isPlatformConfigured(chip.id),
-                }"
-                  @click="chip.id === 'origin' || chip.id === 'local' || isPlatformConfigured(chip.id) ? togglePushChip(chip.id) : null">
-                  <span class="chip-icon">{{ chip.icon }}</span>
+                }" @click="togglePushChip(chip.id)">
                   {{ chip.name }}
-                  <span v-if="chip.id !== 'origin' && chip.id !== 'local'" class="chip-status"
-                    :class="{ configured: isPlatformConfigured(chip.id) }">
-                    {{ isPlatformConfigured(chip.id) ? '已配置' : '未配置' }}
-                  </span>
                 </div>
               </div>
-              <div class="chip-config-hint">
-                <span class="hint-text">未配置的平台无法使用，</span>
+              <div v-if="configuredPushChips.length === 0" class="chip-config-hint">
+                <span class="hint-text">尚未配置任何推送平台，</span>
                 <a class="hint-link" @click="goToChannels">前往配置 →</a>
               </div>
             </div>
@@ -1411,6 +1414,12 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   font-size: 11px;
   color: var(--text-muted);
   margin-left: 8px;
+}
+
+.required-mark {
+  color: #E53935;
+  font-weight: 600;
+  margin-left: 2px;
 }
 
 .platform-capability {

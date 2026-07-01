@@ -301,6 +301,11 @@ export async function bootstrap() {
   initAllStores()
   console.log('[bootstrap] all stores initialized')
 
+  // Initialize envclaw platform tables and seed builtin data
+  const { initTable: initPlatformTable } = await import('./services/envclaw/platforms')
+  initPlatformTable()
+  console.log('[bootstrap] platform tables initialized')
+
   app.use(securityHeaders())
   app.use(cors({ origin: createCorsOriginResolver(config.corsOrigins) }))
   // Raise body limits above the default 1mb: profile avatars and MiMo voice-clone
