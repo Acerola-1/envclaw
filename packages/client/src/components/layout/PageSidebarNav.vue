@@ -22,7 +22,7 @@ function switchMode(mode: AppMode) {
   <div class="page-sidebar-nav">
     <!-- 品牌标识 -->
     <div class="sidebar-brand">
-      <div class="logo-icon">数</div>
+      <img class="logo-icon" src="/logo.png" alt="" />
       <div>
         <div class="logo-text">envClaw</div>
         <div class="logo-tag">数智环保 · envClaw</div>
@@ -84,9 +84,8 @@ function switchMode(mode: AppMode) {
 }
 
 .logo-icon {
-  width: 28px;
-  height: 28px;
-  background: #16a34a;
+  width: 45px;
+  height: 45px;
   border-radius: 8px;
   display: grid;
   place-items: center;
