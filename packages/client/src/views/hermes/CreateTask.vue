@@ -319,8 +319,6 @@ function toggleFunction(funcId: string) {
 const isFormValid = computed(() => {
   if (!taskName.value) return false
   if (selectedPushChips.value.size === 0) return false
-  // 提示词可由用户输入或平台/功能自动组装
-  if (!taskPrompt.value.trim() && activeFunctions.value.length === 0) return false
   return !!schedule.value
 })
 
@@ -557,8 +555,8 @@ async function handleSubmit() {
       message.warning('请选择推送平台')
       return
     }
-    if (!taskPrompt.value.trim() && activeFunctions.value.length === 0) {
-      message.warning('请输入执行提示词或选择数据平台功能')
+    if (!taskPrompt.value.trim()) {
+      message.warning('请输入执行提示词')
       return
     }
     if (!schedule.value) {

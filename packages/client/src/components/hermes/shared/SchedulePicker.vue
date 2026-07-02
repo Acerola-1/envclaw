@@ -10,13 +10,16 @@ const emit = defineEmits<{
 }>()
 
 // ==================== 预设模式数据 ====================
-type PresetCategory = 'interval' | 'daily' | 'weekly' | 'monthly'
+type PresetCategory = 'interval' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom'
 
 const presetCategory = ref<PresetCategory>('interval')
 
 // 间隔模式
 const intervalValue = ref(5)
 const intervalUnit = ref<'minute' | 'hour'>('minute')
+
+// 每小时模式
+const hourlyMinute = ref(0)
 
 // 每天模式
 const dailyHour = ref(9)
@@ -32,7 +35,8 @@ const monthlyDay = ref(1)
 const monthlyHour = ref(9)
 const monthlyMinute = ref(0)
 
-// ==================== 选项 ====================
+// 自定义 Cron 模式
+const customCron = ref('0 9 * * *')
 const intervalPresets = [
   { label: '5 分钟', value: 5, unit: 'minute' as const },
   { label: '10 分钟', value: 10, unit: 'minute' as const },
@@ -88,6 +92,9 @@ function generateCron(): string {
       }
       return `0 */${intervalValue.value} * * *`
     }
+    case 'hourly': {
+      return `${hourlyMinute.value} * * * *`
+    }
     case 'daily': {
       return `${dailyMinute.value} ${dailyHour.value} * * *`
     }
@@ -99,6 +106,9 @@ function generateCron(): string {
     }
     case 'monthly': {
       return `${monthlyMinute.value} ${monthlyHour.value} ${monthlyDay.value} * *`
+    }
+    case 'custom': {
+      return customCron.value.trim() || '0 9 * * *'
     }
     default:
       return '0 9 * * *'
@@ -123,6 +133,13 @@ function parseCron(cron: string) {
     return true
   }
 
+  // 每小时模式: M * * * * (每小时 M 分执行)
+  if (minuteStr !== '*' && hourStr === '*' && dom === '*' && dow === '*') {
+    presetCategory.value = 'hourly'
+    hourlyMinute.value = parseInt(minuteStr) || 0
+    return true
+  }
+
   // 间隔模式: 0 */N * * * (小时间隔)
   if (minuteStr === '0' && hourStr.startsWith('*/')) {
     presetCategory.value = 'interval'
@@ -130,6 +147,8 @@ function parseCron(cron: string) {
     intervalValue.value = parseInt(hourStr.slice(2)) || 1
     return true
   }
+
+  // 自定义模式: 其他复杂 cron 表达式
 
   // 每周模式: M H * * dow
   if (dow !== '*' && dom === '*' && dow !== '*') {
@@ -157,17 +176,27 @@ function parseCron(cron: string) {
     return true
   }
 
-  return false
+  // 自定义模式: 其他复杂 cron 表达式
+  presetCategory.value = 'custom'
+  customCron.value = cron
+  return true
 }
 
 // ==================== 描述生成 ====================
+// TODO(i18n): weekDayLabels 及 scheduleDescription 中的中文描述需接入 i18n
 const weekDayLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
 const scheduleDescription = computed(() => {
   switch (presetCategory.value) {
     case 'interval': {
-      const unit = intervalUnit.value === 'minute' ? '分钟' : '小时'
-      return `每 ${intervalValue.value} ${unit} 执行一次`
+      if (intervalUnit.value === 'minute') {
+        return `每 ${intervalValue.value} 分钟执行一次`
+      }
+      return `每 ${intervalValue.value} 小时执行一次`
+    }
+    case 'hourly': {
+      const minStr = String(hourlyMinute.value).padStart(2, '0')
+      return `每小时的 ${minStr} 分执行`
     }
     case 'daily': {
       const time = `${String(dailyHour.value).padStart(2, '0')}:${String(dailyMinute.value).padStart(2, '0')}`
@@ -186,6 +215,9 @@ const scheduleDescription = computed(() => {
       const time = `${String(monthlyHour.value).padStart(2, '0')}:${String(monthlyMinute.value).padStart(2, '0')}`
       return `每月 ${monthlyDay.value} 号 ${time} 执行`
     }
+    case 'custom': {
+      return customCron.value.trim() || '未设置'
+    }
     default:
       return ''
   }
@@ -197,7 +229,7 @@ function syncToParent() {
 }
 
 // ==================== 监听变化 ====================
-watch([presetCategory, intervalValue, intervalUnit, dailyHour, dailyMinute, weeklyDays, weeklyHour, weeklyMinute, monthlyDay, monthlyHour, monthlyMinute], () => {
+watch([presetCategory, intervalValue, intervalUnit, hourlyMinute, dailyHour, dailyMinute, weeklyDays, weeklyHour, weeklyMinute, monthlyDay, monthlyHour, monthlyMinute, customCron], () => {
   syncToParent()
 }, { deep: true })
 
@@ -239,12 +271,18 @@ function toggleWeekDay(day: number) {
 <template>
   <div class="schedule-picker">
     <!-- 类别标签 -->
+    <!-- TODO(i18n): 标签文字 "按间隔/每小时/每天/每周/每月/自定义" 需接入 i18n -->
     <div class="sched-cat-tabs">
       <button
         class="sched-cat-btn"
         :class="{ active: presetCategory === 'interval' }"
         @click="switchCategory('interval')"
       >按间隔</button>
+      <button
+        class="sched-cat-btn"
+        :class="{ active: presetCategory === 'hourly' }"
+        @click="switchCategory('hourly')"
+      >每小时</button>
       <button
         class="sched-cat-btn"
         :class="{ active: presetCategory === 'daily' }"
@@ -260,9 +298,15 @@ function toggleWeekDay(day: number) {
         :class="{ active: presetCategory === 'monthly' }"
         @click="switchCategory('monthly')"
       >每月</button>
+      <button
+        class="sched-cat-btn"
+        :class="{ active: presetCategory === 'custom' }"
+        @click="switchCategory('custom')"
+      >自定义</button>
     </div>
 
     <!-- 按间隔 -->
+    <!-- TODO(i18n): "常用间隔" "自定义" "分钟" "小时" "执行分钟" "分" 需接入 i18n -->
     <div v-if="presetCategory === 'interval'" class="sched-cat-panel">
       <div class="sched-sub-label">常用间隔</div>
       <div class="preset-chip-grid">
@@ -298,9 +342,41 @@ function toggleWeekDay(day: number) {
           </select>
         </div>
       </div>
+      <div v-if="intervalUnit === 'hour'" class="sched-custom-row">
+        <span class="sched-custom-label">执行分钟</span>
+        <div class="sched-custom-inputs">
+          <select
+            class="sched-unit-select"
+            :value="hourlyMinute"
+            @change="hourlyMinute = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in minuteOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <span>分</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 每小时 -->
+    <!-- TODO(i18n): "执行分钟" "分" 需接入 i18n -->
+    <div v-if="presetCategory === 'hourly'" class="sched-cat-panel">
+      <div class="sched-time-row">
+        <span class="sched-time-label">执行分钟</span>
+        <div class="sched-time-inputs">
+          <select
+            class="sched-time-select"
+            :value="hourlyMinute"
+            @change="hourlyMinute = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in minuteOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+          <span>分</span>
+        </div>
+      </div>
     </div>
 
     <!-- 每天 -->
+    <!-- TODO(i18n): "执行时间" 需接入 i18n -->
     <div v-if="presetCategory === 'daily'" class="sched-cat-panel">
       <div class="sched-time-row">
         <span class="sched-time-label">执行时间</span>
@@ -325,6 +401,7 @@ function toggleWeekDay(day: number) {
     </div>
 
     <!-- 每周 -->
+    <!-- TODO(i18n): "选择星期" "执行时间" 需接入 i18n -->
     <div v-if="presetCategory === 'weekly'" class="sched-cat-panel">
       <div class="sched-sub-label">选择星期</div>
       <div class="sched-day-chips">
@@ -361,6 +438,7 @@ function toggleWeekDay(day: number) {
     </div>
 
     <!-- 每月 -->
+    <!-- TODO(i18n): "每月" "执行时间" 需接入 i18n -->
     <div v-if="presetCategory === 'monthly'" class="sched-cat-panel">
       <div class="sched-monthly-row">
         <span class="sched-monthly-label">每月</span>
@@ -390,6 +468,29 @@ function toggleWeekDay(day: number) {
           >
             <option v-for="opt in minuteOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 自定义 -->
+    <!-- TODO(i18n): "Cron 表达式" "格式: 分 时 日 月 周" 及示例说明需接入 i18n -->
+    <div v-if="presetCategory === 'custom'" class="sched-cat-panel">
+      <div class="sched-custom-cron-row">
+        <span class="sched-custom-label">Cron 表达式</span>
+        <input
+          type="text"
+          class="sched-cron-input"
+          v-model="customCron"
+          placeholder="例如: 0 9 * * *"
+        />
+      </div>
+      <div class="sched-cron-help">
+        <div class="sched-cron-help-title">格式: 分 时 日 月 周</div>
+        <div class="sched-cron-help-examples">
+          <div>每 5 分钟: <code>*/5 * * * *</code></div>
+          <div>每天 9 点: <code>0 9 * * *</code></div>
+          <div>每周一 9 点: <code>0 9 * * 1</code></div>
+          <div>每月 1 日 9 点: <code>0 9 1 * *</code></div>
         </div>
       </div>
     </div>
@@ -629,6 +730,59 @@ function toggleWeekDay(day: number) {
   cursor: pointer;
   outline: none;
   color: $text-primary;
+}
+
+// 自定义 Cron
+.sched-custom-cron-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sched-cron-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  font-size: 14px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: $bg-primary;
+  color: $text-primary;
+  outline: none;
+
+  &:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.10);
+  }
+}
+
+.sched-cron-help {
+  padding: 12px 14px;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-sm;
+  font-size: 12px;
+  color: $text-muted;
+}
+
+.sched-cron-help-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: $text-secondary;
+}
+
+.sched-cron-help-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: rgba(26, 115, 232, 0.08);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--accent-primary);
+  }
 }
 
 // 描述预览
