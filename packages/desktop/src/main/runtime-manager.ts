@@ -356,6 +356,25 @@ async function sha256File(file: string): Promise<string> {
   return hash.digest('hex')
 }
 
+const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms))
+
+// Windows 上刚解压出的 win-x64 目录常被 Defender/杀毒软件即时扫描而持有句柄，
+// 导致 rename/删除抛 EPERM/EBUSY 等瞬时错误。等待句柄释放后重试即可。
+async function withFsRetry(fn: () => void, attempts = 10, baseDelayMs = 200): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      fn()
+      return
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      const retriable = code === 'EPERM' || code === 'EACCES' || code === 'EBUSY' || code === 'ENOTEMPTY'
+      if (!retriable || attempt >= attempts) throw err
+      console.warn(`[runtime] fs op failed (${code}), retry ${attempt}/${attempts - 1}`)
+      await delay(baseDelayMs * attempt)
+    }
+  }
+}
+
 async function extractRuntimeArchive(archive: string, targetRoot: string): Promise<void> {
   const parent = dirname(targetRoot)
   const tempRoot = join(parent, `.runtime-${process.pid}-${Date.now()}`)
@@ -368,11 +387,15 @@ async function extractRuntimeArchive(archive: string, targetRoot: string): Promi
     if (missing.length > 0) {
       throw new Error(`Runtime archive is missing required files: ${missing.map(file => relative(tempRoot, file)).join(', ')}`)
     }
-    rmSync(targetRoot, { recursive: true, force: true })
+    await withFsRetry(() => rmSync(targetRoot, { recursive: true, force: true }))
     mkdirSync(parent, { recursive: true })
-    renameSync(tempRoot, targetRoot)
+    await withFsRetry(() => renameSync(tempRoot, targetRoot))
   } catch (err) {
-    rmSync(tempRoot, { recursive: true, force: true })
+    try {
+      rmSync(tempRoot, { recursive: true, force: true })
+    } catch (cleanupErr) {
+      console.warn(`[runtime] failed to clean up temp runtime dir: ${cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)}`)
+    }
     throw err
   }
 }
