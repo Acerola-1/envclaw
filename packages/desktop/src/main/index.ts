@@ -358,12 +358,19 @@ function runtimeSourceHtml(errorMessage?: string): string {
 <p class="label">${escapeHtml(t('desktop.downloadRuntimePrompt'))}</p>
 ${errorBlock}
 <div class="actions">
+  <button id="mirror">
+    <span class="button-title">${escapeHtml(t('desktop.downloadMirrorTitle'))}</span>
+    <span class="button-detail">${escapeHtml(t('desktop.downloadMirrorDetail'))}</span>
+  </button>
   <button id="github">
     <span class="button-title">${escapeHtml(t('desktop.downloadGithubTitle'))}</span>
     <span class="button-detail">${escapeHtml(t('desktop.downloadGithubDetail'))}</span>
   </button>
 </div>
 <script>
+  document.getElementById('mirror')?.addEventListener('click', () => {
+    window.hermesDesktop?.retryBootstrap?.('mirror')
+  })
   document.getElementById('github')?.addEventListener('click', () => {
     window.hermesDesktop?.retryBootstrap?.('github')
   })
@@ -374,7 +381,8 @@ ${errorBlock}
 
 function envRuntimeDownloadSource(): RuntimeDownloadSource | undefined {
   const source = process.env.HERMES_DESKTOP_RUNTIME_SOURCE?.trim().toLowerCase()
-  return source === 'github' ? source : undefined
+  if (source === 'github' || source === 'mirror') return source as RuntimeDownloadSource
+  return undefined
 }
 
 function formatBytes(bytes: number): string {
@@ -418,7 +426,7 @@ async function bootstrap(source?: RuntimeDownloadSource) {
   isBootstrapping = true
 
   try {
-    const selectedSource: RuntimeDownloadSource = source || envRuntimeDownloadSource() || 'github'
+    const selectedSource: RuntimeDownloadSource = source || envRuntimeDownloadSource() || 'mirror'
     const runtimeUrlOverride = !!process.env.HERMES_DESKTOP_RUNTIME_URL?.trim()
     const manifestOverride = !!process.env.HERMES_DESKTOP_RUNTIME_MANIFEST_URL?.trim()
     const forceUpdate = !!process.env.HERMES_DESKTOP_RUNTIME_FORCE_UPDATE

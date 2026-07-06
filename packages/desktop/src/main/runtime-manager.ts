@@ -32,11 +32,12 @@ import { t } from './desktop-i18n'
 
 const DEFAULT_RUNTIME_GITHUB_REPO = 'EKKOLearnAI/hermes-studio'
 const DEFAULT_GITHUB_PROXY = 'https://ghproxy.net/'
+const DEFAULT_RUNTIME_MIRROR_BASE_URL = 'https://www.mapairs.com/datacenter/claw'
 const RUNTIME_MANIFEST_NAME = 'runtime-manifest.json'
 const PACKAGED_RUNTIME_RELEASE_NAME = 'runtime-release.json'
 const ACTIVE_RUNTIME_VERSION_NAME = 'active-version.json'
 
-export type RuntimeDownloadSource = 'github'
+export type RuntimeDownloadSource = 'mirror' | 'github'
 
 type RuntimeManifest = {
   schema: number
@@ -75,7 +76,7 @@ type RuntimeProgressHandler = (progress: RuntimeProgress) => void
 function runtimeDownloadSource(source?: RuntimeDownloadSource): RuntimeDownloadSource | null {
   if (source) return source
   const value = process.env.HERMES_DESKTOP_RUNTIME_SOURCE?.trim().toLowerCase()
-  if (value === 'github') return value
+  if (value === 'github' || value === 'mirror') return value as RuntimeDownloadSource
   return null
 }
 
@@ -175,21 +176,23 @@ function githubProxyPrefix(): string {
   return value.endsWith('/') ? value : `${value}/`
 }
 
-function runtimeAssetUrl(assetName: string, tag: string, source: RuntimeDownloadSource): string {
-  if (source === 'github') {
-    // If the operator points HERMES_DESKTOP_RUNTIME_BASE_URL at a private mirror
-    // (e.g. their own OSS bucket), bypass GitHub entirely and resolve assets
-    // from there instead.
-    const baseUrlTemplate = process.env.HERMES_DESKTOP_RUNTIME_BASE_URL?.trim()
-    if (baseUrlTemplate) {
-      if (baseUrlTemplate.includes('{asset}') || baseUrlTemplate.includes('{tag}')) {
-        return baseUrlTemplate
-          .replace(/\{asset\}/g, encodeURIComponent(assetName))
-          .replace(/\{tag\}/g, encodeURIComponent(tag))
-      }
-      return `${baseUrlTemplate.replace(/\/$/, '')}/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
-    }
+function mirrorBaseUrl(): string {
+  const override = process.env.HERMES_DESKTOP_RUNTIME_BASE_URL?.trim()
+  return override || DEFAULT_RUNTIME_MIRROR_BASE_URL
+}
 
+function runtimeAssetUrl(assetName: string, tag: string, source: RuntimeDownloadSource): string {
+  if (source === 'mirror') {
+    const baseUrlTemplate = mirrorBaseUrl()
+    if (baseUrlTemplate.includes('{asset}') || baseUrlTemplate.includes('{tag}')) {
+      return baseUrlTemplate
+        .replace(/\{asset\}/g, encodeURIComponent(assetName))
+        .replace(/\{tag\}/g, encodeURIComponent(tag))
+    }
+    return `${baseUrlTemplate.replace(/\/$/, '')}/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
+  }
+
+  if (source === 'github') {
     const repo = process.env.HERMES_DESKTOP_RUNTIME_REPO?.trim() || DEFAULT_RUNTIME_GITHUB_REPO
     const proxy = githubProxyPrefix()
     if (tag === 'latest') {
@@ -214,6 +217,19 @@ async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
+function mirrorRuntimeTag(): string | null {
+  // Mirror mode: resolve the exact runtime tag from packaged metadata or
+  // the desktop runtime version, rather than trying multiple candidates.
+  const override = process.env.HERMES_DESKTOP_RUNTIME_RELEASE_TAG?.trim()
+  if (override) return override
+
+  const metadata = packagedRuntimeReleaseMetadata()
+  if (metadata?.tag) return metadata.tag
+
+  const hermesVersion = desktopRuntimeVersion()
+  return `hermes-${hermesVersion}-runtime`
+}
+
 async function resolveRuntimeDescriptor(source?: RuntimeDownloadSource): Promise<RuntimeDescriptor> {
   const directUrl = process.env.HERMES_DESKTOP_RUNTIME_URL?.trim()
   if (directUrl) {
@@ -229,7 +245,14 @@ async function resolveRuntimeDescriptor(source?: RuntimeDownloadSource): Promise
 
   const candidates = manifestOverride
     ? [{ tag: '', url: manifestOverride }]
-    : releaseTagCandidates().map(tag => ({ tag, url: runtimeAssetUrl(platformManifestName, tag, downloadSource!) }))
+    : downloadSource === 'mirror'
+      ? (() => {
+          // Mirror: only try the exact tag derived from runtime metadata
+          const tag = mirrorRuntimeTag()
+          if (!tag) throw new Error('Unable to determine runtime tag for mirror download')
+          return [{ tag, url: runtimeAssetUrl(platformManifestName, tag, downloadSource) }]
+        })()
+      : releaseTagCandidates().map(tag => ({ tag, url: runtimeAssetUrl(platformManifestName, tag, downloadSource!) }))
 
   let lastError: Error | null = null
   for (const candidate of candidates) {
