@@ -12,6 +12,15 @@ buildDependenciesFromSource: false
 nodeGypRebuild: false
 npmRebuild: false
 
+# Auto-update: publish provider is set to "generic" so that electron-builder
+# generates latest-mac.yml / latest.yml for auto-update discovery.
+# The actual feedURL is set at runtime in updater.ts based on platform,
+# so the url here is a placeholder — electron-updater overrides it via setFeedURL().
+publish:
+  provider: generic
+  url: https://www.mapairs.com/datacenter/claw/updates
+  channel: latest
+
 files:
   - "dist/**/*"
   - "package.json"

@@ -7,6 +7,7 @@ import { bundledNode, desktopIcon, desktopRuntimeVersion, desktopTrayTemplateIco
 import { t } from './desktop-i18n'
 import { installEnvclawCliShim, installEnvclawMcpShim } from './cli-shim'
 import { parseHermesCliArgs, runBundledHermesCli } from './hermes-cli'
+import { initAutoUpdater, checkForUpdates } from './updater'
 import {
   ensureDesktopRuntime,
   isDesktopRuntimeReady,
@@ -150,6 +151,13 @@ function updateTrayMenu() {
       click: (item) => {
         setOpenAtLogin(item.checked)
         updateTrayMenu()
+      },
+    },
+    { type: 'separator' },
+    {
+      label: t('tray.checkForUpdates'),
+      click: () => {
+        checkForUpdates()
       },
     },
     { type: 'separator' },
@@ -471,6 +479,7 @@ async function bootstrap(source?: RuntimeDownloadSource) {
     }
   } finally {
     isBootstrapping = false
+    initAutoUpdater()
   }
 }
 

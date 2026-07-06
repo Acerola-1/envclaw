@@ -25,6 +25,7 @@ type TranslationKey =
   | 'update.failedTitle'
   | 'update.failedMessage'
   | 'update.noUpdateInfoMessage'
+  | 'update.packagedOnlyTitle'
   | 'update.packagedOnlyMessage'
   | 'desktop.startingLocalServices'
   | 'desktop.downloadRuntimePrompt'
@@ -70,6 +71,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': 'Update check failed',
     'update.failedMessage': 'Could not check for Envclaw updates.',
     'update.noUpdateInfoMessage': 'Update information is not available for this platform yet.',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': 'Automatic updates are only available in the packaged desktop app.',
     'desktop.startingLocalServices': 'Starting local services...',
     'desktop.downloadRuntimePrompt': 'The Hermes runtime needs to be downloaded to start local services.',
@@ -112,6 +114,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': '检查更新失败',
     'update.failedMessage': '无法检查 Envclaw 更新。',
     'update.noUpdateInfoMessage': '当前平台的更新信息暂不可用。',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': '自动更新仅在打包后的桌面应用中可用。',
     'desktop.startingLocalServices': '正在启动本地服务...',
     'desktop.downloadRuntimePrompt': '需要下载 Hermes 运行时以启动本地服务。',
@@ -154,6 +157,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': '檢查更新失敗',
     'update.failedMessage': '無法檢查 Envclaw 更新。',
     'update.noUpdateInfoMessage': '目前平台的更新資訊暫不可用。',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': '自動更新僅可在打包後的桌面應用中使用。',
     'desktop.startingLocalServices': '正在啟動本地服務...',
     'desktop.downloadRuntimePrompt': '需要下載 Hermes 運行時以啟動本地服務。',
@@ -196,6 +200,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': 'アップデート確認に失敗しました',
     'update.failedMessage': 'Envclaw のアップデートを確認できませんでした。',
     'update.noUpdateInfoMessage': 'このプラットフォームのアップデート情報はまだ利用できません。',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': '自動アップデートはパッケージ版デスクトップアプリでのみ利用できます。',
     'desktop.startingLocalServices': 'ローカルサービスを起動しています...',
     'desktop.downloadRuntimePrompt': 'ローカルサービスを起動するには Hermes ランタイムのダウンロードが必要です。',
@@ -238,6 +243,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': '업데이트 확인 실패',
     'update.failedMessage': 'Envclaw 업데이트를 확인할 수 없습니다.',
     'update.noUpdateInfoMessage': '이 플랫폼의 업데이트 정보를 아직 사용할 수 없습니다.',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': '자동 업데이트는 패키징된 데스크톱 앱에서만 사용할 수 있습니다.',
     'desktop.startingLocalServices': '로컬 서비스를 시작하는 중...',
     'desktop.downloadRuntimePrompt': '로컬 서비스를 시작하려면 Hermes 런타임을 다운로드해야 합니다.',
@@ -280,6 +286,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': 'Echec de la recherche de mise a jour',
     'update.failedMessage': 'Impossible de rechercher les mises a jour de Envclaw.',
     'update.noUpdateInfoMessage': 'Les informations de mise a jour ne sont pas encore disponibles pour cette plateforme.',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': 'Les mises a jour automatiques ne sont disponibles que dans l application de bureau packagee.',
     'desktop.startingLocalServices': 'Demarrage des services locaux...',
     'desktop.downloadRuntimePrompt': 'Le runtime Hermes doit etre telecharge pour demarrer les services locaux.',
@@ -322,6 +329,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': 'Error al buscar actualizaciones',
     'update.failedMessage': 'No se pudieron buscar actualizaciones de Envclaw.',
     'update.noUpdateInfoMessage': 'La informacion de actualizacion aun no esta disponible para esta plataforma.',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': 'Las actualizaciones automaticas solo estan disponibles en la app de escritorio empaquetada.',
     'desktop.startingLocalServices': 'Iniciando servicios locales...',
     'desktop.downloadRuntimePrompt': 'El runtime de Hermes debe descargarse para iniciar los servicios locales.',
@@ -364,6 +372,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': 'Update-Prufung fehlgeschlagen',
     'update.failedMessage': 'Updates fur Envclaw konnten nicht gepruft werden.',
     'update.noUpdateInfoMessage': 'Update-Informationen sind fur diese Plattform noch nicht verfugbar.',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': 'Automatische Updates sind nur in der paketierten Desktop-App verfugbar.',
     'desktop.startingLocalServices': 'Lokale Dienste werden gestartet...',
     'desktop.downloadRuntimePrompt': 'Die Hermes Runtime muss heruntergeladen werden, um lokale Dienste zu starten.',
@@ -406,6 +415,7 @@ const translations: Record<DesktopLocale, Record<TranslationKey, string>> = {
     'update.failedTitle': 'Falha ao verificar atualizacoes',
     'update.failedMessage': 'Nao foi possivel verificar atualizacoes do Envclaw.',
     'update.noUpdateInfoMessage': 'As informacoes de atualizacao ainda nao estao disponiveis para esta plataforma.',
+    'update.packagedOnlyTitle': 'Envclaw',
     'update.packagedOnlyMessage': 'Atualizacoes automaticas estao disponiveis apenas no app desktop empacotado.',
     'desktop.startingLocalServices': 'Iniciando servicos locais...',
     'desktop.downloadRuntimePrompt': 'O runtime Hermes precisa ser baixado para iniciar os servicos locais.',
