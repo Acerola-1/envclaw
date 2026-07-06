@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, dialog } from 'electron'
 import { autoUpdater, UpdateInfo } from 'electron-updater'
 import { t } from './desktop-i18n'
 
@@ -27,7 +27,6 @@ function configureAutoUpdater(): void {
   console.log(`[updater] feedURL: ${feedURL}`)
 }
 
-let updateAvailable = false
 let downloadedInfo: UpdateInfo | null = null
 
 function setupUpdateListeners(): void {
@@ -36,8 +35,7 @@ function setupUpdateListeners(): void {
   })
 
   autoUpdater.on('update-available', (info) => {
-    console.log(`[updater] update available: ${info.version}`)
-    updateAvailable = true
+    console.log(`[updater] update available: ${info.version}, downloading...`)
   })
 
   autoUpdater.on('update-not-available', () => {
@@ -114,7 +112,18 @@ export async function checkForUpdates(): Promise<void> {
 
   try {
     const result = await autoUpdater.checkForUpdates()
-    if (!result?.updateInfo) {
+    const updateVersion = result?.updateInfo?.version
+
+    if (updateVersion && updateVersion !== app.getVersion()) {
+      // Update found and auto-download started; user will see promptRestart()
+      // when download completes. Show a brief notice so they know something is happening.
+      dialog.showMessageBox({
+        type: 'info',
+        title: t('update.availableTitle'),
+        message: t('update.availableMessage', { version: updateVersion }),
+        detail: t('update.downloading'),
+      })
+    } else {
       dialog.showMessageBox({
         type: 'info',
         title: t('update.upToDateTitle'),
@@ -125,11 +134,7 @@ export async function checkForUpdates(): Promise<void> {
     dialog.showMessageBox({
       type: 'error',
       title: t('update.failedTitle'),
-      message: t('update.failedMessage'),
+      message: `${t('update.failedMessage')}\n\n${err instanceof Error ? err.message : String(err)}`,
     })
   }
-}
-
-export function isUpdateDownloaded(): boolean {
-  return !!downloadedInfo
 }
