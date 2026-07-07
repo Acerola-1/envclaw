@@ -62,6 +62,8 @@ mac:
   target:
     - target: dmg
       arch: [arm64]
+    - target: zip
+      arch: [arm64]
   category: public.app-category.developer-tools
   hardenedRuntime: true
   gatekeeperAssess: false
