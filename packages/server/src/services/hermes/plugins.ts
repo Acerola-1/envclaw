@@ -225,22 +225,21 @@ export async function listHermesPlugins(profile?: string): Promise<HermesPlugins
   const hermesHome = profile ? getProfileDir(profile) : getActiveProfileDir()
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    HERMES_AGENT_ROOT_RESOLVED: agentRoot,
     HERMES_HOME: hermesHome,
   }
-  if (!agentRoot) {
+  if (agentRoot) {
+    env.HERMES_AGENT_ROOT_RESOLVED = agentRoot
+  } else {
     delete env.PYTHONHOME
     delete env.PYTHONPATH
   }
   const pythonArgs = [
     ...command.argsPrefix,
-    ...(agentRoot ? ['-I'] : []),
     '-c',
     PYTHON_BRIDGE,
   ]
   const displayArgs = [
     ...command.argsPrefix,
-    ...(agentRoot ? ['-I'] : []),
     '-c',
     '<plugin-discovery>',
   ].join(' ')

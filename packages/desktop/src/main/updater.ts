@@ -100,6 +100,43 @@ export function initAutoUpdater(): void {
   }, FOUR_HOURS)
 }
 
+export async function checkForUpdatesUi(): Promise<{
+  currentVersion: string
+  updateAvailable: boolean
+  latestVersion?: string
+  error?: string
+}> {
+  const currentVersion = app.getVersion()
+
+  if (!app.isPackaged) {
+    return {
+      currentVersion,
+      updateAvailable: false,
+      error: t('update.packagedOnlyMessage'),
+    }
+  }
+
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    const updateVersion = result?.updateInfo?.version
+
+    if (updateVersion && updateVersion !== currentVersion) {
+      return { currentVersion, updateAvailable: true, latestVersion: updateVersion }
+    }
+    return { currentVersion, updateAvailable: false }
+  } catch (err) {
+    return {
+      currentVersion,
+      updateAvailable: false,
+      error: `${t('update.failedMessage')}: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
+export function getAppVersion(): string {
+  return app.getVersion()
+}
+
 export async function checkForUpdates(): Promise<void> {
   if (!app.isPackaged) {
     dialog.showMessageBox({

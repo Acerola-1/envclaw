@@ -251,3 +251,13 @@ export async function getChannelContacts(): Promise<Record<string, Array<{ id: s
   const data = await request<{ platforms: Record<string, Array<{ id: string; name: string; type: string }>> }>('/api/hermes/channel-contacts')
   return data.platforms || {}
 }
+
+export async function getDesktopVersion(): Promise<string> {
+  const desktop = (window as typeof window & { hermesDesktop?: { getAppVersion?: () => Promise<string> } }).hermesDesktop
+  return desktop?.getAppVersion?.() ?? ''
+}
+
+export async function checkDesktopUpdate(): Promise<{ currentVersion: string; updateAvailable: boolean; latestVersion?: string; error?: string }> {
+  const desktop = (window as typeof window & { hermesDesktop?: { checkForUpdates?: () => Promise<{ currentVersion: string; updateAvailable: boolean; latestVersion?: string; error?: string }> } }).hermesDesktop
+  return desktop?.checkForUpdates?.() ?? Promise.resolve({ currentVersion: '', updateAvailable: false })
+}

@@ -1460,6 +1460,15 @@ export default {
       resetSuccess: 'Avatar reset to default',
       resetFailed: 'Failed to reset avatar',
     },
+    version: {
+      title: 'Version Info',
+      current: 'Current Version',
+      unknown: 'Unknown',
+      checkUpdate: 'Check for Updates',
+      updateAvailable: 'New version v{version} available, downloading...',
+      upToDate: 'You are using the latest version',
+      checkFailed: 'Failed to check for updates',
+    },
     voice: {
       activeTtsApi: 'Active TTS API',
       activeSttApi: 'Active STT API',

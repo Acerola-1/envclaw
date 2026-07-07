@@ -9,7 +9,7 @@ import RouteLinkItem from '@/components/common/RouteLinkItem.vue'
 import ModelSelector from "@/components/layout/ModelSelector.vue";
 import LanguageSwitch from "@/components/layout/LanguageSwitch.vue";
 import ThemeSwitch from "@/components/layout/ThemeSwitch.vue";
-import VersionManagementModal from "@/components/layout/VersionManagementModal.vue";
+// import VersionManagementModal from "@/components/layout/VersionManagementModal.vue";
 import { changelog } from "@/data/changelog";
 import { getStoredUsername, isStoredSuperAdmin } from "@/api/client";
 
@@ -23,11 +23,11 @@ const selectedKey = computed(() => {
 const isSuperAdmin = computed(() => isStoredSuperAdmin());
 const currentUsername = computed(() => getStoredUsername());
 // const isVersionPreview = import.meta.env.VITE_HERMES_PREVIEW === '1';
-const isDesktopShell = computed(() =>
-  (window as typeof window & { hermesDesktop?: { isDesktop?: boolean } }).hermesDesktop?.isDesktop === true,
-);
+// const isDesktopShell = computed(() =>
+//   (window as typeof window & { hermesDesktop?: { isDesktop?: boolean } }).hermesDesktop?.isDesktop === true,
+// );
 const showChangelog = ref(false);
-const showVersionManagement = ref(false);
+// const showVersionManagement = ref(false);
 // const isSettingsRoute = computed(() => route.name === 'hermes.settings');
 
 const { record: collapsedGroups, persist: persistCollapsedGroups } = usePersistentRecord('hermes.sidebar.collapsedGroups');
@@ -363,9 +363,9 @@ function handleLogout() {
         <span>{{ t("sidebar.logout") }}</span>
         <span v-if="currentUsername" class="logout-username" :title="currentUsername">{{ currentUsername }}</span>
       </button>
-      <NButton v-if="isDesktopShell" type="primary" size="tiny" block class="update-btn" @click="showVersionManagement = true">
+      <!-- <NButton v-if="isDesktopShell" type="primary" size="tiny" block class="update-btn" @click="showVersionManagement = true">
         {{ t('sidebar.versionManagement') }}
-      </NButton>
+      </NButton> -->
       <NButton v-if="appStore.clientOutdated" type="warning" size="tiny" block class="update-btn"
         @click="handleReloadClient">
         {{ t('sidebar.reloadClientVersion', { version: appStore.serverVersion }) }}
@@ -409,7 +409,7 @@ function handleLogout() {
         </div>
       </div>
     </NModal>
-    <VersionManagementModal v-if="isDesktopShell" v-model:show="showVersionManagement" />
+    <!-- <VersionManagementModal v-if="isDesktopShell" v-model:show="showVersionManagement" /> -->
   </aside>
 </template>
 

@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { NButton, NInput, NModal, NForm, NFormItem, NPopconfirm, useMessage } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import { changePassword, changeUsername, fetchCurrentUser, fetchLockedIps, unlockSpecificIp, unlockAllIps, fetchMyAvatar, updateMyAvatar, resetMyAvatar } from "@/api/auth";
+import { getDesktopVersion, checkDesktopUpdate } from "@/api/client";
 import type { LockedIp, UserAvatar } from "@/api/auth";
 import ProfileAvatar from "@/components/hermes/profiles/ProfileAvatar.vue";
 import multiavatar from "@multiavatar/multiavatar";
@@ -125,6 +126,10 @@ const showChangeUsernameModal = ref(false);
 const currentPasswordForName = ref("");
 const newUsernameVal = ref("");
 
+// Version & update check
+const desktopVersion = ref("");
+const checkingUpdate = ref(false);
+
 onMounted(async () => {
   try {
     const user = await fetchCurrentUser();
@@ -237,11 +242,36 @@ function lockedIpTypeLabel(type: LockedIp["type"]): string {
 }
 
 onMounted(() => { loadLockedIps(); });
+
+onMounted(async () => {
+  try {
+    desktopVersion.value = await getDesktopVersion();
+  } catch { /* not desktop */ }
+});
+
+async function handleCheckUpdate() {
+  if (checkingUpdate.value) return
+  checkingUpdate.value = true
+  try {
+    const result = await checkDesktopUpdate()
+    if (result.error) {
+      message.error(result.error)
+    } else if (result.updateAvailable) {
+      message.success(t("settings.version.updateAvailable", { version: result.latestVersion }), { duration: 5000 })
+    } else {
+      message.success(t("settings.version.upToDate"))
+    }
+  } catch {
+    message.error(t("settings.version.checkFailed"))
+  } finally {
+    checkingUpdate.value = false
+  }
+}
 </script>
 
 <template>
   <div class="account-settings">
-    <p class="section-desc">{{ t("login.setupDescription") }}</p>
+    <!-- <p class="section-desc">{{ t("login.setupDescription") }}</p> -->
 
     <!-- User Avatar -->
     <div class="avatar-section">
@@ -279,6 +309,20 @@ onMounted(() => { loadLockedIps(); });
           <NButton @click="openChangePasswordModal">{{ t("login.changePassword") }}</NButton>
           <NButton @click="openChangeUsernameModal">{{ t("login.changeUsername") }}</NButton>
         </div>
+      </div>
+    </div>
+
+    <!-- Version & Update Check -->
+    <div class="version-section">
+      <h3 class="section-title">{{ t("settings.version.title") }}</h3>
+      <div class="version-row">
+        <div class="version-info">
+          <span class="version-label">{{ t("settings.version.current") }}:</span>
+          <span class="version-value">{{ desktopVersion || t("settings.version.unknown") }}</span>
+        </div>
+        <NButton type="primary" :loading="checkingUpdate" @click="handleCheckUpdate">
+          {{ t("settings.version.checkUpdate") }}
+        </NButton>
       </div>
     </div>
 
@@ -443,6 +487,42 @@ onMounted(() => { loadLockedIps(); });
   margin-bottom: 32px;
   padding-bottom: 20px;
   border-bottom: 1px solid $border-color;
+}
+
+.configured-section{
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid $border-color;
+}
+
+.version-section {
+  // margin-bottom: 32px;
+  // padding-bottom: 20px;
+  // border-bottom: 1px solid $border-color;
+}
+
+.version-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.version-info {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.version-label {
+  font-size: 14px;
+  color: $text-secondary;
+}
+
+.version-value {
+  font-size: 14px;
+  color: $text-primary;
+  font-family: $font-code;
 }
 
 .avatar-row {

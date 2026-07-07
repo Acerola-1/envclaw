@@ -1452,6 +1452,15 @@ export default {
       resetSuccess: '已恢复默认头像',
       resetFailed: '恢复默认头像失败',
     },
+    version: {
+      title: '版本信息',
+      current: '当前版本',
+      unknown: '未知',
+      checkUpdate: '检查更新',
+      updateAvailable: '发现新版本 v{version}，正在下载...',
+      upToDate: '当前已是最新版本',
+      checkFailed: '检查更新失败',
+    },
     voice: {
       activeTtsApi: '当前 TTS API',
       activeSttApi: '当前 STT API',

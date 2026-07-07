@@ -7,7 +7,7 @@ import { bundledNode, desktopIcon, desktopRuntimeVersion, desktopTrayTemplateIco
 import { t } from './desktop-i18n'
 import { installEnvclawCliShim, installEnvclawMcpShim } from './cli-shim'
 import { parseHermesCliArgs, runBundledHermesCli } from './hermes-cli'
-import { initAutoUpdater, checkForUpdates } from './updater'
+import { initAutoUpdater, checkForUpdates, getAppVersion, checkForUpdatesUi } from './updater'
 import {
   ensureDesktopRuntime,
   isDesktopRuntimeReady,
@@ -546,6 +546,8 @@ ipcMain.handle('hermes-desktop:retry-bootstrap', async (_event, source?: Runtime
   await mainWindow?.loadURL(splashHtml(t('runtime.downloading')))
   await bootstrap(selectedSource)
 })
+ipcMain.handle('hermes-desktop:get-app-version', () => getAppVersion())
+ipcMain.handle('hermes-desktop:check-for-updates', () => checkForUpdatesUi())
 
 function runDesktopApp() {
   const gotLock = app.requestSingleInstanceLock(QUIT_EXISTING ? { quit: true } : undefined)
