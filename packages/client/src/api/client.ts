@@ -1,4 +1,3 @@
-import { loginWithPassword } from './auth'
 
 const DEFAULT_BASE_URL = ''
 const ACTIVE_PROFILE_STORAGE_KEY = 'hermes_active_profile_name'
