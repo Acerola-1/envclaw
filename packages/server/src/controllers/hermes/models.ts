@@ -286,6 +286,7 @@ function visibleProfileNamesForUser(ctx: any): string[] {
   const user = ctx.state?.user
   if (!user || user.role === 'super_admin') return diskProfiles
   const allowed = new Set(listUserProfiles(user.id).map(profile => profile.profile_name))
+  if (allowed.size === 0) return diskProfiles.filter(p => p === 'default')
   return diskProfiles.filter(profile => allowed.has(profile))
 }
 

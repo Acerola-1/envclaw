@@ -75,6 +75,7 @@ function handleReloadClient() {
 function handleLogout() {
   localStorage.clear();
   sessionStorage.clear();
+  sessionStorage.setItem('hermes_manual_logout', '1');
   window.location.href = '/';
 }
 

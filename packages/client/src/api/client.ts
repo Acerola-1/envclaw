@@ -153,11 +153,15 @@ async function tryRefreshToken(): Promise<string | null> {
   if (refreshPromise) return refreshPromise
   refreshPromise = (async () => {
     try {
-      const token = await loginWithPassword('admin', '123456')
-      if (token) {
-        setApiKey(token)
-        return token
+      // Skip silent auto-login if user explicitly logged out
+      if (typeof window !== 'undefined' && window.sessionStorage.getItem('hermes_manual_logout') === '1') {
+        return null
       }
+      // const token = await loginWithPassword('admin', '123456')
+      // if (token) {
+      //   setApiKey(token)
+      //   return token
+      // }
     } catch {
       // ignore
     }

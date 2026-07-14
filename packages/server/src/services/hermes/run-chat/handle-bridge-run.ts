@@ -334,6 +334,10 @@ export async function handleBridgeRun(
     if (Object.keys(updates).length > 0) updateSession(session_id, updates)
   }
   const socketUser = socket.data.user as AuthenticatedUser | undefined
+  const resolvedUserId = socketUser?.id != null ? String(socketUser.id) : null
+  if (resolvedUserId == null) {
+    logger.warn('[chat-run-socket] createSession called with missing user on session %s', session_id ?? '(none)')
+  }
   await writeModelRunProfileToken(socketUser, profile)
   const runPrompt = [
     workspace ? `[Current working directory: ${workspace}]` : '',
@@ -393,10 +397,10 @@ export async function handleBridgeRun(
       timestamp: now,
     })
 
-    if (!getSession(session_id)) {
+    if (!session_id || !getSession(session_id)) {
       const previewText = extractTextForPreview(displayInput || input)
       const preview = previewText.replace(/[\r\n]/g, ' ').substring(0, 100)
-      createSession({ id: session_id, profile, source: runSource, model: resolvedModel, provider: resolvedProvider, title: preview, workspace: data.workspace || undefined })
+      createSession({ id: session_id, profile, source: runSource, model: resolvedModel, provider: resolvedProvider, title: preview, workspace: data.workspace || undefined, user_id: resolvedUserId })
     }
     messageId = addMessage({
       session_id,
@@ -409,7 +413,7 @@ export async function handleBridgeRun(
   } else if (!getSession(session_id)) {
     const previewText = displayInput === null ? extractTextForPreview(input) : extractTextForPreview(displayInput || input)
     const preview = previewText.replace(/[\r\n]/g, ' ').substring(0, 100)
-    createSession({ id: session_id, profile, source: runSource, model: resolvedModel, provider: resolvedProvider, title: preview, workspace: data.workspace || undefined })
+    createSession({ id: session_id, profile, source: runSource, model: resolvedModel, provider: resolvedProvider, title: preview, workspace: data.workspace || undefined, user_id: resolvedUserId })
   }
 
   socket.join(`session:${session_id}`)

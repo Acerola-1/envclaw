@@ -16,6 +16,10 @@ export interface UserRecord {
   updated_at: number
   last_login_at: number | null
   avatar: string
+  // 外部平台字段
+  external_platform: string | null
+  external_user_id: string | null
+  external_username: string | null
 }
 
 export interface UserProfileRecord {
@@ -203,21 +207,40 @@ export function setUserAvatar(userId: UserId, avatarJson: string): boolean {
 
 export function createUser(input: {
   username: string
-  password: string
+  password?: string
   role?: UserRole
   status?: UserStatus
   profiles?: string[]
   defaultProfile?: string | null
+  // 新增：外部平台字段
+  externalPlatform?: string
+  externalUserId?: string
+  externalUsername?: string
 }): UserRecord | null {
   const db = getDb()
   if (!db) return null
   const now = Date.now()
   const role = input.role || 'admin'
   const status = input.status || 'active'
+  const passwordHash = input.password
+    ? hashPassword(input.password)
+    : ''
   db.prepare(
-    `INSERT INTO ${USERS_TABLE} (username, password_hash, role, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(input.username, hashPassword(input.password), role, status, now, now)
+    `INSERT INTO ${USERS_TABLE} (
+      username, password_hash, role, status, created_at, updated_at,
+      external_platform, external_user_id, external_username
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    input.username,
+    passwordHash,
+    role,
+    status,
+    now,
+    now,
+    input.externalPlatform || null,
+    input.externalUserId || null,
+    input.externalUsername || null,
+  )
 
   const user = findUserByUsername(input.username)
   if (user) replaceUserProfiles(user.id, input.profiles || [], input.defaultProfile)
@@ -317,4 +340,50 @@ export function bootstrapDefaultSuperAdmin(username: string, password: string): 
   if (countUsers() > 0) return null
   if (username !== DEFAULT_USERNAME || password !== DEFAULT_PASSWORD) return null
   return createDefaultSuperAdmin()
+}
+
+/**
+ * 给 users 表添加外部平台字段（幂等，重复调用安全）
+ */
+export function migrateAddExternalPlatformFields(): void {
+  const db = getDb()
+  if (!db) return
+
+  const columnsToAdd = [
+    'external_platform TEXT',
+    'external_user_id TEXT',
+    'external_username TEXT',
+  ]
+
+  for (const colDef of columnsToAdd) {
+    const colName = colDef.split(' ')[0]
+    try {
+      const result = db.prepare(
+        `SELECT COUNT(*) as cnt FROM pragma_table_info('${USERS_TABLE}') WHERE name = ?`
+      ).get(colName) as { cnt: number }
+
+      if (result && result.cnt === 0) {
+        db.exec(`ALTER TABLE ${USERS_TABLE} ADD COLUMN ${colDef}`)
+        console.log(`[db] Migration: added column '${colName}' to ${USERS_TABLE}`)
+      }
+    } catch {
+      // 列已存在，静默跳过
+    }
+  }
+}
+
+/**
+ * 按外部平台用户 ID 查找用户
+ */
+export function findUserByExternalId(
+  platform: string,
+  externalUserId: string,
+): UserRecord | null {
+  const db = getDb()
+  if (!db) return null
+  const row = db.prepare(
+    `SELECT * FROM ${USERS_TABLE}
+     WHERE external_platform = ? AND external_user_id = ?`
+  ).get(platform, externalUserId) as UserRecord | undefined
+  return row || null
 }
