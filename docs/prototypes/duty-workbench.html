@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>值守包工作台原型</title>
+  <style>
+    :root {
+      --ink: #182329;
+      --muted: #657278;
+      --line: #d8dfde;
+      --canvas: #edf2ef;
+      --paper: #ffffff;
+      --navy: #183f50;
+      --teal: #116e70;
+      --lime: #cbea58;
+      --amber: #ed9c32;
+      --blue: #2683d8;
+      --danger: #b95042;
+      --shadow: 0 14px 40px rgba(19, 44, 46, .12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 1180px;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Noto Serif CJK SC", "Songti SC", "STSong", serif;
+      background: var(--canvas);
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; display: grid; grid-template-rows: 58px 1fr; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; color: #f9fcfa; background: var(--navy);
+      border-bottom: 3px solid var(--lime);
+    }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-mark {
+      display: grid; place-items: center; width: 29px; height: 29px;
+      color: var(--navy); font-family: Georgia, serif; font-size: 18px; font-weight: 700;
+      background: var(--lime); border-radius: 50%;
+    }
+    .brand strong { font-size: 16px; letter-spacing: .08em; }
+    .brand span { font-family: ui-monospace, monospace; font-size: 11px; color: #b9d5d2; }
+    .top-meta { display: flex; gap: 25px; align-items: center; color: #d7e4e2; font-size: 13px; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; background: var(--lime); border-radius: 50%; }
+    .shell { display: grid; grid-template-columns: 414px minmax(0, 1fr); min-height: 0; }
+    .duty-pane { position: relative; overflow: hidden; background: #f8fbf9; border-right: 1px solid var(--line); }
+    .duty-head { padding: 28px 28px 20px; border-bottom: 1px solid var(--line); }
+    .eyebrow { margin: 0 0 7px; color: var(--teal); font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: 25px; line-height: 1.15; font-weight: 700; }
+    .subtitle { margin: 9px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .progress { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+    .progress-bar { width: 135px; height: 7px; overflow: hidden; background: #dbe6e0; border-radius: 99px; }
+    .progress-bar i { display: block; width: 33%; height: 100%; background: var(--teal); transition: width .28s ease; }
+    .progress span { color: var(--muted); font-family: ui-monospace, monospace; font-size: 11px; }
+    .outputs { padding: 18px 20px 126px; }
+    .output-card { position: relative; display: grid; grid-template-columns: 30px 1fr; gap: 12px; padding: 15px 10px; border-bottom: 1px solid #e3e8e6; }
+    .output-number { display: grid; place-items: center; width: 28px; height: 28px; color: var(--teal); font-family: ui-monospace, monospace; font-size: 12px; background: #e3f0eb; border-radius: 50%; }
+    .output-card.pending .output-number { color: #7a6242; background: #f5ead7; }
+    .output-card h2 { margin: 1px 0 5px; font-size: 15px; }
+    .output-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .output-actions { display: flex; gap: 9px; margin-top: 9px; }
+    .link-button { padding: 0; color: var(--teal); font-size: 12px; background: none; border: 0; }
+    .remove { color: #9b7770; }
+    .empty-output { margin: 20px 10px; padding: 20px; color: var(--muted); text-align: center; font-size: 13px; border: 1px dashed #b9c9c3; }
+    .duty-footer { position: absolute; right: 0; bottom: 0; left: 0; padding: 18px 28px 21px; background: #f8fbf9; border-top: 1px solid var(--line); }
+    .schedule-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; color: var(--muted); font-size: 12px; }
+    .schedule-row strong { color: var(--ink); font-size: 13px; }
+    .primary { padding: 11px 15px; color: #10323a; font-weight: 700; background: var(--lime); border: 1px solid #b1cf42; border-radius: 3px; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+    .primary:disabled { color: #718075; background: #dfe8df; border-color: #d3ded4; box-shadow: none; cursor: not-allowed; }
+    .main-pane { min-width: 0; display: grid; grid-template-rows: 64px 1fr; background: #e5ece9; }
+    .context-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--paper); border-bottom: 1px solid var(--line); }
+    .crumb { display: flex; align-items: center; gap: 9px; font-size: 13px; }
+    .crumb b { color: var(--teal); }
+    .crumb i { color: #a4b0ac; font-style: normal; }
+    .capture-button { padding: 10px 14px; color: #fff; font-weight: 700; background: var(--teal); border: 1px solid #07565a; border-radius: 3px; }
+    .platform-frame { position: relative; min-height: 0; overflow: hidden; margin: 18px; background: #fff; box-shadow: var(--shadow); }
+    .platform-image { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+    .platform-overlay { position: absolute; top: 28px; left: 28px; display: flex; gap: 7px; padding: 8px; background: rgba(250, 253, 252, .92); border: 1px solid rgba(14, 82, 85, .18); box-shadow: 0 5px 15px rgba(16, 40, 42, .12); }
+    .view-choice { padding: 7px 10px; color: #526166; font-size: 12px; background: transparent; border: 0; }
+    .view-choice.active { color: #fff; background: var(--navy); }
+    .platform-note { position: absolute; right: 24px; bottom: 22px; padding: 8px 12px; color: #fff; font-size: 12px; background: rgba(24, 63, 80, .88); }
+    .modal-layer { position: fixed; inset: 0; display: none; place-items: center; padding: 28px; background: rgba(10, 31, 33, .48); z-index: 5; }
+    .modal-layer.open { display: grid; }
+    .modal { width: min(540px, 92vw); overflow: hidden; background: #fbfdfc; box-shadow: 0 25px 80px rgba(0,0,0,.28); }
+    .modal-head { display: flex; align-items: start; justify-content: space-between; padding: 24px 26px 17px; border-bottom: 1px solid var(--line); }
+    .modal-head h3 { margin: 0; font-size: 20px; }
+    .close { padding: 0 0 2px; color: #68777a; font-size: 22px; line-height: 1; background: none; border: 0; }
+    .modal-body { padding: 22px 26px 26px; }
+    .captured { padding: 14px 15px; margin-bottom: 20px; background: #e8f1ed; border-left: 4px solid var(--teal); }
+    .captured strong { display: block; margin-bottom: 4px; font-size: 14px; }
+    .captured span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .field-title { margin: 0 0 11px; font-size: 14px; }
+    .radio-list { display: grid; gap: 8px; }
+    .radio-option { display: flex; align-items: start; gap: 10px; padding: 11px; border: 1px solid var(--line); transition: border-color .2s, background .2s; }
+    .radio-option:has(input:checked) { background: #f0f7e0; border-color: #aacd4f; }
+    .radio-option input { margin-top: 3px; accent-color: var(--teal); }
+    .radio-option b { display: block; font-size: 13px; }
+    .radio-option small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 23px; }
+    .secondary { padding: 10px 14px; color: #4a5a5e; background: #fff; border: 1px solid #bac7c3; border-radius: 3px; }
+    .toast { position: fixed; right: 24px; bottom: 25px; display: none; padding: 13px 17px; color: #eaf8f6; font-size: 13px; background: #123f42; box-shadow: var(--shadow); z-index: 9; }
+    .toast.show { display: block; animation: fade .25s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 1200px) { body { min-width: 1024px; } .shell { grid-template-columns: 360px minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark">Y</div><strong>ENVCLAW</strong><span>值守工作台 / 原型</span></div>
+      <div class="top-meta"><span><i class="status-dot"></i>数智大气已连接</span><span>部署：平顶山市</span></div>
+    </header>
+    <main class="shell">
+      <aside class="duty-pane">
+        <div class="duty-head">
+          <p class="eyebrow">DUTY PACKAGE</p>
+          <h1>每日空气质量值守</h1>
+          <p class="subtitle">把需要交付的表、图和结论放进同一班次。平台怎么操作，交给值守能力处理。</p>
+          <div class="progress"><div class="progress-bar"><i id="progressFill"></i></div><span id="progressText">1 / 3 项成果已准备</span></div>
+        </div>
+        <section class="outputs" id="outputs"></section>
+        <footer class="duty-footer">
+          <div class="schedule-row"><span>执行时间</span><strong>每小时 · 最新已发布数据</strong></div>
+          <button class="primary" id="trialButton" disabled>试跑并验收</button>
+        </footer>
+      </aside>
+      <section class="main-pane">
+        <div class="context-bar">
+          <div class="crumb"><span>数智大气</span><i>/</i><b id="viewTitle">数据分析 · 浓度排名</b></div>
+          <button class="capture-button" id="captureButton">保存当前成果</button>
+        </div>
+        <div class="platform-frame">
+          <img id="platformImage" class="platform-image" alt="数智大气平台当前页面" />
+          <div class="platform-overlay">
+            <button class="view-choice active" data-view="ranking">浓度排名</button>
+            <button class="view-choice" data-view="province">河南省一张图</button>
+            <button class="view-choice" data-view="city">平顶山市一张图</button>
+          </div>
+          <div class="platform-note" id="platformNote">当前筛选：实时数据，截至 13:00</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-layer" id="captureModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head"><div><p class="eyebrow">CAPTURED VIEW</p><h3 id="modalTitle">保存当前成果</h3></div><button class="close" id="closeModal" aria-label="关闭">x</button></div>
+      <div class="modal-body">
+        <div class="captured"><strong id="capturedTitle"></strong><span id="capturedDetail"></span></div>
+        <p class="field-title">值守运行时的数据时间</p>
+        <div class="radio-list">
+          <label class="radio-option"><input type="radio" name="timeIntent" value="latest" checked /><span><b>当时最新已发布数据</b><small>本次页面显示 13:00 仅作为当前证据，不会被固定。</small></span></label>
+          <label class="radio-option"><input type="radio" name="timeIntent" value="complete" /><span><b>最近一个完整小时</b><small>避免数据尚未发布时取到正在变化的结果。</small></span></label>
+          <label class="radio-option"><input type="radio" name="timeIntent" value="fixed" /><span><b>固定为当前 13:00</b><small>仅适用于历史复盘，不建议用于日常值守。</small></span></label>
+        </div>
+        <div class="modal-actions"><button class="secondary" id="cancelCapture">取消</button><button class="primary" id="confirmCapture">加入值守包</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const screenshots = {
+      ranking: 'file:///var/folders/sl/97x01_kj0xvcq_k7zhb7w4dm0000gn/T/codex-clipboard-7b18c066-24f0-4f5b-8617-77e8a265dd78.png',
+      province: 'file:///var/folders/sl/97x01_kj0xvcq_k7zhb7w4dm0000gn/T/codex-clipboard-48445e3c-8d56-4265-af74-a55bc0197f59.png',
+      city: 'file:///Users/acerola/Desktop/平顶山值守截图/7月14日9时/3_一张图_平顶山市.png'
+    }
+    const views = {
+      ranking: { title: '数据分析 · 浓度排名', name: '省内日累计浓度排名', detail: '城市排名表 · 提取平顶山市 AQI、排名与首要污染物 · 页面当前为实时数据，截至 13:00', note: '当前筛选：实时数据，截至 13:00' },
+      province: { title: '一张图 · 河南省态势', name: '河南省插值态势图', detail: '插值图 · 因子跟随本市首要污染物，空值回退 AQI · 标记平顶山市', note: '当前视图：河南省 · 插值图 · AQI' },
+      city: { title: '一张图 · 平顶山市区县', name: '平顶山市区县态势图', detail: '插值图 · 因子跟随本市首要污染物 · 保留本市区县范围', note: '当前视图：平顶山市 · 插值图 · AQI' }
+    }
+    const outputDefaults = [
+      { key: 'ranking', title: '省内日累计浓度排名', description: '排名表截图，并提取本市 AQI、排名和首要污染物。', ready: true, time: '最新已发布数据' },
+      { key: 'province', title: '河南省插值态势图', description: '因子跟随本市首要污染物；在省图标记平顶山市。', ready: false },
+      { key: 'city', title: '平顶山市区县态势图', description: '因子跟随本市首要污染物；保留区县级范围。', ready: false }
+    ]
+    let currentView = 'ranking'
+    const saved = new Map([['ranking', { ...outputDefaults[0] }]])
+    const image = document.getElementById('platformImage')
+    const title = document.getElementById('viewTitle')
+    const note = document.getElementById('platformNote')
+    const modal = document.getElementById('captureModal')
+    const toast = document.getElementById('toast')
+
+    function timeText(value) {
+      return value === 'complete' ? '最近完整小时' : value === 'fixed' ? '固定 13:00' : '最新已发布数据'
+    }
+    function renderOutputs() {
+      const html = outputDefaults.map((item, index) => {
+        const found = saved.get(item.key)
+        if (!found) return `<article class="output-card pending"><div class="output-number">${index + 1}</div><div><h2>${item.title}</h2><p>还未保存。打开对应页面，确认画面后保存为本项成果。</p><div class="output-actions"><button class="link-button" data-go="${item.key}">打开并保存这张图</button></div></div></article>`
+        return `<article class="output-card"><div class="output-number">${index + 1}</div><div><h2>${item.title}</h2><p>${item.description}</p><div class="output-actions"><button class="link-button" data-go="${item.key}">在平台中编辑</button><button class="link-button remove" data-remove="${item.key}">移除</button><span style="color:#74847d;font-size:11px">${found.time}</span></div></div></article>`
+      }).join('')
+      document.getElementById('outputs').innerHTML = html
+      const count = saved.size
+      document.getElementById('progressFill').style.width = `${count / 3 * 100}%`
+      document.getElementById('progressText').textContent = `${count} / 3 项成果已准备`
+      document.getElementById('trialButton').disabled = count !== 3
+    }
+    function setView(key) {
+      currentView = key
+      const view = views[key]
+      image.src = screenshots[key]
+      title.textContent = view.title
+      note.textContent = view.note
+      document.querySelectorAll('.view-choice').forEach(button => button.classList.toggle('active', button.dataset.view === key))
+    }
+    function showToast(message) {
+      toast.textContent = message
+      toast.classList.add('show')
+      window.setTimeout(() => toast.classList.remove('show'), 2700)
+    }
+    document.querySelectorAll('.view-choice').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)))
+    document.getElementById('captureButton').addEventListener('click', () => {
+      const view = views[currentView]
+      document.getElementById('capturedTitle').textContent = view.name
+      document.getElementById('capturedDetail').textContent = view.detail
+      modal.classList.add('open')
+      modal.setAttribute('aria-hidden', 'false')
+    })
+    function closeModal() { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true') }
+    document.getElementById('closeModal').addEventListener('click', closeModal)
+    document.getElementById('cancelCapture').addEventListener('click', closeModal)
+    modal.addEventListener('click', event => { if (event.target === modal) closeModal() })
+    document.getElementById('confirmCapture').addEventListener('click', () => {
+      const time = document.querySelector('input[name="timeIntent"]:checked').value
+      const base = outputDefaults.find(item => item.key === currentView)
+      saved.set(currentView, { ...base, ready: true, time: timeText(time) })
+      renderOutputs()
+      closeModal()
+      showToast(`已将“${base.title}”加入值守包`)
+    })
+    document.getElementById('outputs').addEventListener('click', event => {
+      const button = event.target.closest('button')
+      if (!button) return
+      if (button.dataset.go) {
+        setView(button.dataset.go)
+        const target = outputDefaults.find(item => item.key === button.dataset.go)
+        showToast(`已打开“${target.title}”。确认画面后，点右上角“保存当前成果”`)
+      }
+      if (button.dataset.remove) { saved.delete(button.dataset.remove); renderOutputs(); showToast('成果已移出值守包') }
+    })
+    document.getElementById('trialButton').addEventListener('click', () => showToast('试跑将按同一数据时间生成三项成果，并展示验收结果'))
+    setView('ranking')
+    renderOutputs()
+  </script>
+</body>
+</html>
