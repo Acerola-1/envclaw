@@ -1274,10 +1274,22 @@ export async function getUsageStatsFromDb(
   }
 }
 
-export async function listSessionSummaries(source?: string, limit = 2000, profile?: string): Promise<HermesSessionRow[]> {
+export async function listSessionSummaries(
+  arg1?: string | number | null,
+  arg2?: string | number,
+  arg3?: string | number,
+  arg4?: number | string | null,
+): Promise<HermesSessionRow[]> {
   if (!SQLITE_AVAILABLE) {
     throw new Error(`node:sqlite requires Node >= 22.5, current: ${process.versions.node}`)
   }
+
+  // Detect overloads: if arg1 is a number, it's the userId-first overload
+  const userIdFirst = typeof arg1 === 'number'
+  const userId = userIdFirst ? arg1 : arg4
+  const source = userIdFirst ? (typeof arg2 === 'string' ? arg2 : undefined) : (typeof arg1 === 'string' ? arg1 : undefined)
+  const limit = userIdFirst ? (typeof arg3 === 'number' ? arg3 : 2000) : (typeof arg2 === 'number' ? arg2 : 2000)
+  const profile = userIdFirst ? (typeof arg3 === 'string' ? arg3 : undefined) : (typeof arg3 === 'string' ? arg3 : undefined)
 
   const { DatabaseSync } = await import('node:sqlite')
   const dbPath = profile ? join(getProfileDir(profile), 'state.db') : sessionDbPath()
@@ -1289,6 +1301,10 @@ export async function listSessionSummaries(source?: string, limit = 2000, profil
     if (source) {
       clauses.push('s.source = ?')
       params.push(source)
+    }
+    if (userId != null) {
+      clauses.push('s.user_id = ?')
+      params.push(String(userId))
     }
     params.push(Math.max(limit * 4, limit))
 
@@ -1418,6 +1434,7 @@ export async function searchSessionSummaries(
   query: string,
   source?: string,
   limit = 20,
+  userId?: number | string | null,
 ): Promise<HermesSessionSearchRow[]> {
   if (!SQLITE_AVAILABLE) {
     throw new Error(`node:sqlite requires Node >= 22.5, current: ${process.versions.node}`)
@@ -1425,7 +1442,7 @@ export async function searchSessionSummaries(
 
   const trimmed = query.trim()
   if (!trimmed) {
-    const recent = await listSessionSummaries(source, limit)
+    const recent = await listSessionSummaries(userId, source, limit)
     return recent.map(row => ({
       ...row,
       matched_message_id: null,

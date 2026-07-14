@@ -24,7 +24,7 @@ import { handleSessionCommand, isSessionCommand, parseSessionCommand } from './s
 import { contentBlocksToString } from './content-blocks'
 import type { ContentBlock, QueuedRun, SessionState } from './types'
 import { authenticateUserToken, isAuthEnabled, type AuthenticatedUser } from '../../../middleware/user-auth'
-import { userCanAccessProfile } from '../../../db/hermes/users-store'
+import { userCanAccessProfile, listUserProfiles } from '../../../db/hermes/users-store'
 
 export type { ContentBlock } from './types'
 
@@ -767,7 +767,12 @@ export class ChatRunSocket {
   }
 
   private canAccessProfile(user: AuthenticatedUser, profile: string): boolean {
-    return user.role === 'super_admin' || userCanAccessProfile(user.id, profile)
+    if (user.role === 'super_admin') return true
+    if (userCanAccessProfile(user.id, profile)) return true
+    // 兜底：user_profiles 表为空时（早期外部登录用户无 profile 绑定），
+    // 自动放行 default profile，与 HTTP 中间件行为一致。
+    if (profile === 'default' && listUserProfiles(user.id).length === 0) return true
+    return false
   }
 
   /** Close all active upstream response streams */

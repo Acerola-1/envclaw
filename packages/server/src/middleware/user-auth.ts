@@ -29,6 +29,9 @@ interface JwtPayload {
   aud: 'hermes-web-ui'
   iat: number
   exp: number
+  // 外部平台标识
+  external_platform?: string
+  external_user_id?: string
 }
 
 declare module 'koa' {
@@ -109,7 +112,10 @@ function isProtectedHttpPath(path: string): boolean {
 }
 
 export function signUserJwt(
-  user: Pick<UserRecord, 'id' | 'username' | 'role'>,
+  user: Pick<UserRecord, 'id' | 'username' | 'role'> & {
+    external_platform?: string | null
+    external_user_id?: string | null
+  },
   secret: string,
   now = Date.now(),
   expiresSeconds = DEFAULT_EXPIRES_SECONDS,
@@ -124,6 +130,15 @@ export function signUserJwt(
     iat,
     exp: iat + expiresSeconds,
   }
+
+  // 携带外部平台标识
+  if (user.external_platform) {
+    payload.external_platform = user.external_platform
+  }
+  if (user.external_user_id) {
+    payload.external_user_id = user.external_user_id
+  }
+
   const header = base64UrlJson({ alg: 'HS256', typ: 'JWT' })
   const body = base64UrlJson(payload)
   const unsigned = `${header}.${body}`
@@ -149,7 +164,12 @@ export function verifyUserJwt(token: string, secret: string, now = Date.now()): 
   }
 }
 
-export async function issueUserJwt(user: Pick<UserRecord, 'id' | 'username' | 'role'>): Promise<string> {
+export async function issueUserJwt(
+  user: Pick<UserRecord, 'id' | 'username' | 'role'> & {
+    external_platform?: string | null
+    external_user_id?: string | null
+  },
+): Promise<string> {
   const secret = await getJwtSecret()
   return signUserJwt(user, secret)
 }
@@ -252,9 +272,14 @@ export async function resolveUserProfile(ctx: Context, next: Next): Promise<void
   }
 
   if (user.role !== 'super_admin' && !userCanAccessProfile(user.id, profileName)) {
-    ctx.status = 403
-    ctx.body = { error: `Profile "${profileName}" is not available for this user` }
-    return
+    // 兜底：user_profiles 表完全为空时（早期外部登录用户无 profile 绑定），
+    // 自动放行 default profile，避免 403。
+    const hasAnyProfile = listUserProfiles(user.id).length > 0
+    if (hasAnyProfile || profileName !== 'default') {
+      ctx.status = 403
+      ctx.body = { error: `Profile "${profileName}" is not available for this user` }
+      return
+    }
   }
 
   ctx.state.profile = { name: profileName }

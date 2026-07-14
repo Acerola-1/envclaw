@@ -78,7 +78,12 @@ function explicitProfileFilter(ctx: any): string | undefined {
 function allowedProfileSet(ctx: any): Set<string> | null {
   const user = ctx.state?.user
   if (!user || user.role === 'super_admin') return null
-  return new Set(listUserProfiles(user.id).map(profile => profile.profile_name))
+  const profiles = new Set(listUserProfiles(user.id).map(profile => profile.profile_name))
+  // 兜底：如果用户没有分配任何 profile，至少允许访问 default，避免静默过滤掉所有会话
+  if (profiles.size === 0) {
+    profiles.add('default')
+  }
+  return profiles
 }
 
 function canAccessProfile(ctx: any, profile: string | null | undefined): boolean {
@@ -295,7 +300,8 @@ export async function listConversations(ctx: any) {
   const limit = ctx.query.limit ? parseInt(ctx.query.limit as string, 10) : undefined
 
   const profile = explicitProfileFilter(ctx)
-  const sessions = localListSessions(profile, source, limit && limit > 0 ? limit : 200)
+  const userId = ctx.state?.user?.id ?? null
+  const sessions = localListSessions(userId, profile, source, limit && limit > 0 ? limit : 200)
   const summaries: ConversationSummary[] = sessions.map(s => ({
     id: s.id,
     profile: s.profile || null,
@@ -365,8 +371,9 @@ export async function list(ctx: any) {
   const limit = ctx.query.limit ? parseInt(ctx.query.limit as string, 10) : undefined
   const profile = explicitProfileFilter(ctx)
   const effectiveLimit = limit && limit > 0 ? limit : 2000
+  const userId = ctx.state?.user?.id ?? null
 
-  const allSessions = localListSessions(profile, source, effectiveLimit)
+  const allSessions = localListSessions(userId, profile, source, effectiveLimit)
   const knownProfiles = profile ? null : new Set(listProfileNamesFromDisk())
   ctx.body = {
     sessions: filterPendingDeletedSessions(filterByAllowedProfiles(ctx, allSessions).filter(s =>
@@ -379,7 +386,8 @@ export async function list(ctx: any) {
 export async function count(ctx: any) {
   const source = (ctx.query.source as string) || undefined
   const profile = explicitProfileFilter(ctx)
-  const allSessions = localListSessions(profile, source, 2147483647)
+  const userId = ctx.state?.user?.id ?? null
+  const allSessions = localListSessions(userId, profile, source, 2147483647)
   const knownProfiles = profile ? null : new Set(listProfileNamesFromDisk())
   const sessions = filterPendingDeletedSessions(filterByAllowedProfiles(ctx, allSessions).filter(s =>
     isRequestedSessionSource(source, s.source) &&
@@ -397,9 +405,10 @@ export async function listHermesSessions(ctx: any) {
   const limit = ctx.query.limit ? parseInt(ctx.query.limit as string, 10) : undefined
   const profile = requestedProfile(ctx)
   const effectiveLimit = limit && limit > 0 ? limit : 2000
+  const userId = ctx.state?.user?.id ?? null
 
-  const importedIds = new Set(localListSessions(profile, undefined, effectiveLimit).map(session => session.id))
-  const allSessions = (await listSessionSummaries(source, effectiveLimit, profile))
+  const importedIds = new Set(localListSessions(userId, profile, undefined, effectiveLimit).map(session => session.id))
+  const allSessions = (await listSessionSummaries(userId, source, effectiveLimit, profile))
     .map(session => ({
       ...(profile ? { ...session, profile } : session),
       webui_imported: importedIds.has(session.id),
@@ -412,7 +421,8 @@ export async function search(ctx: any) {
   const source = (ctx.query.source as string) || undefined
   const limit = ctx.query.limit ? parseInt(ctx.query.limit as string, 10) : undefined
   const profile = explicitProfileFilter(ctx)
-  const results = localSearchSessions(profile, q, limit && limit > 0 ? limit : 20)
+  const userId = ctx.state?.user?.id ?? null
+  const results = localSearchSessions(userId, profile, q, limit && limit > 0 ? limit : 20)
   const knownProfiles = profile ? null : new Set(listProfileNamesFromDisk())
   ctx.body = {
     results: filterPendingDeletedSessions(filterByAllowedProfiles(ctx, results).filter(s =>

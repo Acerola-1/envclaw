@@ -296,10 +296,26 @@ export async function bootstrap() {
   }
 
   const app = new Koa()
+
+  // Skip all Socket.IO paths — let Socket.IO's own listeners handle them,
+  // not Koa's middleware chain (which would return 404 before Socket.IO fires).
+  app.use(async (ctx, next) => {
+    if (ctx.path.startsWith('/socket.io/')) {
+      ctx.respond = false
+      return
+    }
+    await next()
+  })
+
   // Initialize all web-ui SQLite tables
   const { initAllStores } = await import('./db/hermes/init')
   initAllStores()
   console.log('[bootstrap] all stores initialized')
+
+  // Migrate: add external platform columns to users table (idempotent)
+  const { migrateAddExternalPlatformFields } = await import('./db/hermes/users-store')
+  migrateAddExternalPlatformFields()
+  console.log('[bootstrap] user store migration complete')
 
   // Initialize envclaw platform tables and seed builtin data
   const { initTable: initPlatformTable } = await import('./services/envclaw/platforms')
@@ -331,6 +347,7 @@ export async function bootstrap() {
   app.use(serve(distDir))
   app.use(async (ctx) => {
     if (!ctx.path.startsWith('/api') &&
+      !ctx.path.startsWith('/socket.io/') &&
       ctx.path !== '/health' &&
       ctx.path !== '/upload' &&
       ctx.path !== '/webhook') {

@@ -192,3 +192,58 @@ export async function unlockAllIps(): Promise<number> {
   })
   return res.count
 }
+
+// === 外部平台（Mapairs）登录 ===
+
+export interface PlatformLoginUserInfo {
+  platformUserId: string
+  account: string
+  nickName: string
+  realName: string
+  roleName: string
+  avatar: string
+  region: {
+    currentRegionName: string
+    provinceName: string
+    currentRegionLevel: number
+    latitude: number
+    longitude: number
+  }
+  hermesUserId: number
+  hermesUsername: string
+  hermesRole: string
+}
+
+export interface PlatformLoginResult {
+  token: string
+  userInfo: PlatformLoginUserInfo
+}
+
+/**
+ * 外部平台（Mapairs）登录
+ * 前端传 Mapairs 账号 + SM2 加密密码
+ * 后端调 Mapairs 平台验证，返回 Hermes JWT + 用户信息
+ */
+export async function loginWithExternalPlatform(
+  username: string,
+  encryptedPassword: string,   // SM2 加密后的密文
+): Promise<PlatformLoginResult> {
+  const res = await fetch('/api/auth/external-login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username,
+      password: encryptedPassword,
+    }),
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    const err: any = new Error(data.error || 'Platform login failed')
+    err.status = res.status
+    throw err
+  }
+
+  const data: PlatformLoginResult = await res.json()
+  return data
+}

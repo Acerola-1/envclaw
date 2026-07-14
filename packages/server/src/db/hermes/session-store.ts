@@ -166,16 +166,18 @@ export function createSession(data: {
   title?: string
   parent_session_id?: string | null
   workspace?: string
+  user_id?: string | number | null
 }): HermesSessionRow {
   const now = Math.floor(Date.now() / 1000)
   const source = data.source || 'api_server'
   const agent = data.agent || (source === 'cli' ? 'hermes' : '')
+  const userId = data.user_id != null ? String(data.user_id) : null
   if (!isSqliteAvailable()) {
     return {
       id: data.id, profile: data.profile || 'default', source, agent,
       agent_mode: data.agent_mode || '',
       agent_session_id: data.agent_session_id || '', agent_native_session_id: data.agent_native_session_id || '',
-      user_id: null, model: data.model || '', provider: data.provider || '', title: data.title || null,
+      user_id: userId, model: data.model || '', provider: data.provider || '', title: data.title || null,
       parent_session_id: data.parent_session_id || null,
       fork_point_message_id: null,
       started_at: now, ended_at: null, end_reason: null,
@@ -187,8 +189,8 @@ export function createSession(data: {
   }
   const db = getDb()!
   db.prepare(
-    `INSERT INTO ${SESSIONS_TABLE} (id, profile, source, agent, agent_mode, agent_session_id, agent_native_session_id, model, provider, title, parent_session_id, started_at, last_active, workspace)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO ${SESSIONS_TABLE} (id, profile, source, agent, agent_mode, agent_session_id, agent_native_session_id, user_id, model, provider, title, parent_session_id, started_at, last_active, workspace)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     data.id,
     data.profile || 'default',
@@ -197,6 +199,7 @@ export function createSession(data: {
     data.agent_mode || '',
     data.agent_session_id || '',
     data.agent_native_session_id || '',
+    userId,
     data.model || '',
     data.provider || '',
     data.title || null,
@@ -376,10 +379,35 @@ export function renameSession(id: string, title: string): boolean {
   return result.changes > 0
 }
 
-export function listSessions(profile?: string, source?: string, limit = 2000): HermesSessionRow[] {
+export function listSessions(userId?: number | string | null, profile?: string, source?: string, limit?: number): HermesSessionRow[]
+export function listSessions(profile?: string, source?: string, limit?: number): HermesSessionRow[]
+export function listSessions(
+  arg1?: number | string | null | string,
+  arg2?: string,
+  arg3?: string | number,
+  arg4?: number,
+): HermesSessionRow[] {
   if (!isSqliteAvailable()) return []
   const db = getDb()!
-  const profileFilter = profile?.trim()
+
+  // Support legacy signature: listSessions(profile, source, limit)
+  let userId: number | string | null = null
+  let profileFilter: string | undefined
+  let sourceFilter: string | undefined
+  let limitValue = typeof arg4 === 'number' ? arg4 : 2000
+
+  if (typeof arg1 === 'number' || (typeof arg1 === 'string' && !isNaN(Number(arg1)))) {
+    // New signature: listSessions(userId, profile, source, limit)
+    userId = arg1
+    profileFilter = arg2
+    sourceFilter = typeof arg3 === 'string' ? arg3 : undefined
+    limitValue = typeof arg4 === 'number' ? arg4 : 2000
+  } else {
+    // Legacy signature: listSessions(profile, source, limit)
+    profileFilter = typeof arg1 === 'string' ? arg1 : undefined
+    sourceFilter = typeof arg2 === 'string' ? arg2 : undefined
+    limitValue = typeof arg3 === 'number' ? arg3 : 2000
+  }
 
   // Use a subquery to generate preview from first user message if not set
   const sql = `
@@ -420,31 +448,48 @@ export function listSessions(profile?: string, source?: string, limit = 2000): H
     FROM ${SESSIONS_TABLE} s
     LEFT JOIN ${SESSIONS_TABLE} p ON p.id = s.parent_session_id
     WHERE 1 = 1
+      ${userId != null ? 'AND s.user_id = ?' : ''}
       ${profileFilter ? 'AND s.profile = ?' : ''}
-      ${source ? 'AND s.source = ?' : ''}
+      ${sourceFilter ? 'AND s.source = ?' : ''}
     ORDER BY s.last_active DESC
     LIMIT ?
   `
 
   const params: any[] = []
+  if (userId != null) {
+    params.push(String(userId))
+  }
   if (profileFilter) {
-    params.push(profileFilter)
+    params.push(profileFilter.trim())
   }
-  if (source) {
-    params.push(source)
+  if (sourceFilter) {
+    params.push(sourceFilter)
   }
-  params.push(limit)
+  params.push(limitValue)
 
   const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]
   return rows.map(mapSessionRow)
 }
 
-export function searchSessions(profile: string | null | undefined, query: string, limit = 20): HermesSessionSearchRow[] {
+export function searchSessions(
+  arg1: number | string | null | undefined,
+  arg2: string | null | undefined,
+  arg3?: string | number,
+  arg4?: number,
+): HermesSessionSearchRow[] {
   if (!isSqliteAvailable()) return []
+
+  const nArgs = (arg4 !== undefined ? 4 : arg3 !== undefined ? 3 : arg2 !== undefined ? 2 : 1)
+  const hasUserId = nArgs === 4
+  const userId = hasUserId ? arg1 : null
+  const profile = hasUserId ? arg2 : (typeof arg1 === 'string' ? arg1 : undefined)
+  const query = hasUserId ? (typeof arg3 === 'string' ? arg3 : '') : (arg2 || '')
+  const limit = hasUserId ? (arg4 ?? 20) : (typeof arg3 === 'number' ? arg3 : 20)
+
   const profileFilter = profile?.trim()
   const trimmed = query.trim()
   if (!trimmed) {
-    return listSessions(profileFilter, undefined, limit).map(s => ({ ...s, snippet: s.preview || '', matched_message_id: null }))
+    return listSessions(userId, profileFilter, undefined, limit).map(s => ({ ...s, snippet: s.preview || '', matched_message_id: null }))
   }
   const db = getDb()!
   const lowered = trimmed.toLowerCase()
@@ -454,6 +499,7 @@ export function searchSessions(profile: string | null | undefined, query: string
   const sessionRows = db.prepare(
     `SELECT * FROM ${SESSIONS_TABLE}
      WHERE 1 = 1
+       ${userId != null ? 'AND user_id = ?' : ''}
        ${profileFilter ? 'AND profile = ?' : ''}
        AND (
        LOWER(title) LIKE ? OR LOWER(preview) LIKE ?
@@ -461,6 +507,7 @@ export function searchSessions(profile: string | null | undefined, query: string
      )
      ORDER BY last_active DESC LIMIT ?`,
   ).all(...[
+    ...(userId != null ? [String(userId)] : []),
     ...(profileFilter ? [profileFilter] : []),
     pattern,
     pattern,

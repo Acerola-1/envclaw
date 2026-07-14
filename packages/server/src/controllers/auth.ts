@@ -10,10 +10,13 @@ import {
   deleteUser,
   findUserById,
   findUserByUsername,
+  findUserByExternalId,
   getUserAvatar,
   listUserProfiles,
   listUsers,
+  replaceUserProfiles,
   setUserAvatar,
+  touchUserLogin,
   updateUser,
   updateUsername,
   updateUserPassword,
@@ -23,6 +26,7 @@ import {
   type UserStatus,
 } from '../db/hermes/users-store'
 import { issueUserJwt } from '../middleware/user-auth'
+import { fetchPlatformToken, HermesPlatformUserInfo } from '../services/external-auth'
 import { listProfileNamesFromDisk } from '../services/hermes/hermes-profile'
 import { startOutboundRelayClient, stopOutboundRelayClient } from '../services/global-agent/outbound-relay-client'
 
@@ -617,4 +621,95 @@ export async function unlockIpHandler(ctx: Context) {
   // No IP specified — unlock all
   const count = unlockAll()
   ctx.body = { success: true, count }
+}
+
+/**
+ * POST /api/auth/external-login
+ * 外部平台（Mapairs）OAuth2 登录（公开接口）
+ * 前端传 Mapairs 账号 + SM2 加密密码 → 后端调 Mapairs 平台 →
+ * 自动创建/查找用户 → 签发 Hermes JWT + 返回用户信息
+ */
+export async function externalLogin(ctx: Context) {
+  const { username, password } = ctx.request.body as {
+    username?: string
+    password?: string   // SM2 加密后的密文
+  }
+
+  if (!username || !password) {
+    ctx.status = 400
+    ctx.body = { error: 'Username and password are required' }
+    return
+  }
+
+  const ip = extractIp(ctx)
+
+  // 1. 调 Mapairs 平台获取 token + 用户信息
+  const result = await fetchPlatformToken(username, password)
+
+  if (!result.ok) {
+    recordPasswordFailure(ip)
+    ctx.status = 401
+    ctx.body = { error: 'login.invalidCredentials' }
+    return
+  }
+
+  const { userInfo } = result
+
+  // 2. 在 Hermes 中查找或自动创建用户
+  let hermesUser = findUserByExternalId('mapairs', userInfo.platformUserId)
+
+  if (!hermesUser) {
+    // 新用户：自动创建（同步到 Hermes 用户系统）
+    hermesUser = createUser({
+      username: userInfo.nickName || userInfo.account || `user_${userInfo.platformUserId}`,
+      role: 'admin',
+      status: 'active',
+      profiles: ['default'],
+      defaultProfile: 'default',
+      externalPlatform: 'mapairs',
+      externalUserId: userInfo.platformUserId,
+      externalUsername: userInfo.account,
+    })
+  } else {
+    // 已有用户：确保有 profile 绑定（修复历史数据缺失问题）
+    const existingProfiles = listUserProfiles(hermesUser.id)
+    if (existingProfiles.length === 0) {
+      replaceUserProfiles(hermesUser.id, ['default'], 'default')
+    }
+  }
+
+  if (!hermesUser || hermesUser.status !== 'active') {
+    ctx.status = 403
+    ctx.body = { error: 'User is disabled or creation failed' }
+    return
+  }
+
+  // 3. 签发 Hermes JWT
+  try {
+    const token = await issueUserJwt(hermesUser)
+    recordPasswordSuccess(ip)
+    touchUserLogin(hermesUser.id)
+
+    // 同时返回用户信息给前端（UI 展示用）
+    const platformUserInfo: HermesPlatformUserInfo = userInfo
+    ctx.body = {
+      token,
+      userInfo: {
+        platformUserId: platformUserInfo.platformUserId,
+        account: platformUserInfo.account,
+        nickName: platformUserInfo.nickName,
+        realName: platformUserInfo.realName,
+        roleName: platformUserInfo.roleName,
+        avatar: platformUserInfo.avatar,
+        region: platformUserInfo.region,
+        // 本地 Hermes 用户信息
+        hermesUserId: hermesUser.id,
+        hermesUsername: hermesUser.username,
+        hermesRole: hermesUser.role,
+      },
+    }
+  } catch (err: any) {
+    ctx.status = 500
+    ctx.body = { error: err?.message || 'Failed to issue login token' }
+  }
 }

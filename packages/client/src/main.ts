@@ -38,9 +38,11 @@ if (isDesktopShell) {
 // by the time the Vue app boots.
 async function ensureAuthenticated(): Promise<void> {
   if (hasApiKey()) return
+  // User explicitly logged out — skip silent auto-login
+  if (sessionStorage.getItem('hermes_manual_logout') === '1') return
   try {
-    const token = await loginWithPassword('admin', '123456')
-    if (token) setApiKey(token)
+    // const token = await loginWithPassword('admin', '123456')
+    // if (token) setApiKey(token)
   } catch {
     // Server may not be ready yet (desktop splash screen); the preload
     // will handle auth in that case.  Ignore errors silently.

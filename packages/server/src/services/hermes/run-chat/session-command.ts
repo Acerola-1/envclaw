@@ -488,7 +488,12 @@ export async function handleSessionCommand(
       }
       const title = command.args.slice(0, 120)
       if (!getSession(sessionId)) {
-        createSession({ id: sessionId, profile: ctx.profile, source: 'cli', model: ctx.model, title })
+        const cmdSocketUser = ctx.socket.data?.user as { id: number } | undefined
+        const cmdUserId = cmdSocketUser?.id != null ? String(cmdSocketUser.id) : null
+        if (cmdUserId == null) {
+          logger.warn('[chat-run-socket] createSession called with missing user on command session %s', sessionId)
+        }
+        createSession({ id: sessionId, profile: ctx.profile, source: 'cli', model: ctx.model, title, user_id: cmdUserId })
       }
       const updated = renameSession(sessionId, title)
       emitCommand({
@@ -890,12 +895,18 @@ function formatReloadSkillItem(item: unknown): string {
 
 function ensureCommandSession(sessionId: string, command: ParsedSessionCommand, ctx: SessionCommandContext) {
   if (getSession(sessionId)) return
+  const cmdSocketUser = ctx.socket.data?.user as { id: number } | undefined
+  const cmdUserId = cmdSocketUser?.id != null ? String(cmdSocketUser.id) : null
+  if (cmdUserId == null) {
+    logger.warn('[chat-run-socket] createSession called with missing user on command session %s', sessionId)
+  }
   createSession({
     id: sessionId,
     profile: ctx.profile,
     source: 'cli',
     model: ctx.model,
     title: buildCommandSessionTitle(command),
+    user_id: cmdUserId,
   })
 }
 
