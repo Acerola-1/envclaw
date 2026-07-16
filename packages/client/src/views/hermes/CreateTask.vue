@@ -158,7 +158,7 @@ const functions: FuncDef[] = [
 
 const selectedPlatforms = ref<Set<string>>(new Set(['szdq']))
 const selectedFunctions = ref<Set<string>>(new Set(['szdq-rank']))
-const selectedCapability = ref<'concentrationRanking' | 'hourlyBrief' | 'mapPackage'>('concentrationRanking')
+const selectedCapability = ref<'concentrationRanking' | 'hourlyBrief' | 'mapPackage' | 'monitoringData'>('concentrationRanking')
 const rankingPresetActive = ref(true)
 const rankingQueryTarget = ref<'city' | 'station'>('city')
 const rankingRegion = ref('pingdingshan')
@@ -178,6 +178,24 @@ const mapScope = ref<'national' | 'henan' | 'pingdingshan'>('henan')
 const mapTimeType = ref<'realtime' | 'accumulated' | 'day'>('realtime')
 const mapMarkAssociated = ref(true)
 const mapCloseLeftPanel = ref(true)
+const hourlyRegion = ref('pingdingshan')
+const hourlyQueryTarget = ref<'city' | 'station'>('city')
+const hourlyTownship = ref('all')
+const hourlyFactors = ref(['AQI', 'PM₂.₅', 'O₃'])
+const hourlyIncludeScreenshot = ref(true)
+const hourlyIncludeSummary = ref(true)
+const hourlyScreenshotScope = ref<'contentOnly' | 'withFilters'>('contentOnly')
+const hourlyTheme = ref<'light' | 'dark'>('light')
+const monitoringRegion = ref('pingdingshan')
+const monitoringQueryTarget = ref<'city' | 'station'>('city')
+const monitoringTownship = ref('all')
+const monitoringPeriod = ref<'hourAverage' | 'hour' | 'dailyCumulative' | 'dayCumulative' | 'custom'>('hour')
+const monitoringCustomRange = ref('')
+const monitoringFactors = ref(['AQI', 'PM₂.₅', 'O₃'])
+const monitoringIncludeTable = ref(true)
+const monitoringIncludeScreenshot = ref(false)
+const monitoringIncludeAnalysis = ref(false)
+const monitoringTheme = ref<'light' | 'dark'>('light')
 
 const rankingRegionOptions = [
   { label: '河南省', key: 'henan', disabled: true, children: [
@@ -193,6 +211,12 @@ const rankingPeriods = [
   { label: '日', value: 'day' }, { label: '月', value: 'month' }, { label: '年', value: 'year' },
 ]
 const rankingFactorOptions = ['AQI', 'PM₂.₅', 'PM₁₀', 'SO₂', 'NO₂', 'CO', 'O₃'].map(value => ({ label: value, value }))
+const townshipOptions = [
+  { label: '全部乡镇', value: 'all' }, { label: '新华区', value: 'xinhua' }, { label: '卫东区', value: 'weidong' }, { label: '湛河区', value: 'zhanhe' },
+]
+const monitoringPeriodOptions: Array<{ value: MonitoringDataOutputSnapshot['period']; label: string }> = [
+  { value: 'hourAverage', label: '小时均值' }, { value: 'hour', label: '小时' }, { value: 'dailyCumulative', label: '逐日累计' }, { value: 'dayCumulative', label: '日累计' }, { value: 'custom', label: '自定义' },
+]
 const mapFactorOptions = [
   { label: '首要污染物', value: 'primaryPollutant' },
   ...rankingFactorOptions,
@@ -226,9 +250,35 @@ interface MapOutputSnapshot {
   closeLeftPanel: boolean
 }
 
+interface HourlyBriefOutputSnapshot {
+  queryTarget: 'city' | 'station'
+  region: string
+  township: string
+  factors: string[]
+  includeScreenshot: boolean
+  includeSummary: boolean
+  screenshotScope: 'contentOnly' | 'withFilters'
+  theme: 'light' | 'dark'
+}
+
+interface MonitoringDataOutputSnapshot {
+  queryTarget: 'city' | 'station'
+  region: string
+  township: string
+  period: 'hourAverage' | 'hour' | 'dailyCumulative' | 'dayCumulative' | 'custom'
+  customRange: string
+  factors: string[]
+  includeTable: boolean
+  includeScreenshot: boolean
+  includeAnalysis: boolean
+  theme: 'light' | 'dark'
+}
+
 type DutyOutputItem =
   | { id: string; type: 'concentrationRanking'; title: string; config: RankingOutputSnapshot }
   | { id: string; type: 'mapPackage'; title: string; config: MapOutputSnapshot }
+  | { id: string; type: 'hourlyBrief'; title: string; config: HourlyBriefOutputSnapshot }
+  | { id: string; type: 'monitoringData'; title: string; config: MonitoringDataOutputSnapshot }
 
 let outputSequence = 0
 const newOutputId = () => `output-${++outputSequence}`
@@ -242,6 +292,18 @@ const captureMapConfig = (): MapOutputSnapshot => ({
   windWaves: mapWindWaves.value, screenshotScope: mapScreenshotScope.value, scope: mapScope.value,
   timeType: mapTimeType.value, markAssociated: mapMarkAssociated.value, closeLeftPanel: mapCloseLeftPanel.value,
 })
+const captureHourlyConfig = (): HourlyBriefOutputSnapshot => ({
+  queryTarget: hourlyQueryTarget.value, region: hourlyRegion.value, township: hourlyTownship.value, factors: [...hourlyFactors.value],
+  includeScreenshot: hourlyIncludeScreenshot.value, includeSummary: hourlyIncludeSummary.value,
+  screenshotScope: hourlyScreenshotScope.value, theme: hourlyTheme.value,
+})
+const captureMonitoringConfig = (): MonitoringDataOutputSnapshot => ({
+  queryTarget: monitoringQueryTarget.value, region: monitoringRegion.value, township: monitoringTownship.value,
+  period: monitoringPeriod.value, customRange: monitoringCustomRange.value,
+  factors: [...monitoringFactors.value], includeTable: monitoringIncludeTable.value,
+  includeScreenshot: monitoringIncludeScreenshot.value, includeAnalysis: monitoringIncludeAnalysis.value,
+  theme: monitoringTheme.value,
+})
 
 const initialOutputId = newOutputId()
 const dutyOutputs = ref<DutyOutputItem[]>([{ id: initialOutputId, type: 'concentrationRanking', title: '浓度排名 1', config: captureRankingConfig() }])
@@ -251,7 +313,9 @@ function syncActiveOutput() {
   const output = dutyOutputs.value.find(item => item.id === activeOutputId.value)
   if (!output) return
   if (output.type === 'concentrationRanking') output.config = captureRankingConfig()
-  else output.config = captureMapConfig()
+  else if (output.type === 'mapPackage') output.config = captureMapConfig()
+  else if (output.type === 'hourlyBrief') output.config = captureHourlyConfig()
+  else output.config = captureMonitoringConfig()
 }
 
 function loadOutput(output: DutyOutputItem) {
@@ -263,11 +327,23 @@ function loadOutput(output: DutyOutputItem) {
     rankingFactors.value = [...c.factors]
     rankingIncludeScreenshot.value = c.includeScreenshot; rankingIncludeAnalysis.value = c.includeAnalysis
     rankingScreenshotScope.value = c.screenshotScope; rankingTheme.value = c.theme
-  } else {
+  } else if (output.type === 'mapPackage') {
     const c = output.config
     mapTheme.value = c.theme; mapMode.value = c.mode; mapZoom.value = c.zoom; mapFactor.value = c.factor
     mapWindWaves.value = c.windWaves; mapScreenshotScope.value = c.screenshotScope; mapScope.value = c.scope
     mapTimeType.value = c.timeType; mapMarkAssociated.value = c.markAssociated; mapCloseLeftPanel.value = c.closeLeftPanel
+  } else if (output.type === 'hourlyBrief') {
+    const c = output.config
+    hourlyQueryTarget.value = c.queryTarget; hourlyRegion.value = c.region; hourlyTownship.value = c.township; hourlyFactors.value = [...c.factors]
+    hourlyIncludeScreenshot.value = c.includeScreenshot; hourlyIncludeSummary.value = c.includeSummary
+    hourlyScreenshotScope.value = c.screenshotScope; hourlyTheme.value = c.theme
+  } else {
+    const c = output.config
+    monitoringQueryTarget.value = c.queryTarget; monitoringRegion.value = c.region; monitoringTownship.value = c.township
+    monitoringPeriod.value = c.period; monitoringCustomRange.value = c.customRange
+    monitoringFactors.value = [...c.factors]; monitoringIncludeTable.value = c.includeTable
+    monitoringIncludeScreenshot.value = c.includeScreenshot; monitoringIncludeAnalysis.value = c.includeAnalysis
+    monitoringTheme.value = c.theme
   }
 }
 
@@ -277,7 +353,8 @@ function selectDutyOutput(output: DutyOutputItem) {
 }
 
 function refreshSelectedFunctions() {
-  selectedFunctions.value = new Set(dutyOutputs.value.map(item => item.type === 'mapPackage' ? 'szdq-map' : 'szdq-rank'))
+  const functionByType = { concentrationRanking: 'szdq-rank', mapPackage: 'szdq-map', hourlyBrief: 'szdq-trace', monitoringData: 'szdq-review' }
+  selectedFunctions.value = new Set(dutyOutputs.value.map(item => functionByType[item.type]))
 }
 
 function addMapOutput() {
@@ -307,6 +384,28 @@ function addRankingOutput() {
   schedule.value = '10 * * * *'
 }
 
+function addHourlyOutput() {
+  syncActiveOutput()
+  const id = newOutputId()
+  const count = dutyOutputs.value.filter(item => item.type === 'hourlyBrief').length + 1
+  const item: DutyOutputItem = { id, type: 'hourlyBrief', title: `小时播报 ${count}`, config: captureHourlyConfig() }
+  dutyOutputs.value.push(item)
+  loadOutput(item)
+  selectedPlatforms.value = new Set(['szdq'])
+  refreshSelectedFunctions()
+}
+
+function addMonitoringOutput() {
+  syncActiveOutput()
+  const id = newOutputId()
+  const count = dutyOutputs.value.filter(item => item.type === 'monitoringData').length + 1
+  const item: DutyOutputItem = { id, type: 'monitoringData', title: `监测数据 ${count}`, config: captureMonitoringConfig() }
+  dutyOutputs.value.push(item)
+  loadOutput(item)
+  selectedPlatforms.value = new Set(['szdq'])
+  refreshSelectedFunctions()
+}
+
 function duplicateOutput(output: DutyOutputItem) {
   syncActiveOutput()
   const clone = structuredClone(output) as DutyOutputItem
@@ -333,6 +432,9 @@ watch([
   rankingFactors, rankingIncludeScreenshot, rankingIncludeAnalysis,
   rankingScreenshotScope, rankingTheme, mapTheme, mapMode, mapZoom, mapFactor, mapWindWaves,
   mapScreenshotScope, mapScope, mapTimeType, mapMarkAssociated, mapCloseLeftPanel,
+  hourlyQueryTarget, hourlyRegion, hourlyTownship, hourlyFactors, hourlyIncludeScreenshot, hourlyIncludeSummary, hourlyScreenshotScope, hourlyTheme,
+  monitoringQueryTarget, monitoringRegion, monitoringTownship, monitoringPeriod, monitoringCustomRange, monitoringFactors, monitoringIncludeTable,
+  monitoringIncludeScreenshot, monitoringIncludeAnalysis, monitoringTheme,
 ], syncActiveOutput, { deep: true, flush: 'sync' })
 
 // ==================== Step Navigation ====================
@@ -434,6 +536,8 @@ const regionLabelFor = (value: string) => ({ all: '河南省 / 全部', pingding
 const mapScopeLabelFor = (value: MapOutputSnapshot['scope']) => ({ national: '全国', henan: '河南省', pingdingshan: '平顶山市' }[value])
 const mapFactorLabelFor = (value: string) => mapFactorOptions.find(item => item.value === value)?.label || '首要污染物'
 const mapMarkerLabelFor = (scope: MapOutputSnapshot['scope']) => scope === 'national' ? '标记河南省' : scope === 'henan' ? '标记平顶山市' : '无需标记'
+const townshipLabelFor = (value: string) => townshipOptions.find(item => item.value === value)?.label || '全部乡镇'
+const monitoringPeriodLabelFor = (value: MonitoringDataOutputSnapshot['period']) => monitoringPeriodOptions.find(item => item.value === value)?.label || '小时'
 
 function outputDefinition(output: DutyOutputItem): string {
   if (output.type === 'concentrationRanking') {
@@ -442,14 +546,25 @@ function outputDefinition(output: DutyOutputItem): string {
     const outputs = [c.includeScreenshot ? `排名截图（${c.screenshotScope === 'tableOnly' ? '仅标题和表格' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : '', c.includeAnalysis ? '数据分析摘要' : ''].filter(Boolean).join('、')
     return `${output.title}：${c.queryTarget === 'city' ? '城市查询' : '站点查询'}；行政区：${regionLabelFor(c.region)}；数据口径：${period}；数据时间：官网最新可用时间；污染因子：${c.factors.join('、')}；成果：${outputs}`
   }
+  if (output.type === 'mapPackage') {
+    const c = output.config
+    return `${output.title}：范围：${mapScopeLabelFor(c.scope)}；地图类型：${c.mode === 'monitoring' ? '监测图' : '插值图'}；因子：${mapFactorLabelFor(c.factor)}；时间类型：${({ realtime: '实时', accumulated: '累计', day: '日' }[c.timeType])}；缩放等级：${c.zoom}；颜色：${c.theme === 'light' ? '浅色' : '深色'}；风/海浪：${c.windWaves ? '开启' : '关闭'}；左侧面板：${c.closeLeftPanel ? '关闭' : '显示'}；截图区域：${({ mapOnly: '仅地图', mapLegend: '地图和图例', fullPage: '完整页面' }[c.screenshotScope])}；地区标记：${c.scope === 'pingdingshan' ? '无需标记' : c.markAssociated ? mapMarkerLabelFor(c.scope) : '关闭'}`
+  }
+  if (output.type === 'hourlyBrief') {
+    const c = output.config
+    const delivery = [c.includeScreenshot ? `播报截图（${c.screenshotScope === 'contentOnly' ? '仅播报内容' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : '', c.includeSummary ? '文字播报' : ''].filter(Boolean).join('、')
+    return `${output.title}：${c.queryTarget === 'city' ? '城市' : '站点'}；行政区：${regionLabelFor(c.region)}；乡镇：${townshipLabelFor(c.township)}；数据时间：官网最新可用时间；污染因子：${c.factors.join('、')}；成果：${delivery}`
+  }
   const c = output.config
-  return `${output.title}：范围：${mapScopeLabelFor(c.scope)}；地图类型：${c.mode === 'monitoring' ? '监测图' : '插值图'}；因子：${mapFactorLabelFor(c.factor)}；时间类型：${({ realtime: '实时', accumulated: '累计', day: '日' }[c.timeType])}；缩放等级：${c.zoom}；颜色：${c.theme === 'light' ? '浅色' : '深色'}；风/海浪：${c.windWaves ? '开启' : '关闭'}；左侧面板：${c.closeLeftPanel ? '关闭' : '显示'}；截图区域：${({ mapOnly: '仅地图', mapLegend: '地图和图例', fullPage: '完整页面' }[c.screenshotScope])}；地区标记：${c.scope === 'pingdingshan' ? '无需标记' : c.markAssociated ? mapMarkerLabelFor(c.scope) : '关闭'}`
+  const delivery = [c.includeTable ? '监测数据表' : '', c.includeScreenshot ? `${c.theme === 'light' ? '浅色' : '深色'}截图` : '', c.includeAnalysis ? '数据分析摘要' : ''].filter(Boolean).join('、')
+  const time = c.period === 'custom' ? `自定义：${c.customRange || '待设置'}` : `官网最新${monitoringPeriodLabelFor(c.period)}数据`
+  return `${output.title}：${c.queryTarget === 'city' ? '城市' : '站点'}；行政区：${regionLabelFor(c.region)}；乡镇：${townshipLabelFor(c.township)}；时间：${time}；污染因子：${c.factors.join('、')}；成果：${delivery}`
 }
 
 const allOutputLabels = computed(() => dutyOutputs.value.map(outputDefinition))
 const taskExecutionOutputs = computed(() => dutyOutputs.value.map(output => ({
   id: output.id,
-  capability: output.type === 'concentrationRanking' ? 'mapairs-ranking-capture' : 'mapairs-map-capture',
+  capability: ({ concentrationRanking: 'mapairs-ranking-capture', mapPackage: 'mapairs-map-capture', hourlyBrief: 'mapairs-hourly-brief', monitoringData: 'mapairs-monitoring-data' }[output.type]),
   skill: output.type === 'concentrationRanking' && output.config.includeScreenshot ? 'mapairs-ranking-capture' : null,
   config: output.config,
 })))
@@ -668,7 +783,9 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="output-list">
                 <article v-for="(output, index) in dutyOutputs" :key="output.id" class="output-item" :class="{ active: activeOutputId === output.id }" @click="selectDutyOutput(output)">
                   <span class="output-index">{{ index + 1 }}</span>
-                  <span class="capability-icon" :class="{ map: output.type === 'mapPackage' }">{{ output.type === 'mapPackage' ? '◇' : '≋' }}</span>
+                  <span class="capability-icon" :class="output.type">
+                    {{ ({ concentrationRanking: '≋', mapPackage: '◇', hourlyBrief: '◷', monitoringData: '▦' }[output.type]) }}
+                  </span>
                   <span class="output-item-copy"><b>{{ output.title }}</b><small>{{ outputDefinition(output) }}</small></span>
                   <span v-if="activeOutputId === output.id" class="editing-badge">正在编辑</span>
                   <button class="output-action" title="复制成果" @click.stop="duplicateOutput(output)">复制</button>
@@ -678,7 +795,9 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="output-add-bar">
                 <span>添加成果</span>
                 <button @click="addRankingOutput"><b>＋</b> 浓度排名</button>
+                <button @click="addHourlyOutput"><b>＋</b> 小时播报</button>
                 <button @click="addMapOutput"><b>＋</b> 一张图</button>
+                <button @click="addMonitoringOutput"><b>＋</b> 监测数据</button>
               </div>
             </section>
 
@@ -738,6 +857,55 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div class="map-marker-row"><NCheckbox v-if="mapScope !== 'pingdingshan'" v-model:checked="mapMarkAssociated">{{ mapMarkerLabel }}</NCheckbox><span v-else>平顶山市级展示区县，无需额外标记关联地区</span></div>
               </div>
               <div class="ranking-summary">本次一张图：{{ mapScopeLabel }} · {{ mapModeLabel }} · {{ mapFactorLabel }} · 缩放 {{ mapZoom }} · {{ mapTheme === 'light' ? '浅色' : '深色' }} · {{ mapWindWaves ? '开启风/海浪' : '关闭风/海浪' }} · {{ mapScreenshotScopeLabel }} · {{ mapCloseLeftPanel ? '关闭左侧面板' : '保留左侧面板' }} · {{ mapScope === 'pingdingshan' ? '无需标记' : mapMarkAssociated ? mapMarkerLabel : '不标记关联地区' }}</div>
+            </section>
+
+            <section v-if="selectedCapability === 'hourlyBrief'" class="ranking-config hourly-config">
+              <div class="ranking-config-head"><div><span>02 · 配置小时播报</span></div></div>
+              <div class="ranking-config-grid">
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>查询：</span><div class="segmented query-segment"><button :class="{ active: hourlyQueryTarget === 'city' }" @click="hourlyQueryTarget = 'city'">城市</button><button :class="{ active: hourlyQueryTarget === 'station' }" @click="hourlyQueryTarget = 'station'">站点</button></div></div>
+                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="hourlyRegion" :options="rankingRegionOptions" key-field="key" default-expand-all /></div>
+                  <div class="compact-field township-field"><span>乡镇：</span><NSelect v-model:value="hourlyTownship" :options="townshipOptions" /></div>
+                </div>
+                <div class="ranking-toolbar factor-toolbar">
+                  <div class="compact-field factor-field"><span>污染因子：</span><NCheckboxGroup v-model:value="hourlyFactors"><div class="factor-chips"><NCheckbox v-for="factor in rankingFactorOptions" :key="factor.value" :value="factor.value">{{ factor.label }}</NCheckbox></div></NCheckboxGroup></div>
+                </div>
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>生成成果：</span><div class="output-checks"><NCheckbox v-model:checked="hourlyIncludeScreenshot">播报截图</NCheckbox><NCheckbox v-model:checked="hourlyIncludeSummary">文字播报</NCheckbox></div></div>
+                  <span class="latest-hint">任务执行时自动使用官网最新可用时点</span>
+                </div>
+                <div v-if="hourlyIncludeScreenshot" class="screenshot-options">
+                  <div class="compact-field"><span>截图区域：</span><div class="segmented"><button :class="{ active: hourlyScreenshotScope === 'contentOnly' }" @click="hourlyScreenshotScope = 'contentOnly'">仅播报内容</button><button :class="{ active: hourlyScreenshotScope === 'withFilters' }" @click="hourlyScreenshotScope = 'withFilters'">含查询条件</button></div></div>
+                  <div class="compact-field"><span>截图颜色：</span><div class="segmented"><button :class="{ active: hourlyTheme === 'light' }" @click="hourlyTheme = 'light'">浅色</button><button :class="{ active: hourlyTheme === 'dark' }" @click="hourlyTheme = 'dark'">深色</button></div></div>
+                </div>
+              </div>
+              <div class="ranking-summary">本次成果：{{ hourlyQueryTarget === 'city' ? '城市' : '站点' }} · {{ regionLabelFor(hourlyRegion) }} · {{ townshipLabelFor(hourlyTownship) }} · 官网最新可用时点 · {{ hourlyFactors.join('、') }} · {{ hourlyIncludeScreenshot ? '播报截图' : '' }}{{ hourlyIncludeScreenshot && hourlyIncludeSummary ? '、' : '' }}{{ hourlyIncludeSummary ? '文字播报' : '' }}</div>
+            </section>
+
+            <section v-if="selectedCapability === 'monitoringData'" class="ranking-config monitoring-config">
+              <div class="ranking-config-head"><div><span>02 · 配置监测数据</span></div></div>
+              <div class="ranking-config-grid">
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>查询：</span><div class="segmented query-segment"><button :class="{ active: monitoringQueryTarget === 'city' }" @click="monitoringQueryTarget = 'city'">城市</button><button :class="{ active: monitoringQueryTarget === 'station' }" @click="monitoringQueryTarget = 'station'">站点</button></div></div>
+                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="monitoringRegion" :options="rankingRegionOptions" key-field="key" default-expand-all /></div>
+                  <div class="compact-field township-field"><span>乡镇：</span><NSelect v-model:value="monitoringTownship" :options="townshipOptions" /></div>
+                </div>
+                <div class="ranking-toolbar factor-toolbar">
+                  <div class="compact-field factor-field"><span>污染因子：</span><NCheckboxGroup v-model:value="monitoringFactors"><div class="factor-chips"><NCheckbox v-for="factor in rankingFactorOptions" :key="factor.value" :value="factor.value">{{ factor.label }}</NCheckbox></div></NCheckboxGroup></div>
+                </div>
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>时间：</span><div class="segmented period-segment"><button v-for="item in monitoringPeriodOptions" :key="item.value" :class="{ active: monitoringPeriod === item.value }" @click="monitoringPeriod = item.value">{{ item.label }}</button></div></div>
+                  <span v-if="monitoringPeriod !== 'custom'" class="latest-hint">任务执行时自动使用官网最新可用时间</span>
+                </div>
+                <div v-if="monitoringPeriod === 'custom'" class="ranking-toolbar">
+                  <div class="compact-field custom-range-field"><span>时间范围：</span><NInput v-model:value="monitoringCustomRange" placeholder="例如：2026-07-16 01:00 - 2026-07-16 14:00" /></div>
+                </div>
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>生成成果：</span><div class="output-checks"><NCheckbox v-model:checked="monitoringIncludeTable">监测数据表</NCheckbox><NCheckbox v-model:checked="monitoringIncludeScreenshot">数据截图</NCheckbox><NCheckbox v-model:checked="monitoringIncludeAnalysis">数据分析</NCheckbox></div></div>
+                  <div v-if="monitoringIncludeScreenshot" class="compact-field"><span>截图颜色：</span><div class="segmented"><button :class="{ active: monitoringTheme === 'light' }" @click="monitoringTheme = 'light'">浅色</button><button :class="{ active: monitoringTheme === 'dark' }" @click="monitoringTheme = 'dark'">深色</button></div></div>
+                </div>
+              </div>
+              <div class="ranking-summary">本次成果：{{ monitoringQueryTarget === 'city' ? '城市' : '站点' }} · {{ regionLabelFor(monitoringRegion) }} · {{ townshipLabelFor(monitoringTownship) }} · {{ monitoringPeriod === 'custom' ? (monitoringCustomRange || '自定义时间范围') : `官网最新${monitoringPeriodLabelFor(monitoringPeriod)}数据` }} · {{ monitoringFactors.join('、') }} · {{ monitoringIncludeTable ? '监测数据表' : '' }}{{ monitoringIncludeScreenshot ? '、数据截图' : '' }}{{ monitoringIncludeAnalysis ? '、数据分析' : '' }}</div>
             </section>
           </div>
         </div>
@@ -1037,10 +1205,10 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 .duty-preset-copy { min-width: 0; flex: 1; }.duty-preset-title { color: $text-primary; font-size: 15px; font-weight: 700; }.duty-preset-title span { margin-left: 7px; padding: 2px 6px; border-radius: 4px; color: #1973bc; background: #dcefff; font-size: 10px; font-weight: 600; }.duty-preset-copy p { margin: 6px 0 8px; color: $text-secondary; font-size: 12px; line-height: 1.5; }.duty-preset-tags { display: flex; gap: 6px; flex-wrap: wrap; }.duty-preset-tags i { padding: 2px 6px; border: 1px solid #d7e4ee; border-radius: 99px; color: #547189; background: #fff; font-size: 10px; font-style: normal; }
 
 .capability-section { padding: 20px; border: 1px solid #dce7ef; border-radius: 14px; background: linear-gradient(135deg, #fbfdff, #f2f9ff); }.capability-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:15px; }.capability-kicker { color:#1985d2; font-size:11px; font-weight:800; letter-spacing:.7px; }.capability-heading h2 { margin:3px 0 4px; color:$text-primary; font-size:19px; }.capability-heading p { margin:0; color:$text-secondary; font-size:12px; }.bound-context { padding:7px 9px; border:1px solid #cfe5f6; border-radius:6px; background:#fff; color:#71869a; font-size:11px; white-space:nowrap; }.bound-context b { color:#287ab4; }.capability-grid { display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:9px; }.capability-card { min-width:0; display:flex; align-items:center; gap:9px; padding:12px; border:1px solid #dce6ee; border-radius:9px; background:#fff; text-align:left; cursor:pointer; }.capability-card.active { border-color:#2b97e8; background:#edf8ff; box-shadow:0 0 0 2px rgba(43,151,232,.1); }.capability-card:disabled { cursor:not-allowed; opacity:.58; }.capability-icon { width:28px; height:28px; display:grid; place-items:center; border-radius:8px; flex:0 0 auto; color:#fff; background:linear-gradient(135deg,#1c98eb,#176ac2); font-size:18px; font-weight:800; }.capability-icon.muted { background:#aebdca; }.capability-copy { min-width:0; flex:1; }.capability-copy b,.capability-copy small { display:block; }.capability-copy b { color:$text-primary; font-size:12px; }.capability-copy small { margin-top:3px; color:$text-muted; font-size:10px; line-height:1.3; }.chosen,.soon { font-size:10px; white-space:nowrap; }.chosen { color:#1685d2; }.soon { color:$text-muted; }
-.capability-icon.map { background:linear-gradient(135deg,#19a878,#087b64); }.map-config { border-color:#bfe3d6; }.map-config .ranking-config-head { background:#eefaf6; border-color:#d4eee5; }.map-config .ranking-config-head span { color:#14785d; }.map-factor { flex:1 1 200px; }.map-factor :deep(.n-select) { width:180px; }.map-zoom :deep(.n-input-number) { width:92px; }.map-switches { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }.map-marker-row { min-height:30px; display:flex; align-items:center; padding:8px 10px; border-radius:6px; color:#4c7869; background:#f1f9f6; font-size:12px; }
+.capability-icon.mapPackage { background:linear-gradient(135deg,#19a878,#087b64); }.capability-icon.hourlyBrief { background:linear-gradient(135deg,#d69223,#ad6011); }.capability-icon.monitoringData { background:linear-gradient(135deg,#6277dc,#3548a5); }.map-config { border-color:#bfe3d6; }.map-config .ranking-config-head { background:#eefaf6; border-color:#d4eee5; }.map-config .ranking-config-head span { color:#14785d; }.hourly-config { border-color:#f0d5a6; }.hourly-config .ranking-config-head { background:#fff8e9; border-color:#f4e0bc; }.hourly-config .ranking-config-head span { color:#a56716; }.monitoring-config { border-color:#cbd5fa; }.monitoring-config .ranking-config-head { background:#f1f4ff; border-color:#dce3fb; }.monitoring-config .ranking-config-head span { color:#4b5fbb; }.map-factor { flex:1 1 200px; }.map-factor :deep(.n-select) { width:180px; }.map-zoom :deep(.n-input-number) { width:92px; }.map-switches,.output-checks { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }.map-marker-row { min-height:30px; display:flex; align-items:center; padding:8px 10px; border-radius:6px; color:#4c7869; background:#f1f9f6; font-size:12px; }
 .output-list { display:flex; flex-direction:column; gap:8px; }.output-item { display:flex; align-items:center; gap:10px; min-width:0; padding:10px 11px; border:1px solid #dce6ee; border-radius:9px; background:#fff; cursor:pointer; transition:.15s ease; }.output-item:hover { border-color:#a9cce7; }.output-item.active { border-color:#2b97e8; background:#edf8ff; box-shadow:0 0 0 2px rgba(43,151,232,.1); }.output-index { display:grid; place-items:center; width:20px; height:20px; flex:0 0 auto; border-radius:50%; color:#668195; background:#edf2f6; font-size:10px; font-weight:700; }.output-item.active .output-index { color:#fff; background:#218fe0; }.output-item-copy { min-width:0; flex:1; }.output-item-copy b,.output-item-copy small { display:block; }.output-item-copy b { color:$text-primary; font-size:12px; }.output-item-copy small { margin-top:3px; overflow:hidden; color:$text-muted; font-size:10px; line-height:1.35; text-overflow:ellipsis; white-space:nowrap; }.editing-badge { flex:0 0 auto; padding:2px 6px; border-radius:99px; color:#1879bd; background:#dff1ff; font-size:9px; }.output-action { flex:0 0 auto; padding:4px 6px; border:0; border-radius:4px; color:#678093; background:transparent; cursor:pointer; font-size:10px; }.output-action:hover { background:#e9f1f6; }.output-action.danger:hover { color:#bd4545; background:#fff0f0; }.output-add-bar { display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px dashed #d7e3ec; }.output-add-bar>span { margin-right:3px; color:$text-secondary; font-size:11px; font-weight:650; }.output-add-bar button { height:30px; padding:0 11px; border:1px solid #bdd8eb; border-radius:6px; color:#2676ad; background:#fff; cursor:pointer; font-size:11px; }.output-add-bar button:hover { border-color:#2996df; background:#edf8ff; }.output-add-bar button b { font-size:14px; }.confirm-output-list { display:flex; flex-direction:column; gap:8px; }.confirm-output-list>div { display:flex; align-items:flex-start; gap:9px; padding:9px 10px; border:1px solid #e0e9ef; border-radius:7px; background:#f9fbfc; }.confirm-output-list span { display:grid; place-items:center; width:20px; height:20px; flex:0 0 auto; border-radius:50%; color:#fff; background:#278ed5; font-size:10px; }.confirm-output-list strong { color:$text-secondary; font-size:11px; font-weight:550; line-height:1.55; }
 
-.ranking-config { margin-top: -8px; border: 1px solid #c7e2f8; border-radius: 12px; overflow: hidden; background: #fbfdff; }.ranking-config-head { display:flex; justify-content:space-between; gap:14px; padding:14px 16px; background:#eef8ff; border-bottom:1px solid #d8ebfa; }.ranking-config-head span,.ranking-config-head small { display:block; }.ranking-config-head span { color:#1a6fad; font-weight:700; font-size:13px; }.ranking-config-head small { color:#6c879c; margin-top:3px; font-size:11px; }.ranking-config-grid { display:flex; flex-direction:column; gap:12px; padding:14px 16px; }.ranking-toolbar { display:flex; align-items:center; gap:12px; min-width:0; }.compact-field { display:flex; align-items:center; min-width:0; gap:7px; }.compact-field>span { flex:0 0 auto; color:$text-primary; font-size:12px; font-weight:650; }.region-field { flex:1 1 250px; max-width:420px; }.region-field :deep(.n-tree-select) { min-width:220px; width:100%; }.factor-toolbar { width:100%; }.factor-field { flex:1 1 auto; }.factor-chips { display:flex; align-items:center; gap:18px; flex-wrap:nowrap; }.factor-chips :deep(.n-checkbox) { margin-right:0; white-space:nowrap; }.segmented { display:flex; overflow:hidden; border:1px solid #d6e2ea; border-radius:5px; background:#fff; }.segmented button { min-width:52px; height:31px; padding:0 10px; border:0; border-left:1px solid #d6e2ea; background:#fff; color:#5d7588; cursor:pointer; font-size:12px; }.segmented button:first-child { border-left:0; }.segmented button.active { color:#146fb5; background:#dff2ff; font-weight:700; }.query-segment button { flex:0 0 76px; width:76px; padding:0; }.period-segment button { min-width:44px; }.time-toolbar { padding-top:1px; }.latest-hint { color:#7b93a5; font-size:11px; }.ranking-time-input { width:210px; }.ranking-time-range { display:flex; align-items:center; gap:6px; color:#7690a3; font-size:12px; }.ranking-time-range :deep(.n-input) { width:155px; }.ranking-field { min-width:0; }.ranking-field.wide { width:100%; }.ranking-field label { display:block; color:$text-primary; font-size:12px; font-weight:650; margin-bottom:8px; }.output-choice { display:flex; align-items:center; gap:14px; padding-top:2px; }.output-choice label { margin:0; }.output-choice > div { display:flex; gap:20px; }.screenshot-options { display:flex; align-items:center; gap:24px; flex-wrap:wrap; padding-top:1px; }.screenshot-options .segmented button { min-width:auto; }.ranking-summary { margin:0 16px 16px; padding:10px 12px; color:#356b90; background:#edf7ff; border-left:3px solid #2496e8; font-size:12px; line-height:1.55; }
+.ranking-config { margin-top: -8px; border: 1px solid #c7e2f8; border-radius: 12px; overflow: hidden; background: #fbfdff; }.ranking-config-head { display:flex; justify-content:space-between; gap:14px; padding:14px 16px; background:#eef8ff; border-bottom:1px solid #d8ebfa; }.ranking-config-head span,.ranking-config-head small { display:block; }.ranking-config-head span { color:#1a6fad; font-weight:700; font-size:13px; }.ranking-config-head small { color:#6c879c; margin-top:3px; font-size:11px; }.ranking-config-grid { display:flex; flex-direction:column; gap:12px; padding:14px 16px; }.ranking-toolbar { display:flex; align-items:center; gap:12px; min-width:0; flex-wrap:wrap; }.compact-field { display:flex; align-items:center; min-width:0; gap:7px; }.compact-field>span { flex:0 0 auto; color:$text-primary; font-size:12px; font-weight:650; }.region-field { flex:1 1 250px; max-width:420px; }.region-field :deep(.n-tree-select) { min-width:220px; width:100%; }.township-field { flex:1 1 210px; max-width:300px; }.township-field :deep(.n-select) { width:100%; }.custom-range-field { flex:1 1 480px; }.custom-range-field :deep(.n-input) { width:min(100%, 440px); }.factor-toolbar { width:100%; }.factor-field { flex:1 1 auto; }.factor-chips { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }.factor-chips :deep(.n-checkbox) { margin-right:0; white-space:nowrap; }.segmented { display:flex; overflow:hidden; border:1px solid #d6e2ea; border-radius:5px; background:#fff; }.segmented button { min-width:52px; height:31px; padding:0 10px; border:0; border-left:1px solid #d6e2ea; background:#fff; color:#5d7588; cursor:pointer; font-size:12px; }.segmented button:first-child { border-left:0; }.segmented button.active { color:#146fb5; background:#dff2ff; font-weight:700; }.query-segment button { flex:0 0 76px; width:76px; padding:0; }.period-segment button { min-width:44px; }.time-toolbar { padding-top:1px; }.latest-hint { color:#7b93a5; font-size:11px; }.ranking-time-input { width:210px; }.ranking-time-range { display:flex; align-items:center; gap:6px; color:#7690a3; font-size:12px; }.ranking-time-range :deep(.n-input) { width:155px; }.ranking-field { min-width:0; }.ranking-field.wide { width:100%; }.ranking-field label { display:block; color:$text-primary; font-size:12px; font-weight:650; margin-bottom:8px; }.output-choice { display:flex; align-items:center; gap:14px; padding-top:2px; }.output-choice label { margin:0; }.output-choice > div { display:flex; gap:20px; }.screenshot-options { display:flex; align-items:center; gap:24px; flex-wrap:wrap; padding-top:1px; }.screenshot-options .segmented button { min-width:auto; }.ranking-summary { margin:0 16px 16px; padding:10px 12px; color:#356b90; background:#edf7ff; border-left:3px solid #2496e8; font-size:12px; line-height:1.55; }
 .effect-preview { margin:0 16px 16px; overflow:hidden; border:1px solid #d9e5ed; border-radius:9px; background:#fff; box-shadow:0 4px 14px rgba(31,77,108,.06); }.effect-preview figcaption { display:flex; align-items:center; gap:8px; height:38px; padding:0 12px; border-bottom:1px solid #e7eef3; color:$text-primary; background:#f8fafc; font-size:12px; font-weight:700; }.effect-preview figcaption em { padding:2px 7px; border-radius:99px; color:#648095; background:#e8eef3; font-size:9px; font-style:normal; font-weight:600; }.effect-preview-image { width:100%; overflow-x:auto; background:#edf1f4; }.effect-preview-image img { display:block; width:100%; height:auto; min-width:620px; }
 .ranking-time-picker { width: 210px; }
 .task-identity { padding: 2px 2px 0; }.task-identity label { display:block; margin-bottom:8px; color:$text-primary; font-size:12px; font-weight:650; }
