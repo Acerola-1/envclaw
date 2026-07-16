@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { NInput, NInputNumber, NButton, NModal } from 'naive-ui'
+import { NInput, NInputNumber, NButton, NModal, NTreeSelect, NCheckbox, NCheckboxGroup, NSelect } from 'naive-ui'
 import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import { useSettingsStore } from '@/stores/hermes/settings'
 import { getJob, scheduleToEditableInput, jobRepeatToEditValue } from '@/api/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
-import { fetchSkills } from '@/api/hermes/skills'
-import type { SkillInfo } from '@/api/hermes/skills'
 import { listPlatforms } from '@/api/envclaw/platforms'
 import type { Platform } from '@/api/envclaw/platforms'
 import { useMessage } from 'naive-ui'
@@ -58,8 +56,8 @@ const totalSteps = 3
 const submitting = ref(false)
 
 // ==================== Form Data (与 CreateGuardTaskModal 一致) ====================
-const taskName = ref('')
-const taskPrompt = ref('')
+const taskName = ref('平顶山市空气质量值守')
+const taskPrompt = ref('按结构化成果清单生成空气质量值守成果，并统一推送。')
 const schedule = ref('0 9 * * *')
 const selectedPushChips = ref<Set<string>>(new Set(['origin']))
 const notifyGroupId = ref('')
@@ -85,105 +83,6 @@ function togglePushChip(chipId: string) {
   } else {
     selectedPushChips.value.clear()
     selectedPushChips.value.add(chipId)
-  }
-}
-
-// 技能行管理：平台技能（自动带入，不可移除）+ 用户技能（可移除）
-// 平台技能从选中的平台动态读取
-const platformSkills = computed(() => {
-  const skills = new Set<string>()
-  for (const pid of selectedPlatforms.value) {
-    const platform = platforms.value.find(p => p.id === pid)
-    if (platform && platform.skills) {
-      for (const skill of platform.skills) {
-        skills.add(skill)
-      }
-    }
-  }
-  return skills
-})
-const userSkills = ref<Set<string>>(new Set())
-
-// 从 API 加载可用技能
-const allSystemSkills = ref<SkillInfo[]>([])
-const skillsLoading = ref(false)
-
-async function loadSkills() {
-  skillsLoading.value = true
-  try {
-    const data = await fetchSkills()
-    const skills: SkillInfo[] = []
-    for (const cat of data.categories) {
-      for (const s of cat.skills) {
-        skills.push({ ...s, source: s.source || 'local' })
-      }
-    }
-    allSystemSkills.value = skills
-  } catch {
-    allSystemSkills.value = []
-  } finally {
-    skillsLoading.value = false
-  }
-}
-
-const availableSkills = computed(() => {
-  return allSystemSkills.value.map(s => ({
-    name: s.name,
-    desc: s.description || s.name,
-    category: s.source || 'local',
-  }))
-})
-
-// function getSkillDesc(name: string): string {
-//   const s = availableSkills.find(s => s.name === name)
-//   return s ? s.desc : ''
-// }
-
-// function isSkillAdded(name: string): boolean {
-//   return platformSkills.value.has(name) || userSkills.value.has(name)
-// }
-
-// function addUserSkill(name: string) {
-//   userSkills.value.add(name)
-// }
-
-function removeUserSkill(name: string) {
-  userSkills.value.delete(name)
-}
-
-// 技能下拉状态
-const skillDropdownOpen = ref(false)
-const skillSearchQuery = ref('')
-
-const filteredSkillOptions = computed(() => {
-  const query = skillSearchQuery.value.toLowerCase()
-  const skills = availableSkills.value
-  return skills.filter((s: any) =>
-    !query || s.name.toLowerCase().includes(query) || s.desc.toLowerCase().includes(query)
-  )
-})
-
-function toggleSkillDropdown() {
-  skillDropdownOpen.value = !skillDropdownOpen.value
-  if (skillDropdownOpen.value) {
-    skillSearchQuery.value = ''
-  }
-}
-
-// function closeSkillDropdown() {
-//   skillDropdownOpen.value = false
-// }
-
-function isSkillAdded(name: string): boolean {
-  return platformSkills.value.has(name) || userSkills.value.has(name)
-}
-
-function handleSkillOptionClick(name: string) {
-  if (platformSkills.value.has(name)) return
-  if (userSkills.value.has(name)) {
-    userSkills.value.delete(name)
-  } else {
-    userSkills.value.add(name)
   }
 }
 
@@ -240,6 +139,7 @@ const functions: FuncDef[] = [
   // 数智大气
   { id: 'szdq-trace', platformId: 'szdq', name: '小时播报', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到小时播报页面，勾选行政区、污染因子，截取页面图片' },
   { id: 'szdq-rank', platformId: 'szdq', name: '浓度排名', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到浓度排名页面，查询平顶山市的数据,实现推送,附带对数据的文字总结' },
+  { id: 'szdq-map', platformId: 'szdq', name: '一张图', tags: ['截图', '地图'], prompt: '按任务定义生成数智大气一张图成果，设置地图类型、范围、因子、缩放等级、图层和地区标记。' },
   { id: 'szdq-review', platformId: 'szdq', name: '监测数据', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
   // { id: 'szdq-trend', platformId: 'szdq', name: '站点单指标趋势对比', tags: ['数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
   // 中大平台
@@ -257,7 +157,183 @@ const functions: FuncDef[] = [
 ]
 
 const selectedPlatforms = ref<Set<string>>(new Set(['szdq']))
-const selectedFunctions = ref<Set<string>>(new Set(['szdq-trace', 'szdq-review']))
+const selectedFunctions = ref<Set<string>>(new Set(['szdq-rank']))
+const selectedCapability = ref<'concentrationRanking' | 'hourlyBrief' | 'mapPackage'>('concentrationRanking')
+const rankingPresetActive = ref(true)
+const rankingQueryTarget = ref<'city' | 'station'>('city')
+const rankingRegion = ref('pingdingshan')
+const rankingPeriod = ref('dayAccumulated')
+const rankingFactors = ref(['AQI', 'PM₂.₅', 'O₃'])
+const rankingIncludeScreenshot = ref(true)
+const rankingIncludeAnalysis = ref(false)
+const rankingScreenshotScope = ref<'tableOnly' | 'withFilters'>('tableOnly')
+const rankingTheme = ref<'light' | 'dark'>('light')
+const mapTheme = ref<'light' | 'dark'>('light')
+const mapMode = ref<'monitoring' | 'interpolation'>('interpolation')
+const mapZoom = ref(8)
+const mapFactor = ref('primaryPollutant')
+const mapWindWaves = ref(false)
+const mapScreenshotScope = ref<'mapOnly' | 'mapLegend' | 'fullPage'>('mapLegend')
+const mapScope = ref<'national' | 'henan' | 'pingdingshan'>('henan')
+const mapTimeType = ref<'realtime' | 'accumulated' | 'day'>('realtime')
+const mapMarkAssociated = ref(true)
+const mapCloseLeftPanel = ref(true)
+
+const rankingRegionOptions = [
+  { label: '河南省', key: 'henan', disabled: true, children: [
+    { label: '全部', key: 'all' },
+    { label: '平顶山市（账号关联城市）', key: 'pingdingshan', children: [
+      { label: '新华区', key: 'xinhua' }, { label: '卫东区', key: 'weidong' }, { label: '湛河区', key: 'zhanhe' },
+    ] },
+    { label: '郑州市', key: 'zhengzhou' }, { label: '洛阳市', key: 'luoyang' },
+  ] },
+]
+const rankingPeriods = [
+  { label: '实时', value: 'realtime' }, { label: '日累计', value: 'dayAccumulated' },
+  { label: '日', value: 'day' }, { label: '月', value: 'month' }, { label: '年', value: 'year' },
+]
+const rankingFactorOptions = ['AQI', 'PM₂.₅', 'PM₁₀', 'SO₂', 'NO₂', 'CO', 'O₃'].map(value => ({ label: value, value }))
+const mapFactorOptions = [
+  { label: '首要污染物', value: 'primaryPollutant' },
+  ...rankingFactorOptions,
+]
+
+function setRankingPeriod(period: string) {
+  rankingPeriod.value = period
+}
+
+interface RankingOutputSnapshot {
+  queryTarget: 'city' | 'station'
+  region: string
+  period: string
+  factors: string[]
+  includeScreenshot: boolean
+  includeAnalysis: boolean
+  screenshotScope: 'tableOnly' | 'withFilters'
+  theme: 'light' | 'dark'
+}
+
+interface MapOutputSnapshot {
+  theme: 'light' | 'dark'
+  mode: 'monitoring' | 'interpolation'
+  zoom: number
+  factor: string
+  windWaves: boolean
+  screenshotScope: 'mapOnly' | 'mapLegend' | 'fullPage'
+  scope: 'national' | 'henan' | 'pingdingshan'
+  timeType: 'realtime' | 'accumulated' | 'day'
+  markAssociated: boolean
+  closeLeftPanel: boolean
+}
+
+type DutyOutputItem =
+  | { id: string; type: 'concentrationRanking'; title: string; config: RankingOutputSnapshot }
+  | { id: string; type: 'mapPackage'; title: string; config: MapOutputSnapshot }
+
+let outputSequence = 0
+const newOutputId = () => `output-${++outputSequence}`
+const captureRankingConfig = (): RankingOutputSnapshot => ({
+  queryTarget: rankingQueryTarget.value, region: rankingRegion.value, period: rankingPeriod.value,
+  factors: [...rankingFactors.value], includeScreenshot: rankingIncludeScreenshot.value,
+  includeAnalysis: rankingIncludeAnalysis.value, screenshotScope: rankingScreenshotScope.value, theme: rankingTheme.value,
+})
+const captureMapConfig = (): MapOutputSnapshot => ({
+  theme: mapTheme.value, mode: mapMode.value, zoom: mapZoom.value, factor: mapFactor.value,
+  windWaves: mapWindWaves.value, screenshotScope: mapScreenshotScope.value, scope: mapScope.value,
+  timeType: mapTimeType.value, markAssociated: mapMarkAssociated.value, closeLeftPanel: mapCloseLeftPanel.value,
+})
+
+const initialOutputId = newOutputId()
+const dutyOutputs = ref<DutyOutputItem[]>([{ id: initialOutputId, type: 'concentrationRanking', title: '浓度排名 1', config: captureRankingConfig() }])
+const activeOutputId = ref(initialOutputId)
+
+function syncActiveOutput() {
+  const output = dutyOutputs.value.find(item => item.id === activeOutputId.value)
+  if (!output) return
+  if (output.type === 'concentrationRanking') output.config = captureRankingConfig()
+  else output.config = captureMapConfig()
+}
+
+function loadOutput(output: DutyOutputItem) {
+  activeOutputId.value = output.id
+  selectedCapability.value = output.type
+  if (output.type === 'concentrationRanking') {
+    const c = output.config
+    rankingQueryTarget.value = c.queryTarget; rankingRegion.value = c.region; rankingPeriod.value = c.period
+    rankingFactors.value = [...c.factors]
+    rankingIncludeScreenshot.value = c.includeScreenshot; rankingIncludeAnalysis.value = c.includeAnalysis
+    rankingScreenshotScope.value = c.screenshotScope; rankingTheme.value = c.theme
+  } else {
+    const c = output.config
+    mapTheme.value = c.theme; mapMode.value = c.mode; mapZoom.value = c.zoom; mapFactor.value = c.factor
+    mapWindWaves.value = c.windWaves; mapScreenshotScope.value = c.screenshotScope; mapScope.value = c.scope
+    mapTimeType.value = c.timeType; mapMarkAssociated.value = c.markAssociated; mapCloseLeftPanel.value = c.closeLeftPanel
+  }
+}
+
+function selectDutyOutput(output: DutyOutputItem) {
+  syncActiveOutput()
+  loadOutput(output)
+}
+
+function refreshSelectedFunctions() {
+  selectedFunctions.value = new Set(dutyOutputs.value.map(item => item.type === 'mapPackage' ? 'szdq-map' : 'szdq-rank'))
+}
+
+function addMapOutput() {
+  syncActiveOutput()
+  const id = newOutputId()
+  const count = dutyOutputs.value.filter(item => item.type === 'mapPackage').length + 1
+  const item: DutyOutputItem = { id, type: 'mapPackage', title: `一张图 ${count}`, config: captureMapConfig() }
+  dutyOutputs.value.push(item)
+  loadOutput(item)
+  selectedCapability.value = 'mapPackage'
+  selectedPlatforms.value = new Set(['szdq'])
+  refreshSelectedFunctions()
+  schedule.value = '10 * * * *'
+}
+
+function addRankingOutput() {
+  syncActiveOutput()
+  const id = newOutputId()
+  const count = dutyOutputs.value.filter(item => item.type === 'concentrationRanking').length + 1
+  const item: DutyOutputItem = { id, type: 'concentrationRanking', title: `浓度排名 ${count}`, config: captureRankingConfig() }
+  dutyOutputs.value.push(item)
+  loadOutput(item)
+  selectedCapability.value = 'concentrationRanking'
+  rankingPresetActive.value = true
+  selectedPlatforms.value = new Set(['szdq'])
+  refreshSelectedFunctions()
+  schedule.value = '10 * * * *'
+}
+
+function duplicateOutput(output: DutyOutputItem) {
+  syncActiveOutput()
+  const clone = structuredClone(output) as DutyOutputItem
+  clone.id = newOutputId()
+  clone.title = `${output.title} 副本`
+  dutyOutputs.value.push(clone)
+  loadOutput(clone)
+  refreshSelectedFunctions()
+}
+
+function removeOutput(output: DutyOutputItem) {
+  if (dutyOutputs.value.length === 1) {
+    message.warning('任务至少需要一个成果')
+    return
+  }
+  const index = dutyOutputs.value.findIndex(item => item.id === output.id)
+  dutyOutputs.value.splice(index, 1)
+  if (activeOutputId.value === output.id) loadOutput(dutyOutputs.value[Math.max(0, index - 1)])
+  refreshSelectedFunctions()
+}
+
+watch([
+  rankingQueryTarget, rankingRegion, rankingPeriod,
+  rankingFactors, rankingIncludeScreenshot, rankingIncludeAnalysis,
+  rankingScreenshotScope, rankingTheme, mapTheme, mapMode, mapZoom, mapFactor, mapWindWaves,
+  mapScreenshotScope, mapScope, mapTimeType, mapMarkAssociated, mapCloseLeftPanel,
+], syncActiveOutput, { deep: true, flush: 'sync' })
 
 // ==================== Step Navigation ====================
 function goStep(step: number) {
@@ -290,29 +366,6 @@ function nextStep() {
 function prevStep() {
   if (currentStep.value <= 1) return
   currentStep.value--
-}
-
-// ==================== Platform / Function Toggle ====================
-function togglePlatform(platformId: string) {
-  // 所有平台都可以取消勾选
-  if (selectedPlatforms.value.has(platformId)) {
-    selectedPlatforms.value.delete(platformId)
-    // 取消该平台下所有功能
-    for (const fid of [...selectedFunctions.value]) {
-      const f = functions.find(x => x.id === fid)
-      if (f && f.platformId === platformId) selectedFunctions.value.delete(fid)
-    }
-  } else {
-    selectedPlatforms.value.add(platformId)
-  }
-}
-
-function toggleFunction(funcId: string) {
-  if (selectedFunctions.value.has(funcId)) {
-    selectedFunctions.value.delete(funcId)
-  } else {
-    selectedFunctions.value.add(funcId)
-  }
 }
 
 // ==================== Computed ====================
@@ -365,75 +418,60 @@ const scheduleDescription = computed(() => {
   return `每天 ${time} 执行`
 })
 
-const activePlatforms = computed(() =>
-  platforms.value.filter((p: any) => selectedPlatforms.value.has(p.id))
-)
-
 const activeFunctions = computed(() =>
   functions.filter((f: any) => selectedFunctions.value.has(f.id))
 )
 
-const platformFunctions = computed(() =>
-  functions.filter((f: any) => selectedPlatforms.value.has(f.platformId))
-)
+const rankingPeriodLabel = computed(() => rankingPeriods.find(item => item.value === rankingPeriod.value)?.label || '日累计')
+const rankingTimeLabel = '官网最新可用时间'
+const rankingRegionLabel = computed(() => ({ all: '河南省 / 全部', pingdingshan: '河南省 / 平顶山市', xinhua: '河南省 / 平顶山市 / 新华区', weidong: '河南省 / 平顶山市 / 卫东区', zhanhe: '河南省 / 平顶山市 / 湛河区', zhengzhou: '河南省 / 郑州市', luoyang: '河南省 / 洛阳市' }[rankingRegion.value] || '河南省 / 平顶山市'))
+const mapScopeLabel = computed(() => ({ national: '全国', henan: '河南省', pingdingshan: '平顶山市' }[mapScope.value]))
+const mapMarkerLabel = computed(() => mapScope.value === 'national' ? '标记河南省' : mapScope.value === 'henan' ? '标记平顶山市' : '市级范围无需标记')
+const mapModeLabel = computed(() => mapMode.value === 'monitoring' ? '监测图' : '插值图')
+const mapFactorLabel = computed(() => mapFactorOptions.find(item => item.value === mapFactor.value)?.label || '首要污染物')
+const mapScreenshotScopeLabel = computed(() => ({ mapOnly: '仅地图', mapLegend: '地图和图例', fullPage: '完整页面' }[mapScreenshotScope.value]))
+const regionLabelFor = (value: string) => ({ all: '河南省 / 全部', pingdingshan: '河南省 / 平顶山市', xinhua: '河南省 / 平顶山市 / 新华区', weidong: '河南省 / 平顶山市 / 卫东区', zhanhe: '河南省 / 平顶山市 / 湛河区', zhengzhou: '河南省 / 郑州市', luoyang: '河南省 / 洛阳市' }[value] || '河南省 / 平顶山市')
+const mapScopeLabelFor = (value: MapOutputSnapshot['scope']) => ({ national: '全国', henan: '河南省', pingdingshan: '平顶山市' }[value])
+const mapFactorLabelFor = (value: string) => mapFactorOptions.find(item => item.value === value)?.label || '首要污染物'
+const mapMarkerLabelFor = (scope: MapOutputSnapshot['scope']) => scope === 'national' ? '标记河南省' : scope === 'henan' ? '标记平顶山市' : '无需标记'
 
-// 组装最终提示词
-const assembledPrompt = computed(() => {
-  const parts: string[] = []
-
-  // 角色基底
-  parts.push('你是一个环保数据值守智能体，负责从各数据平台采集、分析环境监测数据并自动推送报告。')
-
-  // 平台信息
-  for (const p of activePlatforms.value) {
-    if (p.prompt) {
-      parts.push(`【${p.name}】${p.prompt}`)
-    } else {
-      parts.push(`【${p.name}】${p.desc}`)
-    }
+function outputDefinition(output: DutyOutputItem): string {
+  if (output.type === 'concentrationRanking') {
+    const c = output.config
+    const period = rankingPeriods.find(item => item.value === c.period)?.label || '日累计'
+    const outputs = [c.includeScreenshot ? `排名截图（${c.screenshotScope === 'tableOnly' ? '仅标题和表格' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : '', c.includeAnalysis ? '数据分析摘要' : ''].filter(Boolean).join('、')
+    return `${output.title}：${c.queryTarget === 'city' ? '城市查询' : '站点查询'}；行政区：${regionLabelFor(c.region)}；数据口径：${period}；数据时间：官网最新可用时间；污染因子：${c.factors.join('、')}；成果：${outputs}`
   }
+  const c = output.config
+  return `${output.title}：范围：${mapScopeLabelFor(c.scope)}；地图类型：${c.mode === 'monitoring' ? '监测图' : '插值图'}；因子：${mapFactorLabelFor(c.factor)}；时间类型：${({ realtime: '实时', accumulated: '累计', day: '日' }[c.timeType])}；缩放等级：${c.zoom}；颜色：${c.theme === 'light' ? '浅色' : '深色'}；风/海浪：${c.windWaves ? '开启' : '关闭'}；左侧面板：${c.closeLeftPanel ? '关闭' : '显示'}；截图区域：${({ mapOnly: '仅地图', mapLegend: '地图和图例', fullPage: '完整页面' }[c.screenshotScope])}；地区标记：${c.scope === 'pingdingshan' ? '无需标记' : c.markAssociated ? mapMarkerLabelFor(c.scope) : '关闭'}`
+}
 
-  // 功能操作提示词
-  for (const f of activeFunctions.value) {
-    if (f.prompt) {
-      parts.push(`【${f.name}】${f.prompt}`)
-    }
-  }
-
-  // 能力标签自动注入
-  const tagPromptMap: Record<string, string> = {
-    '截图': '需要对该功能执行后进行截图并发送给用户',
-    '数据采集': '需要对该功能查询到的数据进行采集并结构化提取',
-    '文件下载': '需要将该功能产出的文件进行下载并保存',
-    '数据分析': '为用户分析该功能查询到的数据，形成分析报告',
-  }
-  const collectedTags = new Set<string>()
-  for (const f of activeFunctions.value) {
-    for (const tag of f.tags) {
-      if (tagPromptMap[tag]) collectedTags.add(tag)
-    }
-  }
-  if (collectedTags.size > 0) {
-    parts.push('')
-    parts.push('⚡ 能力标签自动注入：')
-    for (const tag of collectedTags) {
-      parts.push(`  - [${tag}] ${tagPromptMap[tag]}`)
-    }
-  }
-
-  return parts.join('\n')
-})
+const allOutputLabels = computed(() => dutyOutputs.value.map(outputDefinition))
+const taskExecutionOutputs = computed(() => dutyOutputs.value.map(output => ({
+  id: output.id,
+  capability: output.type === 'concentrationRanking' ? 'mapairs-ranking-capture' : 'mapairs-map-capture',
+  skill: output.type === 'concentrationRanking' && output.config.includeScreenshot ? 'mapairs-ranking-capture' : null,
+  config: output.config,
+})))
+const taskSkills = computed(() => [...new Set([
+  ...selectedSkills.value,
+  ...taskExecutionOutputs.value.map(output => output.skill).filter((skill): skill is string => !!skill),
+])])
+const taskExecutionManifest = computed(() => JSON.stringify({
+  version: 1,
+  outputs: taskExecutionOutputs.value,
+}, null, 2))
 
 const finalPrompt = computed(() => {
   const parts: string[] = []
 
-  // 用户自定义提示词（步骤1输入）
-  if (taskPrompt.value.trim()) {
-    parts.push(`【用户提示词】\n${taskPrompt.value.trim()}`)
-  }
+  parts.push(`【成果执行清单】\n${taskExecutionManifest.value}`)
+  parts.push('【执行规则】\n按 outputs 数组顺序逐项执行。每项成果只能读取自身 config；禁止将一个成果的主题、时间、因子、截图范围带入其他成果。带 skill 的成果必须使用该 Skill 附带的固定脚本，不得自行使用 agent-browser 或网页操作替代。')
 
-  // 平台/功能自动组装提示词
-  parts.push(assembledPrompt.value)
+  // 用户补充说明不参与脚本参数解析。
+  if (taskPrompt.value.trim()) {
+    parts.push(`【任务说明】\n${taskPrompt.value.trim()}`)
+  }
 
   // 补充说明
   const supplement = promptSupplement.value.trim()
@@ -442,106 +480,6 @@ const finalPrompt = computed(() => {
   }
 
   return parts.join('\n\n')
-})
-
-// 提示词分段（用于确认页面彩色标签展示）
-interface PromptSegment {
-  type: 'base' | 'user' | 'platform' | 'function' | 'tag' | 'supplement'
-  label: string
-  text: string
-}
-
-const promptSegments = computed<PromptSegment[]>(() => {
-  const segments: PromptSegment[] = []
-
-  // 1. 角色基底
-  segments.push({
-    type: 'base',
-    label: '角色',
-    text: '你是一个环保数据值守智能体，负责从各数据平台采集、分析环境监测数据并自动推送报告。',
-  })
-
-  // 2. 用户输入的提示词
-  if (taskPrompt.value.trim()) {
-    segments.push({
-      type: 'user',
-      label: '用户提示词',
-      text: taskPrompt.value.trim(),
-    })
-  }
-
-  // 3. 平台信息
-  for (const p of activePlatforms.value) {
-    if (p.prompt) {
-      segments.push({
-        type: 'platform',
-        label: `平台 · ${p.name}`,
-        text: p.prompt,
-      })
-    } else {
-      segments.push({
-        type: 'platform',
-        label: `平台 · ${p.name}`,
-        text: p.desc,
-      })
-    }
-  }
-
-  // 3. 功能操作提示词
-  for (const f of activeFunctions.value) {
-    if (f.prompt) {
-      segments.push({
-        type: 'function',
-        label: `功能 · ${f.name}`,
-        text: f.prompt,
-      })
-    }
-  }
-
-  // 4. 能力标签自动注入
-  const tagPromptMap: Record<string, string> = {
-    '截图': '需要对该功能执行后进行截图并发送给用户',
-    '数据采集': '需要对该功能查询到的数据进行采集并结构化提取',
-    '文件下载': '需要将该功能产出的文件进行下载并保存',
-    '数据分析': '为用户分析该功能查询到的数据，形成分析报告',
-  }
-  const collectedTags = new Set<string>()
-  for (const f of activeFunctions.value) {
-    for (const tag of f.tags) {
-      if (tagPromptMap[tag]) collectedTags.add(tag)
-    }
-  }
-  for (const tag of collectedTags) {
-    segments.push({
-      type: 'tag',
-      label: tag,
-      text: tagPromptMap[tag],
-    })
-  }
-
-  // 5. 补充说明
-  const supplement = promptSupplement.value.trim()
-  if (supplement) {
-    segments.push({
-      type: 'supplement',
-      label: '补充',
-      text: supplement,
-    })
-  }
-
-  return segments
-})
-
-// 所有技能名称（平台 + 用户）
-const allSkillNames = computed(() => {
-  const names: Array<{ name: string; isPlatform: boolean }> = []
-  for (const name of platformSkills.value) {
-    names.push({ name, isPlatform: true })
-  }
-  for (const name of userSkills.value) {
-    names.push({ name, isPlatform: false })
-  }
-  return names
 })
 
 // ==================== Submit (与 CreateGuardTaskModal 一致) ====================
@@ -582,7 +520,7 @@ async function handleSubmit() {
       schedule: schedule.value,
       prompt: finalPrompt.value,
       deliver: pushChipIds.length > 0 ? pushChipIds[0] : 'origin',
-      skills: selectedSkills.value,
+      skills: taskSkills.value,
       repeat: repeat_times.value ?? undefined,
       functions: activeFunctions.value.map(f => ({
         name: f.name,
@@ -630,8 +568,8 @@ function shouldShowChannelGuide(): boolean {
   return external.length > 0
 }
 function resetForm() {
-  taskName.value = ''
-  taskPrompt.value = ''
+  taskName.value = '平顶山市空气质量值守'
+  taskPrompt.value = '按结构化成果清单生成空气质量值守成果，并统一推送。'
   selectedPushChips.value = new Set(['origin'])
   notifyGroupId.value = ''
   repeat_times.value = null
@@ -639,16 +577,19 @@ function resetForm() {
   schedule.value = '0 9 * * *'
   promptSupplement.value = ''
   selectedPlatforms.value = new Set(['szdq'])
-  selectedFunctions.value = new Set(['szdq-trace', 'szdq-review'])
-  userSkills.value = new Set()
+  selectedFunctions.value = new Set(['szdq-rank'])
+  selectedCapability.value = 'concentrationRanking'
+  rankingPresetActive.value = true
+  const id = newOutputId()
+  dutyOutputs.value = [{ id, type: 'concentrationRanking', title: '浓度排名 1', config: captureRankingConfig() }]
+  activeOutputId.value = id
   originalJob.value = null
 }
 
 // ==================== Lifecycle ====================
 onMounted(async () => {
   resetForm()
-  // 加载平台列表和系统技能
-  await Promise.all([loadPlatforms(), loadSkills()])
+  await loadPlatforms()
 
   // 编辑模式：加载已有任务数据
   if (props.jobId) {
@@ -666,27 +607,6 @@ onMounted(async () => {
     }
   }
 })
-
-// ==================== Helper Functions ====================
-const platformColorMap = (color: string): string => {
-  const map: Record<string, string> = {
-    purple: '#7F77DD',
-    amber: '#FBBC04',
-    blue: '#1A73E8',
-    green: '#34A853',
-  }
-  return map[color] || '#7F77DD'
-}
-
-const functionPlatformColor = (platformId: string): string => {
-  const map: Record<string, string> = {
-    szdq: 'purple',
-    zd: 'amber',
-    hnsjk: 'blue',
-    hdjk: 'green',
-  }
-  return map[platformId] || 'purple'
-}
 
 /*
 const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => {
@@ -735,142 +655,104 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
         <!-- ====== 步骤2: 数据平台选择 ====== -->
         <div v-show="currentStep === 1" class="step-panel">
           <div class="form-section">
-
-            <div class="form-group">
-              <label class="form-label">任务名称<span class="required-mark">*</span></label>
-              <NInput v-model:value="taskName" placeholder="请输入任务名称" maxlength="50" />
+            <div class="task-identity">
+              <label>任务名称</label>
+              <NInput v-model:value="taskName" maxlength="50" placeholder="请输入任务名称" />
             </div>
 
-            <div class="form-group">
-              <label class="form-label">选择执行平台</label>
-              <div class="platform-list">
-                <div v-for="platform in platforms" :key="platform.id" class="platform-check" :class="{
-                  checked: selectedPlatforms.has(platform.id),
-                  disabled: platform.builtin,
-                  [platform.color]: selectedPlatforms.has(platform.id),
-                }" @click="togglePlatform(platform.id)">
-                  <div class="check-box">
-                    <svg v-if="selectedPlatforms.has(platform.id)" width="14" height="14" viewBox="0 0 24 24"
-                      fill="none" stroke="currentColor" stroke-width="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                  <div class="platform-info">
-                    <div class="platform-name">
-                      {{ platform.name }}
-                      <span v-if="platform.badge" class="platform-badge" :class="`badge-${platform.badgeClass}`">{{
-                        platform.badge }}</span>
-                    </div>
-                    <div class="platform-desc">{{ platform.desc }}</div>
-                    <div v-if="platform.builtin" class="platform-capability">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                        <path d="M2 17l10 5 10-5" />
-                        <path d="M2 12l10 5 10-5" />
-                      </svg>
-                      <span>支持自动登录、截图、数据推送</span>
-                    </div>
-                  </div>
-                </div>
+            <section class="capability-section">
+              <div class="capability-heading">
+                <div><span class="capability-kicker">01 · 组合任务成果</span><h2>这次任务需要交付什么？</h2></div>
+                <span class="bound-context">关联城市：<b>平顶山市</b></span>
               </div>
-            </div>
+              <div class="output-list">
+                <article v-for="(output, index) in dutyOutputs" :key="output.id" class="output-item" :class="{ active: activeOutputId === output.id }" @click="selectDutyOutput(output)">
+                  <span class="output-index">{{ index + 1 }}</span>
+                  <span class="capability-icon" :class="{ map: output.type === 'mapPackage' }">{{ output.type === 'mapPackage' ? '◇' : '≋' }}</span>
+                  <span class="output-item-copy"><b>{{ output.title }}</b><small>{{ outputDefinition(output) }}</small></span>
+                  <span v-if="activeOutputId === output.id" class="editing-badge">正在编辑</span>
+                  <button class="output-action" title="复制成果" @click.stop="duplicateOutput(output)">复制</button>
+                  <button class="output-action danger" title="删除成果" @click.stop="removeOutput(output)">删除</button>
+                </article>
+              </div>
+              <div class="output-add-bar">
+                <span>添加成果</span>
+                <button @click="addRankingOutput"><b>＋</b> 浓度排名</button>
+                <button @click="addMapOutput"><b>＋</b> 一张图</button>
+              </div>
+            </section>
 
-            <!-- 功能挂载矩阵 -->
-            <div class="form-group" v-if="activePlatforms.length > 0">
-              <label class="form-label">功能选择</label>
-              <div class="func-matrix">
-                <div v-for="platform in activePlatforms" :key="platform.id" class="func-card">
-                  <div class="func-card-header">
-                    <div class="func-card-title">
-                      <span class="plat-dot" :style="{ background: platformColorMap(platform.color) }"></span>
-                      {{ platform.name }}
-                      <span v-if="platform.builtin" class="func-card-badge badge-builtin">内置</span>
-                      <span v-else class="func-card-badge badge-custom">自定义</span>
-                    </div>
-                    <div class="func-card-count">
-                      {{platformFunctions.filter(f => f.platformId === platform.id).length}}个功能可选
-                    </div>
-                  </div>
-                  <div class="func-card-body">
-                    <div v-for="func in platformFunctions.filter(f => f.platformId === platform.id)" :key="func.id"
-                      class="func-check" :class="{ checked: selectedFunctions.has(func.id) }"
-                      @click="toggleFunction(func.id)">
-                      <div class="func-check-box">
-                        <svg v-if="selectedFunctions.has(func.id)" width="12" height="12" viewBox="0 0 24 24"
-                          fill="none" stroke="currentColor" stroke-width="3">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </div>
-                      <span class="func-check-name">{{ func.name }}</span>
-                      <span class="func-support-text">支持:{{ func.tags.join('、') }}</span>
-                    </div>
-                  </div>
+            <section v-if="selectedCapability === 'concentrationRanking' && rankingPresetActive" class="ranking-config">
+              <div class="ranking-config-head">
+                <div><span>02 · 配置浓度排名</span></div>
+              </div>
+              <div class="ranking-config-grid">
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>查询：</span><div class="segmented query-segment"><button :class="{ active: rankingQueryTarget === 'city' }" @click="rankingQueryTarget = 'city'">城市</button><button :class="{ active: rankingQueryTarget === 'station' }" @click="rankingQueryTarget = 'station'">站点</button></div></div>
+                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="rankingRegion" :options="rankingRegionOptions" key-field="key" default-expand-all /></div>
+                </div>
+                <div class="ranking-toolbar factor-toolbar">
+                  <div class="compact-field factor-field"><span>污染因子：</span><NCheckboxGroup v-model:value="rankingFactors"><div class="factor-chips"><NCheckbox v-for="factor in rankingFactorOptions" :key="factor.value" :value="factor.value">{{ factor.label }}</NCheckbox></div></NCheckboxGroup></div>
+                </div>
+                <div class="ranking-toolbar time-toolbar">
+                  <div class="compact-field"><span>时间类型：</span><div class="segmented period-segment"><button v-for="period in rankingPeriods" :key="period.value" :class="{ active: rankingPeriod === period.value }" @click="setRankingPeriod(period.value)">{{ period.label }}</button></div></div>
+                  <span class="latest-hint">任务执行时自动使用官网最新可用时间</span>
+                </div>
+                <div class="ranking-field wide output-choice"><label>生成成果</label><div><NCheckbox v-model:checked="rankingIncludeScreenshot">排名截图</NCheckbox></div></div>
+                <div v-if="rankingIncludeScreenshot" class="screenshot-options">
+                  <div class="compact-field"><span>截图区域：</span><div class="segmented"><button :class="{ active: rankingScreenshotScope === 'tableOnly' }" @click="rankingScreenshotScope = 'tableOnly'">仅标题和表格</button><button :class="{ active: rankingScreenshotScope === 'withFilters' }" @click="rankingScreenshotScope = 'withFilters'">含查询条件</button></div></div>
+                  <div class="compact-field"><span>截图颜色：</span><div class="segmented"><button :class="{ active: rankingTheme === 'light' }" @click="rankingTheme = 'light'">浅色</button><button :class="{ active: rankingTheme === 'dark' }" @click="rankingTheme = 'dark'">深色</button></div></div>
                 </div>
               </div>
-            </div>
+              <div class="ranking-summary">本次成果：{{ rankingQueryTarget === 'city' ? '城市排名' : '站点排名' }} · {{ rankingRegionLabel }} · {{ rankingPeriodLabel }} · {{ rankingTimeLabel }} · {{ rankingFactors.join('、') }} · {{ rankingIncludeScreenshot ? '排名截图' : '' }}</div>
+              <figure v-if="rankingIncludeScreenshot" class="effect-preview">
+                <figcaption>
+                  <span>效果预览</span>
+                  <em>示意</em>
+                </figcaption>
+                <div class="effect-preview-image">
+                  <img src="/demos/pingdingshan-ranking-preview.png" alt="平顶山市浓度排名截图效果预览" />
+                </div>
+              </figure>
+            </section>
 
-            <div class="form-group">
-              <label class="form-label">附加技能 <span class="form-label-optional">可额外添加</span></label>
-              <div class="skill-rows">
-                <div v-for="skill in allSkillNames" :key="skill.name" class="skill-row">
-                  <svg class="skill-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <path d="M14 2v6h6" />
-                  </svg>
-                  <span class="skill-name">{{ skill.name }}</span>
-                  <span class="skill-badge" :class="{ user: !skill.isPlatform }">
-                    {{ skill.isPlatform ? '平台' : '用户' }}
-                  </span>
-                  <button v-if="!skill.isPlatform" class="skill-remove" @click="removeUserSkill(skill.name)"
-                    title="移除">×</button>
+            <section v-if="selectedCapability === 'mapPackage'" class="ranking-config map-config">
+              <div class="ranking-config-head"><div><span>02 · 配置一张图</span></div></div>
+              <div class="ranking-config-grid">
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>地图范围：</span><div class="segmented"><button :class="{ active: mapScope === 'national' }" @click="mapScope = 'national'">全国</button><button :class="{ active: mapScope === 'henan' }" @click="mapScope = 'henan'">河南省</button><button :class="{ active: mapScope === 'pingdingshan' }" @click="mapScope = 'pingdingshan'">平顶山市</button></div></div>
+                  <div class="compact-field"><span>时间类型：</span><div class="segmented"><button :class="{ active: mapTimeType === 'realtime' }" @click="mapTimeType = 'realtime'">实时</button><button :class="{ active: mapTimeType === 'accumulated' }" @click="mapTimeType = 'accumulated'">累计</button><button :class="{ active: mapTimeType === 'day' }" @click="mapTimeType = 'day'">日</button></div></div>
                 </div>
-                <div v-if="allSkillNames.length === 0" class="skill-empty">暂无附加技能</div>
-              </div>
-              <div class="skill-add-row">
-                <div class="skill-multi-select">
-                  <button class="skill-add-btn" @click="toggleSkillDropdown">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="1.6">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    添加技能
-                  </button>
-                  <div v-show="skillDropdownOpen" class="skill-ms-dropdown" @click.stop>
-                    <div class="skill-ms-search-wrap">
-                      <input class="skill-ms-search" v-model="skillSearchQuery" placeholder="搜索技能..." @click.stop />
-                    </div>
-                    <div class="skill-ms-list">
-                      <div v-for="skill in filteredSkillOptions" :key="skill.name" class="skill-ms-option"
-                        :class="{ selected: isSkillAdded(skill.name) }" @click="handleSkillOptionClick(skill.name)">
-                        <span class="skill-ms-check">
-                          <svg v-if="isSkillAdded(skill.name)" width="10" height="10" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="3">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        </span>
-                        <span class="skill-ms-option-name">{{ skill.name }}</span>
-                        <span class="skill-ms-option-desc">{{ skill.desc }}</span>
-                      </div>
-                      <div v-if="filteredSkillOptions.length === 0" class="skill-ms-empty">无匹配技能</div>
-                    </div>
-                  </div>
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>地图类型：</span><div class="segmented"><button :class="{ active: mapMode === 'monitoring' }" @click="mapMode = 'monitoring'">监测图</button><button :class="{ active: mapMode === 'interpolation' }" @click="mapMode = 'interpolation'">插值图</button></div></div>
+                  <div class="compact-field map-factor"><span>因子：</span><NSelect v-model:value="mapFactor" :options="mapFactorOptions" /></div>
+                  <div class="compact-field map-zoom"><span>缩放等级：</span><NInputNumber v-model:value="mapZoom" :min="3" :max="16" /></div>
                 </div>
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>颜色：</span><div class="segmented"><button :class="{ active: mapTheme === 'light' }" @click="mapTheme = 'light'">浅色</button><button :class="{ active: mapTheme === 'dark' }" @click="mapTheme = 'dark'">深色</button></div></div>
+                  <div class="map-switches"><NCheckbox v-model:checked="mapWindWaves">开启风/海浪</NCheckbox><NCheckbox v-model:checked="mapCloseLeftPanel">关闭左侧面板</NCheckbox></div>
+                </div>
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>截图区域：</span><div class="segmented"><button :class="{ active: mapScreenshotScope === 'mapOnly' }" @click="mapScreenshotScope = 'mapOnly'">仅地图</button><button :class="{ active: mapScreenshotScope === 'mapLegend' }" @click="mapScreenshotScope = 'mapLegend'">地图和图例</button><button :class="{ active: mapScreenshotScope === 'fullPage' }" @click="mapScreenshotScope = 'fullPage'">完整页面</button></div></div>
+                </div>
+                <div class="map-marker-row"><NCheckbox v-if="mapScope !== 'pingdingshan'" v-model:checked="mapMarkAssociated">{{ mapMarkerLabel }}</NCheckbox><span v-else>平顶山市级展示区县，无需额外标记关联地区</span></div>
               </div>
-            </div>
+              <div class="ranking-summary">本次一张图：{{ mapScopeLabel }} · {{ mapModeLabel }} · {{ mapFactorLabel }} · 缩放 {{ mapZoom }} · {{ mapTheme === 'light' ? '浅色' : '深色' }} · {{ mapWindWaves ? '开启风/海浪' : '关闭风/海浪' }} · {{ mapScreenshotScopeLabel }} · {{ mapCloseLeftPanel ? '关闭左侧面板' : '保留左侧面板' }} · {{ mapScope === 'pingdingshan' ? '无需标记' : mapMarkAssociated ? mapMarkerLabel : '不标记关联地区' }}</div>
+            </section>
           </div>
         </div>
 
         <!-- ====== 步骤3: 执行设置 ====== -->
         <div v-show="currentStep === 2" class="step-panel">
           <div class="form-section">
+            <section class="delivery-intro"><span>03 · 设置交付</span><h2>什么时候运行，发送给谁？</h2></section>
             <div class="form-group">
-              <label class="form-label">执行频率 <span class="required-mark">*</span></label>
+              <label class="form-label">运行时间 <span class="required-mark">*</span></label>
               <SchedulePicker v-model="schedule" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">推送平台 <span class="required-mark">*</span></label>
+              <label class="form-label">成果发送到 <span class="required-mark">*</span></label>
               <div class="chip-group">
                 <div v-for="chip in configuredPushChips" :key="chip.id" class="chip" :class="{
                   active: selectedPushChips.has(chip.id),
@@ -879,11 +761,11 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 </div>
               </div>
               <div v-if="configuredPushChips.length === 0" class="chip-config-hint">
-                <span class="hint-text">尚未配置任何推送平台，</span>
+                <span class="hint-text">尚未配置接收渠道，</span>
                 <a class="hint-link" @click="goToChannels">前往配置 →</a>
               </div>
               <div v-else class="chip-config-hint">
-                <span class="hint-text">需要更多推送平台？</span>
+                <span class="hint-text">需要更多接收渠道？</span>
                 <a class="hint-link" @click="goToChannels">前往配置 →</a>
               </div>
             </div>
@@ -893,46 +775,26 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
             <NInput v-model:value="notifyGroupId" placeholder="请输入推送群ID" />
           </div> -->
 
-            <div class="form-group">
-              <label class="form-label">重复次数 <span class="form-label-optional">（可选）</span></label>
-              <NInputNumber v-model:value="repeat_times" :min="1" placeholder="不限制" clearable style="width: 100%" />
-            </div>
+            <div class="delivery-note"><b>本次任务将交付 {{ dutyOutputs.length }} 项成果</b><span v-for="(label, index) in allOutputLabels" :key="index">{{ index + 1 }}. {{ label }}</span></div>
           </div>
         </div>
 
         <!-- ====== 步骤4: 确认 ====== -->
         <div v-show="currentStep === 3" class="step-panel">
           <div class="preview-box">
+            <div class="confirm-hero"><span>✓</span><div><b>请确认这份值守安排</b></div></div>
             <div class="preview-section">
               <div class="preview-label">任务名称</div>
               <div class="preview-line"><strong>{{ taskName || '未命名任务' }}</strong></div>
             </div>
 
             <div class="preview-section">
-              <div class="preview-label">执行平台</div>
-              <div class="preview-items">
-                <span v-for="p in activePlatforms" :key="p.id" class="preview-tag" :class="`tag-${p.color}`">
-                  <span class="tag-dot" :style="{ background: platformColorMap(p.color) }"></span>
-                  {{ p.name }}
-                </span>
-              </div>
+              <div class="preview-label">成果清单（{{ dutyOutputs.length }} 项）</div>
+              <div class="confirm-output-list"><div v-for="(label, index) in allOutputLabels" :key="index"><span>{{ index + 1 }}</span><strong>{{ label }}</strong></div></div>
             </div>
 
             <div class="preview-section">
-              <div class="preview-label">挂载功能</div>
-              <div class="preview-items">
-                <span v-for="f in activeFunctions" :key="f.id" class="preview-tag"
-                  :class="`tag-${functionPlatformColor(f.platformId)}`">
-                  <span class="tag-dot"
-                    :style="{ background: platformColorMap(functionPlatformColor(f.platformId)) }"></span>
-                  {{ f.name }}
-                </span>
-                <span v-if="activeFunctions.length === 0" class="preview-empty">无</span>
-              </div>
-            </div>
-
-            <div class="preview-section">
-              <div class="preview-label">执行策略</div>
+              <div class="preview-label">运行与发送</div>
               <div class="preview-line">
                 <strong>频率：</strong>{{ scheduleDescription }}
                 <span v-if="pushChipNames.length > 0"> · <strong>推送至：</strong>{{ pushChipNames.join('、') }}</span>
@@ -940,32 +802,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
             </div>
 
             <div class="preview-section">
-              <div class="preview-label">附加技能</div>
-              <div class="preview-items">
-                <span v-for="skill in allSkillNames" :key="skill.name" class="preview-tag"
-                  :class="skill.isPlatform ? 'tag-purple' : 'tag-green'">
-                  <span class="tag-dot" :style="{ background: skill.isPlatform ? '#7F77DD' : '#34A853' }"></span>
-                  {{ skill.name }}{{ skill.isPlatform ? ' (平台)' : '' }}
-                </span>
-                <span v-if="allSkillNames.length === 0" class="preview-empty">无</span>
-              </div>
-            </div>
-
-            <div class="preview-section">
-              <div class="preview-label">执行提示词总览 <span class="prompt-readonly-tag">自动组装</span></div>
-              <div class="prompt-preview-desc">
-                <span>系统将自动执行以下操作：打开网站 → 登录 → 截取数据 → 推送至指定渠道</span>
-              </div>
-              <div class="prompt-preview-box">
-                <div v-for="(seg, idx) in promptSegments" :key="idx" class="prompt-segment">
-                  <span class="prompt-seg-tag" :class="`seg-${seg.type}`">{{ seg.label }}</span>
-                  {{ seg.text }}
-                </div>
-              </div>
-              <div class="prompt-supplement">
-                <label class="prompt-supplement-label">补充要求 <span class="prompt-supplement-hint">（可选）</span></label>
-                <NInput v-model:value="promptSupplement" type="textarea" placeholder="您还想补充或者修改什么需求，请写在这里" :rows="3" />
-              </div>
+              <div class="preview-label">系统将自动完成</div>
+              <div class="simple-run-plan"><span>获取发布数据</span><i>→</i><span>依次生成 {{ dutyOutputs.length }} 项成果</span><i>→</i><span>统一发送给值守人员</span></div>
             </div>
           </div>
         </div>
@@ -1182,6 +1020,31 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   line-height: 1.5;
   margin-top: 4px;
 }
+
+.duty-preset {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #b7d8f6;
+  border-radius: 12px;
+  background: linear-gradient(110deg, #edf8ff, #fafcff);
+  transition: .18s ease;
+}
+
+.duty-preset.active { border-color: #2e9bed; box-shadow: 0 0 0 3px rgba(46, 155, 237, .12); }
+.duty-preset-icon { width: 44px; height: 44px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 11px; color: #fff; background: linear-gradient(135deg, #1b94ec, #1768c4); font-size: 26px; font-weight: 700; }
+.duty-preset-copy { min-width: 0; flex: 1; }.duty-preset-title { color: $text-primary; font-size: 15px; font-weight: 700; }.duty-preset-title span { margin-left: 7px; padding: 2px 6px; border-radius: 4px; color: #1973bc; background: #dcefff; font-size: 10px; font-weight: 600; }.duty-preset-copy p { margin: 6px 0 8px; color: $text-secondary; font-size: 12px; line-height: 1.5; }.duty-preset-tags { display: flex; gap: 6px; flex-wrap: wrap; }.duty-preset-tags i { padding: 2px 6px; border: 1px solid #d7e4ee; border-radius: 99px; color: #547189; background: #fff; font-size: 10px; font-style: normal; }
+
+.capability-section { padding: 20px; border: 1px solid #dce7ef; border-radius: 14px; background: linear-gradient(135deg, #fbfdff, #f2f9ff); }.capability-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:15px; }.capability-kicker { color:#1985d2; font-size:11px; font-weight:800; letter-spacing:.7px; }.capability-heading h2 { margin:3px 0 4px; color:$text-primary; font-size:19px; }.capability-heading p { margin:0; color:$text-secondary; font-size:12px; }.bound-context { padding:7px 9px; border:1px solid #cfe5f6; border-radius:6px; background:#fff; color:#71869a; font-size:11px; white-space:nowrap; }.bound-context b { color:#287ab4; }.capability-grid { display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:9px; }.capability-card { min-width:0; display:flex; align-items:center; gap:9px; padding:12px; border:1px solid #dce6ee; border-radius:9px; background:#fff; text-align:left; cursor:pointer; }.capability-card.active { border-color:#2b97e8; background:#edf8ff; box-shadow:0 0 0 2px rgba(43,151,232,.1); }.capability-card:disabled { cursor:not-allowed; opacity:.58; }.capability-icon { width:28px; height:28px; display:grid; place-items:center; border-radius:8px; flex:0 0 auto; color:#fff; background:linear-gradient(135deg,#1c98eb,#176ac2); font-size:18px; font-weight:800; }.capability-icon.muted { background:#aebdca; }.capability-copy { min-width:0; flex:1; }.capability-copy b,.capability-copy small { display:block; }.capability-copy b { color:$text-primary; font-size:12px; }.capability-copy small { margin-top:3px; color:$text-muted; font-size:10px; line-height:1.3; }.chosen,.soon { font-size:10px; white-space:nowrap; }.chosen { color:#1685d2; }.soon { color:$text-muted; }
+.capability-icon.map { background:linear-gradient(135deg,#19a878,#087b64); }.map-config { border-color:#bfe3d6; }.map-config .ranking-config-head { background:#eefaf6; border-color:#d4eee5; }.map-config .ranking-config-head span { color:#14785d; }.map-factor { flex:1 1 200px; }.map-factor :deep(.n-select) { width:180px; }.map-zoom :deep(.n-input-number) { width:92px; }.map-switches { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }.map-marker-row { min-height:30px; display:flex; align-items:center; padding:8px 10px; border-radius:6px; color:#4c7869; background:#f1f9f6; font-size:12px; }
+.output-list { display:flex; flex-direction:column; gap:8px; }.output-item { display:flex; align-items:center; gap:10px; min-width:0; padding:10px 11px; border:1px solid #dce6ee; border-radius:9px; background:#fff; cursor:pointer; transition:.15s ease; }.output-item:hover { border-color:#a9cce7; }.output-item.active { border-color:#2b97e8; background:#edf8ff; box-shadow:0 0 0 2px rgba(43,151,232,.1); }.output-index { display:grid; place-items:center; width:20px; height:20px; flex:0 0 auto; border-radius:50%; color:#668195; background:#edf2f6; font-size:10px; font-weight:700; }.output-item.active .output-index { color:#fff; background:#218fe0; }.output-item-copy { min-width:0; flex:1; }.output-item-copy b,.output-item-copy small { display:block; }.output-item-copy b { color:$text-primary; font-size:12px; }.output-item-copy small { margin-top:3px; overflow:hidden; color:$text-muted; font-size:10px; line-height:1.35; text-overflow:ellipsis; white-space:nowrap; }.editing-badge { flex:0 0 auto; padding:2px 6px; border-radius:99px; color:#1879bd; background:#dff1ff; font-size:9px; }.output-action { flex:0 0 auto; padding:4px 6px; border:0; border-radius:4px; color:#678093; background:transparent; cursor:pointer; font-size:10px; }.output-action:hover { background:#e9f1f6; }.output-action.danger:hover { color:#bd4545; background:#fff0f0; }.output-add-bar { display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px dashed #d7e3ec; }.output-add-bar>span { margin-right:3px; color:$text-secondary; font-size:11px; font-weight:650; }.output-add-bar button { height:30px; padding:0 11px; border:1px solid #bdd8eb; border-radius:6px; color:#2676ad; background:#fff; cursor:pointer; font-size:11px; }.output-add-bar button:hover { border-color:#2996df; background:#edf8ff; }.output-add-bar button b { font-size:14px; }.confirm-output-list { display:flex; flex-direction:column; gap:8px; }.confirm-output-list>div { display:flex; align-items:flex-start; gap:9px; padding:9px 10px; border:1px solid #e0e9ef; border-radius:7px; background:#f9fbfc; }.confirm-output-list span { display:grid; place-items:center; width:20px; height:20px; flex:0 0 auto; border-radius:50%; color:#fff; background:#278ed5; font-size:10px; }.confirm-output-list strong { color:$text-secondary; font-size:11px; font-weight:550; line-height:1.55; }
+
+.ranking-config { margin-top: -8px; border: 1px solid #c7e2f8; border-radius: 12px; overflow: hidden; background: #fbfdff; }.ranking-config-head { display:flex; justify-content:space-between; gap:14px; padding:14px 16px; background:#eef8ff; border-bottom:1px solid #d8ebfa; }.ranking-config-head span,.ranking-config-head small { display:block; }.ranking-config-head span { color:#1a6fad; font-weight:700; font-size:13px; }.ranking-config-head small { color:#6c879c; margin-top:3px; font-size:11px; }.ranking-config-grid { display:flex; flex-direction:column; gap:12px; padding:14px 16px; }.ranking-toolbar { display:flex; align-items:center; gap:12px; min-width:0; }.compact-field { display:flex; align-items:center; min-width:0; gap:7px; }.compact-field>span { flex:0 0 auto; color:$text-primary; font-size:12px; font-weight:650; }.region-field { flex:1 1 250px; max-width:420px; }.region-field :deep(.n-tree-select) { min-width:220px; width:100%; }.factor-toolbar { width:100%; }.factor-field { flex:1 1 auto; }.factor-chips { display:flex; align-items:center; gap:18px; flex-wrap:nowrap; }.factor-chips :deep(.n-checkbox) { margin-right:0; white-space:nowrap; }.segmented { display:flex; overflow:hidden; border:1px solid #d6e2ea; border-radius:5px; background:#fff; }.segmented button { min-width:52px; height:31px; padding:0 10px; border:0; border-left:1px solid #d6e2ea; background:#fff; color:#5d7588; cursor:pointer; font-size:12px; }.segmented button:first-child { border-left:0; }.segmented button.active { color:#146fb5; background:#dff2ff; font-weight:700; }.query-segment button { flex:0 0 76px; width:76px; padding:0; }.period-segment button { min-width:44px; }.time-toolbar { padding-top:1px; }.latest-hint { color:#7b93a5; font-size:11px; }.ranking-time-input { width:210px; }.ranking-time-range { display:flex; align-items:center; gap:6px; color:#7690a3; font-size:12px; }.ranking-time-range :deep(.n-input) { width:155px; }.ranking-field { min-width:0; }.ranking-field.wide { width:100%; }.ranking-field label { display:block; color:$text-primary; font-size:12px; font-weight:650; margin-bottom:8px; }.output-choice { display:flex; align-items:center; gap:14px; padding-top:2px; }.output-choice label { margin:0; }.output-choice > div { display:flex; gap:20px; }.screenshot-options { display:flex; align-items:center; gap:24px; flex-wrap:wrap; padding-top:1px; }.screenshot-options .segmented button { min-width:auto; }.ranking-summary { margin:0 16px 16px; padding:10px 12px; color:#356b90; background:#edf7ff; border-left:3px solid #2496e8; font-size:12px; line-height:1.55; }
+.effect-preview { margin:0 16px 16px; overflow:hidden; border:1px solid #d9e5ed; border-radius:9px; background:#fff; box-shadow:0 4px 14px rgba(31,77,108,.06); }.effect-preview figcaption { display:flex; align-items:center; gap:8px; height:38px; padding:0 12px; border-bottom:1px solid #e7eef3; color:$text-primary; background:#f8fafc; font-size:12px; font-weight:700; }.effect-preview figcaption em { padding:2px 7px; border-radius:99px; color:#648095; background:#e8eef3; font-size:9px; font-style:normal; font-weight:600; }.effect-preview-image { width:100%; overflow-x:auto; background:#edf1f4; }.effect-preview-image img { display:block; width:100%; height:auto; min-width:620px; }
+.ranking-time-picker { width: 210px; }
+.task-identity { padding: 2px 2px 0; }.task-identity label { display:block; margin-bottom:8px; color:$text-primary; font-size:12px; font-weight:650; }
+.delivery-intro { padding: 3px 0 2px; }.delivery-intro span { color:#1985d2; font-size:11px; font-weight:800; letter-spacing:.7px; }.delivery-intro h2 { margin:4px 0; color:$text-primary; font-size:19px; }.delivery-intro p { margin:0; color:$text-secondary; font-size:12px; }.delivery-note { display:flex; flex-direction:column; gap:5px; padding:13px; border:1px solid #d6eaf9; border-radius:8px; color:#4b7593; background:#f1f9ff; font-size:12px; }.delivery-note b { color:#2575ae; }.confirm-hero { display:flex; align-items:center; gap:11px; margin-bottom:16px; padding:14px; border-radius:9px; color:#226d42; background:#eefaf2; border:1px solid #c7ebd3; }.confirm-hero>span { display:grid; place-items:center; width:25px; height:25px; color:#fff; background:#34a853; border-radius:50%; font-weight:800; }.confirm-hero b,.confirm-hero small { display:block; }.confirm-hero b { font-size:13px; }.confirm-hero small { margin-top:3px; color:#5f856f; font-size:11px; }.simple-run-plan { display:flex; align-items:center; gap:9px; flex-wrap:wrap; color:#367396; font-size:12px; }.simple-run-plan span { padding:5px 8px; background:#eef7fc; border-radius:5px; }.simple-run-plan i { color:#7da8c3; font-style:normal; }
 
 // ===== 平台选择 =====
 .platform-list {
@@ -2081,5 +1944,162 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   width: 100%;
   border-radius: $radius;
   border: 1px solid $border-color;
+}
+
+// The duty flow has its own business panels, so its blue-tinted light surfaces
+// need explicit dark counterparts rather than relying on the global page shell.
+.create-task-page {
+  :global(.dark) & {
+  --duty-surface: #202b34;
+  --duty-surface-raised: #26343e;
+  --duty-surface-muted: #182128;
+  --duty-border: #3a5363;
+  --duty-border-soft: #314653;
+  --duty-blue: #68b8ed;
+  --duty-blue-soft: #173b52;
+  --duty-blue-muted: #284d64;
+  --duty-green-soft: #183d35;
+  --duty-green-border: #356e5e;
+  --duty-green-text: #83d5b8;
+  color: $text-primary;
+
+  .duty-preset,
+  .capability-section,
+  .ranking-config,
+  .effect-preview,
+  .delivery-note,
+  .map-marker-row {
+    border-color: var(--duty-border);
+    background: var(--duty-surface);
+  }
+
+  .duty-preset {
+    background: linear-gradient(110deg, #1a2d3b, #202b34);
+  }
+
+  .duty-preset.active,
+  .capability-card.active,
+  .output-item.active {
+    border-color: var(--duty-blue);
+    background: var(--duty-blue-soft);
+    box-shadow: 0 0 0 2px rgba(104, 184, 237, 0.16);
+  }
+
+  .duty-preset-title span,
+  .editing-badge,
+  .segmented button.active {
+    color: #9dd8fb;
+    background: var(--duty-blue-soft);
+  }
+
+  .duty-preset-tags i,
+  .capability-card,
+  .output-item,
+  .bound-context,
+  .segmented,
+  .segmented button,
+  .effect-preview,
+  .output-add-bar button {
+    border-color: var(--duty-border-soft);
+    background: var(--duty-surface-raised);
+    color: $text-secondary;
+  }
+
+  .capability-section {
+    background: linear-gradient(135deg, #1c2931, #17262f);
+  }
+
+  .capability-kicker,
+  .delivery-intro span,
+  .chosen,
+  .output-add-bar button,
+  .ranking-config-head span,
+  .ranking-summary,
+  .delivery-note b {
+    color: var(--duty-blue);
+  }
+
+  .ranking-config-head,
+  .effect-preview figcaption {
+    border-color: var(--duty-border-soft);
+    background: var(--duty-surface-raised);
+  }
+
+  .ranking-config-head small,
+  .latest-hint,
+  .ranking-time-range,
+  .bound-context,
+  .map-marker-row,
+  .delivery-note,
+  .simple-run-plan {
+    color: $text-secondary;
+  }
+
+  .map-config {
+    border-color: var(--duty-green-border);
+  }
+
+  .map-config .ranking-config-head,
+  .map-marker-row {
+    border-color: var(--duty-green-border);
+    background: var(--duty-green-soft);
+  }
+
+  .map-config .ranking-config-head span,
+  .map-marker-row {
+    color: var(--duty-green-text);
+  }
+
+  .ranking-summary {
+    border-left-color: var(--duty-blue);
+    background: var(--duty-blue-soft);
+  }
+
+  .effect-preview-image {
+    background: var(--duty-surface-muted);
+  }
+
+  .effect-preview figcaption em,
+  .output-index {
+    color: $text-secondary;
+    background: var(--duty-surface-muted);
+  }
+
+  .output-action:hover {
+    background: var(--duty-surface-muted);
+  }
+
+  .output-add-bar {
+    border-color: var(--duty-border-soft);
+  }
+
+  .confirm-output-list > div,
+  .simple-run-plan span {
+    border-color: var(--duty-border-soft);
+    background: var(--duty-surface-raised);
+  }
+
+  .confirm-hero {
+    border-color: var(--duty-green-border);
+    background: var(--duty-green-soft);
+    color: #a2dfc5;
+  }
+
+  .confirm-hero small {
+    color: $text-secondary;
+  }
+
+    :deep(.n-base-selection .n-base-selection-label),
+    :deep(.n-input .n-input-wrapper),
+    :deep(.n-input-number .n-input-wrapper) {
+      background-color: var(--duty-surface-raised);
+    }
+
+    :deep(.n-base-selection .n-base-selection-input),
+    :deep(.n-input .n-input__input-el),
+    :deep(.n-input-number .n-input__input-el) {
+      color: $text-primary;
+    }
+  }
 }
 </style>

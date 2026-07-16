@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { NInput, NSpin } from 'naive-ui'
+import { NButton, NInput, NSpin } from 'naive-ui'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
 import JobCardList from '@/components/hermes/guard/JobCardList.vue'
@@ -66,6 +66,10 @@ function handleEdit(jobId: string) {
   router.push({ name: 'envclaw.jobDetail', params: { jobId } })
 }
 
+function openRankingPreset() {
+  router.push({ name: 'envclaw.rankingDutyDemo' })
+}
+
 onMounted(() => {
   void jobsStore.fetchJobs()
 })
@@ -79,6 +83,25 @@ onMounted(() => {
         <div class="page-sub">{{ t('envclaw.guard.description') }}</div>
       </div>
     </div>
+
+    <section class="preset-section">
+      <div class="preset-heading">
+        <div>
+          <span class="section-kicker">值守方案</span>
+          <h2>从预设开始</h2>
+        </div>
+        <span>专业口径已预填，按需微调即可</span>
+      </div>
+      <article class="ranking-preset-card">
+        <div class="preset-icon">≋</div>
+        <div class="preset-copy">
+          <div class="preset-title-row"><h3>浓度排名值守</h3><span>数智大气</span></div>
+          <p>定时获取城市或站点浓度排名，生成规范截图与数据分析。默认关联平顶山市，支持最新数据与指定时间。</p>
+          <div class="preset-tags"><i>城市 / 站点</i><i>截图</i><i>数据分析</i><i>日累计</i></div>
+        </div>
+        <NButton type="primary" @click="openRankingPreset">使用此预设 →</NButton>
+      </article>
+    </section>
 
     <div class="filter-bar">
       <div
@@ -167,6 +190,40 @@ onMounted(() => {
     margin-top: 5px;
   }
 }
+
+.preset-section {
+  margin-bottom: 22px;
+}
+
+.preset-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 10px;
+
+  h2 { margin: 2px 0 0; font-size: 15px; font-weight: 650; color: var(--text-primary); }
+  > span { color: var(--text-muted); font-size: 12px; }
+}
+
+.section-kicker { color: var(--accent-primary); font-size: 11px; font-weight: 700; letter-spacing: .8px; }
+
+.ranking-preset-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 17px 18px;
+  border: 1px solid #b9d9f7;
+  border-radius: 12px;
+  background: linear-gradient(112deg, rgba(235, 247, 255, .94), rgba(255, 255, 255, .92));
+  box-shadow: 0 8px 24px rgba(21, 106, 179, .06);
+
+  :global(.dark) & { background: linear-gradient(112deg, rgba(21, 55, 82, .94), rgba(27, 35, 44, .92)); border-color: #315d84; }
+}
+
+.preset-icon { width: 43px; height: 43px; border-radius: 11px; display: grid; place-items: center; flex: 0 0 auto; color: #fff; background: linear-gradient(135deg, #1689e6, #075eb6); font-size: 25px; font-weight: 700; }
+.preset-copy { min-width: 0; flex: 1; }.preset-title-row { display: flex; align-items: center; gap: 8px; }.preset-title-row h3 { margin: 0; color: var(--text-primary); font-size: 15px; }.preset-title-row span { color: #176bb3; background: #dff0ff; padding: 2px 6px; border-radius: 4px; font-size: 10px; }.preset-copy p { margin: 6px 0 8px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }.preset-tags { display: flex; flex-wrap: wrap; gap: 6px; }.preset-tags i { font-style: normal; color: #47718e; background: rgba(255, 255, 255, .65); border: 1px solid rgba(132, 180, 216, .35); padding: 2px 6px; border-radius: 999px; font-size: 10px; }
+
+@media (max-width: 600px) { .preset-heading { align-items: flex-start; flex-direction: column; gap: 4px; }.ranking-preset-card { align-items: flex-start; flex-wrap: wrap; }.ranking-preset-card :deep(.n-button) { margin-left: 59px; } }
 
 .filter-bar {
   display: flex;

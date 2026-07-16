@@ -1,0 +1,15 @@
+{
+  "queryTarget": "city",
+  "region": "all",
+  "period": "realtime",
+  "factors": [
+    "AQI",
+    "PM₂.₅",
+    "PM₁₀",
+    "SO₂"
+  ],
+  "includeScreenshot": true,
+  "includeAnalysis": false,
+  "screenshotScope": "withFilters",
+  "theme": "dark"
+}
