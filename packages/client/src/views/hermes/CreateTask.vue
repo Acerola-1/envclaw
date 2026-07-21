@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { NInput, NInputNumber, NButton, NModal, NTreeSelect, NCheckbox, NCheckboxGroup, NSelect } from 'naive-ui'
 import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
+import { useAppStore } from '@/stores/hermes/app'
 import { getJob, scheduleToEditableInput, jobRepeatToEditValue, listJobDeliveryTargets } from '@/api/hermes/jobs'
 import type { Job, JobDeliveryTarget } from '@/api/hermes/jobs'
 import { listPlatforms } from '@/api/envclaw/platforms'
@@ -25,6 +26,7 @@ const originalJob = ref<Job | null>(null)
 
 // ==================== Stores ====================
 const jobsStore = useJobsStore()
+const appStore = useAppStore()
 const router = useRouter()
 const message = useMessage()
 
@@ -44,6 +46,8 @@ const taskPrompt = ref('按结构化成果清单生成空气质量值守成果�
 const schedule = ref('0 9 * * *')
 const selectedDeliver = ref('local')
 const repeat_times = ref<number | null>(null)
+const selectedProvider = ref('')
+const selectedModel = ref('')
 const selectedSkills = ref<string[]>([])
 const promptSupplement = ref('') // 用户补充说明
 
@@ -107,6 +111,47 @@ const deliverOptions = computed(() => {
   }
   return options
 })
+
+// ==================== Model / Provider Selection (适配接入，主体不变) ====================
+const providerOptions = computed(() => {
+  const options = [
+    { label: '默认（跟随全局设置）', value: '' },
+    ...appStore.modelGroups
+      .filter(group => group.models.length > 0)
+      .map(group => ({ label: group.label || group.provider, value: group.provider })),
+  ]
+  if (selectedProvider.value && !options.some(option => option.value === selectedProvider.value)) {
+    options.push({ label: selectedProvider.value, value: selectedProvider.value })
+  }
+  return options
+})
+
+const modelOptions = computed(() => {
+  const provider = selectedProvider.value
+  if (!provider) return [{ label: '默认模型', value: '' }]
+  const group = appStore.modelGroups.find(item => item.provider === provider)
+  const models = group?.models || []
+  const options = models.map(model => ({
+    label: appStore.displayModelName(model, provider),
+    value: model,
+  }))
+  if (selectedModel.value && !models.includes(selectedModel.value)) {
+    options.unshift({ label: appStore.displayModelName(selectedModel.value, provider), value: selectedModel.value })
+  }
+  return options
+})
+
+function handleProviderChange(provider: string) {
+  selectedProvider.value = provider
+  if (!provider) {
+    selectedModel.value = ''
+    return
+  }
+  const group = appStore.modelGroups.find(item => item.provider === provider)
+  if (!group?.models.includes(selectedModel.value)) {
+    selectedModel.value = group?.models[0] || ''
+  }
+}
 
 // ==================== Platform / Function State ====================
 interface PlatformDef {
@@ -656,6 +701,8 @@ async function handleSubmit() {
       deliver: selectedDeliver.value,
       skills: taskSkills.value,
       repeat: repeat_times.value ?? undefined,
+      provider: selectedProvider.value || undefined,
+      model: selectedModel.value || undefined,
       functions: activeFunctions.value.map(f => ({
         name: f.name,
         tags: f.tags,
@@ -705,6 +752,8 @@ function resetForm() {
   taskPrompt.value = '按结构化成果清单生成空气质量值守成果，并统一推送。'
   selectedDeliver.value = 'local'
   repeat_times.value = null
+  selectedProvider.value = ''
+  selectedModel.value = ''
   selectedSkills.value = []
   schedule.value = '0 9 * * *'
   promptSupplement.value = ''
@@ -722,6 +771,7 @@ function resetForm() {
 onMounted(async () => {
   resetForm()
   await Promise.all([loadPlatforms(), loadDeliveryTargets()])
+  appStore.loadModels().catch(() => {})
 
   // 编辑模式：加载已有任务数据
   if (props.jobId) {
@@ -733,6 +783,8 @@ onMounted(async () => {
       selectedDeliver.value = job.deliver || 'local'
       selectedSkills.value = job.skills || (job.skill ? [job.skill] : [])
       repeat_times.value = jobRepeatToEditValue(job.repeat)
+      selectedProvider.value = job.provider || ''
+      selectedModel.value = job.model || ''
       schedule.value = scheduleToEditableInput(job.schedule, job.schedule_display || '')
     } catch (e: any) {
       message.error('加载任务失败: ' + (e.message || e))
@@ -955,6 +1007,28 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               </div>
             </div>
 
+            <div class="form-group">
+              <label class="form-label">运行模型（可选）</label>
+              <div class="model-select-row">
+                <NSelect
+                  :value="selectedProvider"
+                  :options="providerOptions"
+                  placeholder="Provider（默认跟随全局）"
+                  @update:value="handleProviderChange"
+                />
+                <NSelect
+                  v-model:value="selectedModel"
+                  :options="modelOptions"
+                  filterable
+                  placeholder="模型（默认）"
+                  :disabled="!selectedProvider"
+                />
+              </div>
+              <div class="chip-config-hint">
+                <span class="hint-text">不选则使用全局默认模型。</span>
+              </div>
+            </div>
+
             <div class="delivery-note"><b>本次任务将交付 {{ dutyOutputs.length }} 项成果</b><span v-for="(label, index) in allOutputLabels" :key="index">{{ index + 1 }}. {{ label }}</span></div>
           </div>
         </div>
@@ -1172,6 +1246,15 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.model-select-row {
+  display: flex;
+  gap: 8px;
+
+  > * {
+    flex: 1;
+  }
 }
 
 .form-label {

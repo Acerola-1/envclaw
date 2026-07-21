@@ -1,5 +1,5 @@
 import * as hermesCli from '../../services/hermes/hermes-cli'
-import { listSessionSummaries, getUsageStatsFromDb, getSessionDetailFromDb, getSessionDetailFromDbWithProfile, getSessionDetailPaginatedFromDbWithProfile, getExactSessionDetailFromDbWithProfile } from '../../db/hermes/sessions-db'
+import { listSessionSummaries, listSessionSummaryGroups, getUsageStatsFromDb, getSessionDetailFromDb, getSessionDetailFromDbWithProfile, getSessionDetailPaginatedFromDbWithProfile, getExactSessionDetailFromDbWithProfile } from '../../db/hermes/sessions-db'
 import {
   listSessions as localListSessions,
   searchSessions as localSearchSessions,
@@ -115,6 +115,59 @@ function isRequestedSessionSource(source: string | undefined, sessionSource?: st
 
 function isHermesHistorySessionSource(source?: string | null): boolean {
   return source !== 'api_server' && source !== 'global_agent'
+}
+
+function isArchivedSession(session?: { is_archived?: number | boolean | null } | null): boolean {
+  if (!session) return false
+  if (typeof session.is_archived === 'boolean') return session.is_archived
+  return Number(session.is_archived || 0) !== 0
+}
+
+function sessionLastActive(session: any): number {
+  return Number(session?.last_active || session?.ended_at || session?.started_at || 0)
+}
+
+function compareSessionsNewestFirst(a: any, b: any): number {
+  const activityDelta = sessionLastActive(b) - sessionLastActive(a)
+  if (activityDelta !== 0) return activityDelta
+  return String(b?.id || '').localeCompare(String(a?.id || ''))
+}
+
+function mergeHermesHistorySessions(
+  ctx: any,
+  profile: string | undefined,
+  hermesSessions: any[],
+  localSessions: any[],
+  source?: string,
+): any[] {
+  const importedIds = new Set(localSessions.map(session => session.id))
+  const historySessionsById = new Map<string, any>()
+  // Keep Hermes Agent state.db as the canonical summary when both stores have
+  // the same id. Hermes Studio contributes import/archive state and local-only
+  // coding-agent sessions without replacing the Agent-owned session fields.
+  for (const session of hermesSessions) {
+    historySessionsById.set(session.id, {
+      ...(profile ? { ...session, profile } : session),
+      webui_imported: importedIds.has(session.id),
+    })
+  }
+
+  const localSessionsById = new Map(localSessions.map(session => [session.id, session]))
+  for (const [id, session] of historySessionsById) {
+    const localSession = localSessionsById.get(id)
+    if (localSession?.is_archived != null) session.is_archived = localSession.is_archived
+  }
+
+  for (const session of localSessions) {
+    if (historySessionsById.has(session.id)) continue
+    if (!isArchivedSession(session) && !isHermesHistorySessionSource(session.source)) continue
+    historySessionsById.set(session.id, { ...session, webui_imported: true })
+  }
+
+  return filterPendingDeletedSessions(filterByAllowedProfiles(ctx, [...historySessionsById.values()]).filter(session =>
+    (!source || session.source === source) &&
+    (isHermesHistorySessionSource(session.source) || (isArchivedSession(session) && session.source !== 'global_agent')),
+  ))
 }
 
 function isCodingAgentSession(session?: { source?: string | null; agent?: string | null; agent_session_id?: string | null } | null): boolean {
@@ -397,23 +450,87 @@ export async function count(ctx: any) {
 }
 
 /**
- * List Hermes sessions only (exclude api_server source)
- * GET /api/hermes/sessions/hermes?source=&limit=
+ * List Hermes History sessions (excludes api_server/global_agent per fork policy).
+ * GET /api/hermes/sessions/hermes?source=&limit=&offset=
  */
 export async function listHermesSessions(ctx: any) {
   const source = (ctx.query.source as string) || undefined
   const limit = ctx.query.limit ? parseInt(ctx.query.limit as string, 10) : undefined
   const profile = requestedProfile(ctx)
   const effectiveLimit = limit && limit > 0 ? limit : 2000
+  const offset = ctx.query.offset ? parseInt(ctx.query.offset as string, 10) : 0
   const userId = ctx.state?.user?.id ?? null
+  const normalizedOffset = Number.isFinite(offset) && offset > 0 ? offset : 0
+  const paginated = Boolean(source) || normalizedOffset > 0
+  const candidateLimit = paginated ? normalizedOffset + effectiveLimit + 1 : effectiveLimit
 
-  const importedIds = new Set(localListSessions(userId, profile, undefined, effectiveLimit).map(session => session.id))
-  const allSessions = (await listSessionSummaries(userId, source, effectiveLimit, profile))
-    .map(session => ({
-      ...(profile ? { ...session, profile } : session),
-      webui_imported: importedIds.has(session.id),
-    }))
-  ctx.body = { sessions: filterPendingDeletedSessions(filterByAllowedProfiles(ctx, allSessions).filter(s => isHermesHistorySessionSource(s.source))) }
+  const localSessions = localListSessions(userId, profile, source, candidateLimit)
+  const allSessions = await listSessionSummaries(userId, source, candidateLimit, profile)
+  const merged = mergeHermesHistorySessions(ctx, profile, allSessions, localSessions, source)
+
+  if (paginated) {
+    const sorted = [...merged].sort(compareSessionsNewestFirst)
+    const sessions = sorted.slice(normalizedOffset, normalizedOffset + effectiveLimit)
+    ctx.body = {
+      sessions,
+      hasMore: sorted.length > normalizedOffset + sessions.length,
+      offset: normalizedOffset,
+      limit: effectiveLimit,
+    }
+    return
+  }
+
+  ctx.body = { sessions: merged }
+}
+
+/**
+ * List the first page of each Hermes History source group.
+ * GET /api/hermes/sessions/hermes/groups?limit=&include=&profile=
+ */
+export async function listHermesSessionGroups(ctx: any) {
+  const requestedLimit = ctx.query.limit ? parseInt(ctx.query.limit as string, 10) : 20
+  const limit = Number.isFinite(requestedLimit) ? Math.min(100, Math.max(1, requestedLimit)) : 20
+  const profile = requestedProfile(ctx)
+  const userId = ctx.state?.user?.id ?? null
+  const rawIncluded = ctx.query.include
+  const includedIds = (Array.isArray(rawIncluded) ? rawIncluded : rawIncluded ? [rawIncluded] : [])
+    .map(value => String(value || '').trim())
+    .filter(Boolean)
+    .slice(0, 100)
+
+  const [hermesResult, localSessions] = await Promise.all([
+    listSessionSummaryGroups(limit, profile, includedIds, userId),
+    Promise.resolve(localListSessions(userId, profile, undefined, 2000)),
+  ])
+  const hermesGroups = new Map(hermesResult.groups.map(group => [group.source, group]))
+  const sources = new Set([
+    ...hermesGroups.keys(),
+    ...localSessions.map(session => session.source).filter(Boolean),
+  ])
+  const groups: Array<{ source: string; sessions: any[]; hasMore: boolean }> = []
+
+  for (const source of sources) {
+    const hermesGroup = hermesGroups.get(source)
+    const localSourceSessions = localSessions.filter(session => session.source === source)
+    const merged = mergeHermesHistorySessions(
+      ctx,
+      profile,
+      hermesGroup?.sessions || [],
+      localSourceSessions,
+      source,
+    ).sort(compareSessionsNewestFirst)
+    const sessions = merged.slice(0, limit)
+    if (sessions.length === 0) continue
+    groups.push({
+      source,
+      sessions,
+      hasMore: Boolean(hermesGroup?.hasMore) || merged.length > sessions.length,
+    })
+  }
+
+  const localIncluded = localSessions.filter(session => includedIds.includes(session.id))
+  const included = mergeHermesHistorySessions(ctx, profile, hermesResult.included, localIncluded)
+  ctx.body = { groups, included }
 }
 
 export async function search(ctx: any) {

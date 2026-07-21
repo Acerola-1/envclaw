@@ -116,6 +116,8 @@ describe('desktop runtime paths', () => {
 
     const { runtimePlatformKey } = await import('../../packages/desktop/src/main/runtime-paths')
     createRuntime(runtimeDir, '0.15.1')
+    mkdirSync(join(webUiDir, 'dist', 'server'), { recursive: true })
+    writeFileSync(join(webUiDir, 'dist', 'server', 'index.js'), '')
     mkdirSync(join(homeDir, 'desktop-runtime'), { recursive: true })
     writeFileSync(join(homeDir, 'desktop-runtime', 'active-version.json'), JSON.stringify({
       schema: 1,

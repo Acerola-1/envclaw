@@ -44,6 +44,8 @@ const formData = ref({
   deliver: 'origin',
   skills: [] as string[],
   repeat_times: null as number | null,
+  model: '',
+  provider: '',
 })
 
 const schedule = ref('0 9 * * *')  // 默认每天 9:00
@@ -156,6 +158,8 @@ onMounted(async () => {
         deliver: job.deliver || 'origin',
         skills: job.skills || (job.skill ? [job.skill] : []),
         repeat_times: jobRepeatToEditValue(job.repeat),
+        model: job.model || '',
+        provider: job.provider || '',
       }
       schedule.value = scheduleToEditableInput(job.schedule, job.schedule_display || '')
     } catch (e: any) {

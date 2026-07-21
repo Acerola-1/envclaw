@@ -6,7 +6,7 @@ import { useProfilesStore } from '@/stores/hermes/profiles'
 import { fetchContextLength } from '@/api/hermes/sessions'
 import { setModelContext } from '@/api/hermes/model-context'
 import { fetchSkills, type SkillCategory, type SkillInfo } from '@/api/hermes/skills'
-import { NButton, NTooltip, NSwitch, NModal, NInputNumber, NPopselect, useMessage } from 'naive-ui'
+import { NButton, NTooltip, NSwitch, NModal, NInputNumber, NPopover, NSlider, useMessage } from 'naive-ui'
 import { computed, ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToolTraceVisibility } from '@/composables/useToolTraceVisibility'
@@ -39,6 +39,26 @@ const reasoningEffortOptions = computed(() => [
 const currentReasoningEffort = computed<string>(() =>
   chatStore.activeSession?.reasoningEffort || ''
 )
+// Reasoning effort is presented as a slider over the ordered options. The
+// slider value is the option index; an accent color tracks intensity.
+const reasoningEffortSliderValue = computed(() => {
+  const index = reasoningEffortOptions.value.findIndex(option => option.value === currentReasoningEffort.value)
+  return index >= 0 ? index : 0
+})
+const reasoningEffortAccentColors = [
+  '#94a3b8',
+  '#2ac8e9',
+  '#2bd9b4',
+  '#4ed786',
+  '#b9d93a',
+  '#f9c33c',
+  '#f77734',
+  '#ef4444',
+] as const
+const reasoningEffortAccentStyle = computed(() => ({
+  '--reasoning-effort-accent-color': reasoningEffortAccentColors[reasoningEffortSliderValue.value]
+    || reasoningEffortAccentColors[0],
+}))
 const reasoningEffortLabel = computed<string>(() => {
   const v = currentReasoningEffort.value
   if (!v) return t('chat.reasoningEffort.defaultLabel')
@@ -50,6 +70,14 @@ function onReasoningEffortChange(value: string | null | undefined) {
   if (!sid) return
   chatStore.setSessionReasoningEffort(sid, value || '')
 }
+function reasoningEffortSliderLabel(value: number) {
+  return reasoningEffortOptions.value[Math.round(value)]?.label || reasoningEffortLabel.value
+}
+function onReasoningEffortSliderChange(value: number | [number, number]) {
+  const numericValue = Array.isArray(value) ? value[0] : value
+  const option = reasoningEffortOptions.value[Math.round(numericValue)]
+  if (option) onReasoningEffortChange(option.value)
+}
 const DRAFT_STORAGE_KEY = 'hermes_chat_input_drafts_v1'
 type DraftMap = Record<string, string>
 const inputText = ref('')
@@ -60,6 +88,10 @@ const attachments = ref<Attachment[]>([])
 const isDragging = ref(false)
 const dragCounter = ref(0)
 const isComposing = ref(false)
+const activeMessageReference = computed(() => chatStore.activeMessageReference)
+const messageReferencePreview = computed(() =>
+  activeMessageReference.value?.content.replace(/\s+/g, ' ').trim() || '',
+)
 const speech = useGlobalSpeech()
 const micRecorder = useMicRecorder({
   messages: {
@@ -150,6 +182,20 @@ function insertVoiceTranscriptIntoInput(text: string) {
     }
   })
 }
+
+function clearMessageReference() {
+  const sessionId = chatStore.activeSessionId
+  if (sessionId) chatStore.clearMessageReference(sessionId)
+  textareaRef.value?.focus()
+}
+
+watch(
+  () => activeMessageReference.value?.id,
+  (id) => {
+    if (!id) return
+    nextTick(() => textareaRef.value?.focus())
+  },
+)
 
 const voiceDialogue = useVoiceDialogue({
   transcribe: async (audio) => {
@@ -903,34 +949,55 @@ function isImage(type: string): boolean {
         {{ t('chat.attachFiles') }}
       </NTooltip>
 
-      <NPopselect
+      <NPopover
         v-if="!isCodingAgentSession"
-        :value="currentReasoningEffort"
-        :options="reasoningEffortOptions"
         trigger="click"
-        @update:value="onReasoningEffortChange"
+        placement="top-start"
       >
-        <NTooltip trigger="hover">
-          <template #trigger>
-            <NButton
-              quaternary
-              size="tiny"
-              circle
-              class="reasoning-effort-button"
-              :class="{ active: !!currentReasoningEffort }"
-              :aria-label="`${t('chat.reasoningEffort.tooltip')}: ${reasoningEffortLabel}`"
-            >
-              <template #icon>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
-                  <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
-                </svg>
-              </template>
-            </NButton>
-          </template>
-          {{ t('chat.reasoningEffort.tooltip') }}: {{ reasoningEffortLabel }}
-        </NTooltip>
-      </NPopselect>
+        <template #trigger>
+          <NTooltip trigger="hover">
+            <template #trigger>
+              <NButton
+                quaternary
+                size="tiny"
+                circle
+                class="reasoning-effort-button"
+                :class="{ active: !!currentReasoningEffort }"
+                :style="reasoningEffortAccentStyle"
+                :aria-label="`${t('chat.reasoningEffort.tooltip')}: ${reasoningEffortLabel}`"
+              >
+                <template #icon>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+                  </svg>
+                </template>
+              </NButton>
+            </template>
+            {{ t('chat.reasoningEffort.tooltip') }}: {{ reasoningEffortLabel }}
+          </NTooltip>
+        </template>
+
+        <div class="reasoning-effort-slider-popover" :style="reasoningEffortAccentStyle">
+          <div class="reasoning-effort-slider-heading">
+            <span>{{ t('chat.reasoningEffort.tooltip') }}</span>
+            <strong>{{ reasoningEffortLabel }}</strong>
+          </div>
+          <NSlider
+            class="reasoning-effort-slider"
+            :value="reasoningEffortSliderValue"
+            :min="0"
+            :max="reasoningEffortOptions.length - 1"
+            :step="1"
+            :format-tooltip="reasoningEffortSliderLabel"
+            @update:value="onReasoningEffortSliderChange"
+          />
+          <div class="reasoning-effort-slider-range" aria-hidden="true">
+            <span>{{ reasoningEffortOptions[0].label }}</span>
+            <span>{{ reasoningEffortOptions[reasoningEffortOptions.length - 1].label }}</span>
+          </div>
+        </div>
+      </NPopover>
 
       <div class="auto-play-speech-switch">
         <NTooltip trigger="hover">
@@ -1014,6 +1081,22 @@ function isImage(type: string): boolean {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
+    </div>
+
+    <div v-if="activeMessageReference" class="message-reference-preview">
+      <span class="message-reference-text">{{ messageReferencePreview }}</span>
+      <button
+        type="button"
+        class="message-reference-remove"
+        :aria-label="t('chat.cancelReference')"
+        :title="t('chat.cancelReference')"
+        @click.stop="clearMessageReference"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
     </div>
 
     <div
@@ -1265,8 +1348,71 @@ function isImage(type: string): boolean {
 
 .reasoning-effort-button {
   &.active {
-    color: #4caf50;
+    color: var(--reasoning-effort-accent-color, #4caf50);
   }
+}
+
+.reasoning-effort-slider-popover {
+  width: min(320px, calc(100vw - 64px));
+  padding: 4px 2px 2px;
+}
+
+.reasoning-effort-slider-heading,
+.reasoning-effort-slider-range {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.reasoning-effort-slider-heading {
+  margin-bottom: 10px;
+  color: $text-secondary;
+  font-size: 12px;
+
+  strong {
+    color: var(--reasoning-effort-accent-color);
+    font-weight: 600;
+  }
+}
+
+.reasoning-effort-slider {
+  --n-handle-size: 24px !important;
+  --n-rail-height: 10px !important;
+  --reasoning-effort-gradient-width: min(314px, calc(100vw - 70px));
+  margin: 0 3px;
+
+  :deep(.n-slider-rail) {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  :deep(.n-slider-rail__fill) {
+    background: linear-gradient(
+      90deg,
+      #38bdf8 0%,
+      #22d3ee 20%,
+      #34d399 40%,
+      #facc15 62%,
+      #fb923c 82%,
+      #ef4444 100%
+    );
+    background-position: left center;
+    background-repeat: no-repeat;
+    background-size: var(--reasoning-effort-gradient-width) 100%;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.24);
+  }
+
+  :deep(.n-slider-handle) {
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    background: #f8fafc;
+    box-shadow: 0 2px 8px rgba(24, 18, 44, 0.38);
+  }
+}
+
+.reasoning-effort-slider-range {
+  margin-top: 4px;
+  color: $text-muted;
+  font-size: 10px;
 }
 
 .context-info {
@@ -1471,6 +1617,49 @@ function isImage(type: string): boolean {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+}
+
+.message-reference-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0 8px 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(var(--accent-primary-rgb), 0.07);
+  cursor: default;
+}
+
+.message-reference-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: $text-secondary;
+  font-size: 12px;
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-reference-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 26px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: $text-muted;
+  cursor: pointer;
+
+  &:hover {
+    color: $text-primary;
+    background: rgba(var(--text-primary-rgb), 0.08);
   }
 }
 

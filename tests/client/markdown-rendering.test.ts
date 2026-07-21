@@ -58,11 +58,15 @@ vi.mock('naive-ui', () => ({
   }),
 }))
 
-vi.mock('@/api/hermes/download', () => ({
-  downloadFile: downloadApiMock.downloadFile,
-  fetchFileText: downloadApiMock.fetchFileText,
-  getDownloadUrl: downloadApiMock.getDownloadUrl,
-}))
+vi.mock('@/api/hermes/download', async () => {
+  const actual = await vi.importActual<typeof import('@/api/hermes/download')>('@/api/hermes/download')
+  return {
+    ...actual,
+    downloadFile: downloadApiMock.downloadFile,
+    fetchFileText: downloadApiMock.fetchFileText,
+    getDownloadUrl: downloadApiMock.getDownloadUrl,
+  }
+})
 
 import MarkdownRenderer from '@/components/hermes/chat/MarkdownRenderer.vue'
 

@@ -1,11 +1,10 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
-import { i18n } from './i18n'
+import { i18nReady } from './i18n'
 import { hasApiKey } from './api/client'
 import App from './App.vue'
 import './styles/global.scss'
-import 'katex/dist/katex.min.css'
 
 // Apply theme classes before mount to prevent FOUC (Flash of Unstyled Content)
 const savedBrightness = localStorage.getItem('hermes_brightness') || 'system'
@@ -48,13 +47,16 @@ async function ensureAuthenticated(): Promise<void> {
   }
 }
 
-const app = createApp(App)
-app.use(createPinia())
-app.use(i18n)
-app.use(router)
+async function mountApp(): Promise<void> {
+  const i18n = await i18nReady
+  const app = createApp(App)
+  app.use(createPinia())
+  app.use(i18n)
+  app.use(router)
 
-ensureAuthenticated().finally(() => {
-  router.isReady().finally(() => {
-    app.mount('#app')
-  })
-})
+  await ensureAuthenticated().catch(() => undefined)
+  await router.isReady().catch(() => undefined)
+  app.mount('#app')
+}
+
+void mountApp()

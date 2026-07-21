@@ -64,6 +64,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const qqbot = ref<Record<string, any>>({})
   const weixin = ref<Record<string, any>>({})
   const platforms = ref<Record<string, any>>({})
+  const platformCredentialStatus = ref<Record<string, boolean>>({})
 
   async function fetchSettings() {
     loading.value = true
@@ -89,6 +90,7 @@ export const useSettingsStore = defineStore('settings', () => {
       qqbot.value = data.qqbot || {}
       weixin.value = data.weixin || {}
       platforms.value = data.platforms || {}
+      platformCredentialStatus.value = data.platformCredentialStatus || {}
     } catch (err) {
       console.error('Failed to fetch settings:', err)
     } finally {
@@ -172,7 +174,7 @@ export const useSettingsStore = defineStore('settings', () => {
   return {
     loading, saving,
     display, agent, memory, skills, compression, sessionReset, privacy, approvals, gatewayAutoStart,
-    telegram, discord, slack, whatsapp, matrix, wecom, feishu, dingtalk, qqbot, weixin, platforms,
+    telegram, discord, slack, whatsapp, matrix, wecom, feishu, dingtalk, qqbot, weixin, platforms, platformCredentialStatus,
     fetchSettings, saveSection, updateLocal,
   }
 })

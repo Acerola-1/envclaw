@@ -386,4 +386,43 @@ describe('chat store reasoning/tool boundaries', () => {
     expect(store.sessions).toEqual([session])
     expect(store.activeSessionId).toBe('session-1')
   })
+
+  it('switches model locally for an unpersisted draft session without calling the backend (#2095)', async () => {
+    const store = useChatStore()
+    const session = makeSession()
+    // Draft: never sent a message, so not persisted server-side.
+    session.messageCount = 0
+    session.workspace = 'D:\\projects\\hermes'
+    session.provider = 'deepseek'
+    session.model = 'deepseek-chat'
+    store.sessions = [session]
+    store.activeSessionId = 'session-1'
+    store.activeSession = session
+
+    const ok = await store.switchSessionModel('deepseek-reasoner', 'deepseek', 'session-1')
+
+    expect(ok).toBe(true)
+    expect(sessionsApi.setSessionModel).not.toHaveBeenCalled()
+    expect(session.model).toBe('deepseek-reasoner')
+    expect(session.provider).toBe('deepseek')
+    // Draft workspace must be preserved.
+    expect(session.workspace).toBe('D:\\projects\\hermes')
+  })
+
+  it('uses the server model-update path for a persisted session', async () => {
+    const store = useChatStore()
+    const session = makeSession()
+    // Persisted: already has messages recorded server-side.
+    session.messageCount = 3
+    store.sessions = [session]
+    store.activeSessionId = 'session-1'
+    store.activeSession = session
+    sessionsApi.setSessionModel.mockResolvedValue(true)
+
+    const ok = await store.switchSessionModel('deepseek-reasoner', 'deepseek', 'session-1')
+
+    expect(ok).toBe(true)
+    expect(sessionsApi.setSessionModel).toHaveBeenCalledWith('session-1', 'deepseek-reasoner', 'deepseek')
+    expect(session.model).toBe('deepseek-reasoner')
+  })
 })

@@ -6,6 +6,7 @@ const getConversationMessagesPaginatedMock = vi.fn(async (ctx: any) => { ctx.bod
 const listMock = vi.fn(async (ctx: any) => { ctx.body = { sessions: [{ id: 's1' }] } })
 const countMock = vi.fn(async (ctx: any) => { ctx.body = { count: 1 } })
 const listHermesSessionsMock = vi.fn(async (ctx: any) => { ctx.body = { sessions: [{ id: 'hermes-1' }] } })
+const listHermesSessionGroupsMock = vi.fn(async (ctx: any) => { ctx.body = { groups: [], included: [] } })
 const getHermesSessionMock = vi.fn(async (ctx: any) => { ctx.body = { session: { id: ctx.params.id } } })
 const importHermesSessionMock = vi.fn(async (ctx: any) => { ctx.body = { session_id: ctx.params.id } })
 const searchMock = vi.fn(async (ctx: any) => { ctx.body = { results: [{ id: 'search-1' }] } })
@@ -33,6 +34,7 @@ vi.mock('../../packages/server/src/controllers/hermes/sessions', () => ({
   list: listMock,
   count: countMock,
   listHermesSessions: listHermesSessionsMock,
+  listHermesSessionGroups: listHermesSessionGroupsMock,
   getHermesSession: getHermesSessionMock,
   importHermesSession: importHermesSessionMock,
   search: searchMock,

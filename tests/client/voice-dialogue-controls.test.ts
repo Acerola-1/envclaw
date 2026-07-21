@@ -79,7 +79,8 @@ vi.mock('naive-ui', () => ({
   NSwitch: { template: '<button type="button"></button>' },
   NModal: { template: '<div><slot /><slot name="footer" /></div>' },
   NInputNumber: { template: '<input />' },
-  NPopselect: { template: '<div><slot /></div>' },
+  NPopover: { template: '<div><slot name="trigger" /><slot /></div>' },
+  NSlider: { template: '<div></div>' },
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 

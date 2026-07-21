@@ -57,6 +57,51 @@ export interface Message {
   runMarker?: string | null
 }
 
+export interface MessageReference {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  sender?: string
+}
+
+export interface ParsedMessageReference {
+  content: string
+  reply: string
+}
+
+export function parseMessageReference(content: string): ParsedMessageReference | null {
+  if (!content.startsWith('<quoted_message')) return null
+  const openEnd = content.indexOf('>\n')
+  if (openEnd === -1) return null
+  const closeMarker = '\n</quoted_message>'
+  const closeStart = content.indexOf(closeMarker, openEnd + 2)
+  if (closeStart === -1) return null
+
+  return {
+    content: content.slice(openEnd + 2, closeStart).trim(),
+    reply: content.slice(closeStart + closeMarker.length).trim(),
+  }
+}
+
+export function formatReferencedContentForDisplay(content: string): string {
+  return content
+    .trim()
+    .split(/\r?\n/)
+    .map(line => line ? `> ${line}` : '>')
+    .join('\n')
+}
+
+export function formatMessageWithReference(reference: MessageReference, content: string): string {
+  const sender = reference.sender?.trim()
+  const openTag = sender
+    ? `<quoted_message sender=${JSON.stringify(sender)}>`
+    : '<quoted_message>'
+  const quotedContent = reference.content.trim()
+  const reply = content.trim()
+  const referenceBlock = `${openTag}\n${quotedContent}\n</quoted_message>`
+  return reply ? `${referenceBlock}\n\n${reply}` : referenceBlock
+}
+
 export interface PendingApproval {
   sessionId: string
   approvalId: string
@@ -517,6 +562,7 @@ const STORAGE_KEY_PREFIX = 'hermes_active_session_'
 type ChatRuntimeMode = 'default' | 'global_agent'
 let activeRuntimeMode: ChatRuntimeMode = 'default'
 const LEGACY_STORAGE_KEY = 'hermes_active_session'
+const SESSION_PROFILE_FILTER_STORAGE_KEY = 'hermes_session_profile_filter_v1'
 
 // 获取当前 profile 名称，用于隔离缓存。
 // 从 profiles store 的 activeProfileName（同步 localStorage）读取，
@@ -630,13 +676,24 @@ export const useChatStore = defineStore('chat', () => {
   const pendingForkCommands = ref<Set<string>>(new Set())
   /** Sessions that completed while the user was viewing another session. */
   const completedUnreadSessions = ref<Set<string>>(new Set())
-  const sessionProfileFilter = ref<string | null>(null)
+  const storedSessionProfileFilter = getItemBestEffort(SESSION_PROFILE_FILTER_STORAGE_KEY)?.trim()
+  const sessionProfileFilter = ref<string | null>(
+    storedSessionProfileFilter && storedSessionProfileFilter !== '__all__'
+      ? storedSessionProfileFilter
+      : null,
+  )
   /** sessionId → queued message count */
   const queueLengths = ref<Map<string, number>>(new Map())
   /** sessionId → queued user messages not yet visible in the transcript */
   const queuedUserMessages = ref<Map<string, Message[]>>(new Map())
   /** sessionId → queue ids that server reported as dequeued before the peer message arrived */
   const dequeuedQueueIds = ref<Map<string, Set<string>>>(new Map())
+  /** sessionId → message selected as the reference for the next user turn */
+  const messageReferences = ref<Map<string, MessageReference>>(new Map())
+  const activeMessageReference = computed(() => {
+    const sid = activeSessionId.value
+    return sid ? messageReferences.value.get(sid) || null : null
+  })
   const pendingApprovals = ref<Map<string, PendingApproval>>(new Map())
   const activePendingApproval = computed(() => {
     const sid = activeSessionId.value
@@ -648,6 +705,22 @@ export const useChatStore = defineStore('chat', () => {
     const sid = activeSessionId.value
     return sid ? pendingClarifies.value.get(sid) || null : null
   })
+
+  function setSessionProfileFilter(profile: string | null) {
+    const normalized = profile?.trim()
+    sessionProfileFilter.value = normalized && normalized !== '__all__' ? normalized : null
+    if (sessionProfileFilter.value) {
+      setItemBestEffort(SESSION_PROFILE_FILTER_STORAGE_KEY, sessionProfileFilter.value)
+    } else {
+      removeItem(SESSION_PROFILE_FILTER_STORAGE_KEY)
+    }
+  }
+
+  function validateSessionProfileFilter(profileNames: string[]) {
+    const current = sessionProfileFilter.value
+    if (!current || profileNames.length === 0 || profileNames.includes(current)) return
+    setSessionProfileFilter(null)
+  }
 
   // 自动播放语音开关
   const autoPlaySpeechEnabled = ref(false)
@@ -750,6 +823,19 @@ export const useChatStore = defineStore('chat', () => {
     const next = new Set(completedUnreadSessions.value)
     next.delete(sessionId)
     completedUnreadSessions.value = next
+  }
+
+  function setMessageReference(sessionId: string, reference: MessageReference) {
+    const next = new Map(messageReferences.value)
+    next.set(sessionId, reference)
+    messageReferences.value = next
+  }
+
+  function clearMessageReference(sessionId: string) {
+    if (!messageReferences.value.has(sessionId)) return
+    const next = new Map(messageReferences.value)
+    next.delete(sessionId)
+    messageReferences.value = next
   }
 
   function markSessionCompletedUnread(sessionId: string, hasQueue = false) {
@@ -1238,9 +1324,19 @@ export const useChatStore = defineStore('chat', () => {
   async function switchSessionModel(modelId: string, provider?: string, sessionId?: string): Promise<boolean> {
     const targetId = sessionId || activeSession.value?.id
     if (!targetId) return false
-    const ok = await setSessionModel(targetId, modelId, provider || '')
-    if (!ok) return false
     const target = sessions.value.find(s => s.id === targetId)
+    const activeMatch = activeSession.value?.id === targetId ? activeSession.value : undefined
+    // Draft sessions are not yet persisted server-side; their model/provider
+    // is delivered with the first run via shouldSendInitialSessionConfig, so
+    // the backend /model call would 404. Skip it and just update local state,
+    // preserving the draft workspace. Mirrors upstream #2095 using fork's
+    // native "not persisted yet" signal (messageCount == null || 0).
+    const isDraftSession = (s?: Session) => s != null && (s.messageCount == null || s.messageCount === 0)
+    const isLocalOnly = isDraftSession(target) || isDraftSession(activeMatch)
+    if (!isLocalOnly) {
+      const ok = await setSessionModel(targetId, modelId, provider || '')
+      if (!ok) return false
+    }
     if (target) {
       target.model = modelId
       target.provider = provider || ''
@@ -1257,6 +1353,7 @@ export const useChatStore = defineStore('chat', () => {
     const ok = await deleteSessionApi(sessionId, target?.profile)
     if (!ok) return false
     sessions.value = sessions.value.filter(s => s.id !== sessionId)
+    clearMessageReference(sessionId)
     // 清理 job/run session 映射
     for (const [jobId, sid] of jobSessionMap.value.entries()) {
       if (sid === sessionId) jobSessionMap.value.delete(jobId)
@@ -1442,6 +1539,7 @@ export const useChatStore = defineStore('chat', () => {
       if (target) target.messages = []
       queuedUserMessages.value.delete(sid)
       queueLengths.value.delete(sid)
+      clearMessageReference(sid)
       if ((evt as any).clearHistory) {
         const message = String((evt as any).message || '')
         if (message) {
@@ -1475,6 +1573,7 @@ export const useChatStore = defineStore('chat', () => {
       serverWorking.value.delete(sid)
       queueLengths.value.delete(sid)
       queuedUserMessages.value.delete(sid)
+      clearMessageReference(sid)
       setAbortState(null)
       const msgs = getSessionMsgs(sid)
       msgs.forEach(m => {
@@ -1933,6 +2032,10 @@ export const useChatStore = defineStore('chat', () => {
     const isBridgeSkillCommand = isBridgeSlashCommand && /^\/skill(?:\s|$)/i.test(trimmedContent)
     const isBridgeGoalCommand = isBridgeSlashCommand && /^\/goal(?:\s|$)/i.test(trimmedContent)
     const isBridgeForkCommand = isBridgeSlashCommand && /^\/fork(?:\s|$)/i.test(trimmedContent)
+    const messageReference = isBridgeSlashCommand ? null : messageReferences.value.get(sid) || null
+    const submittedContent = messageReference
+      ? formatMessageWithReference(messageReference, trimmedContent)
+      : trimmedContent
     const shouldOptimisticallyShowRunStatus = !isCodingAgentSession && !isBridgeForkCommand
     const wasLiveBeforeSend = isSessionLive(sid)
     if (isBridgeForkCommand) {
@@ -1944,7 +2047,7 @@ export const useChatStore = defineStore('chat', () => {
     const userMsg: Message = {
       id: uid(),
       role: isBridgeSlashCommand ? 'command' : 'user',
-      content: trimmedContent,
+      content: submittedContent,
       timestamp: Date.now(),
       attachments: attachments && attachments.length > 0 ? attachments : undefined,
       queued: shouldQueue,
@@ -1958,6 +2061,7 @@ export const useChatStore = defineStore('chat', () => {
       updateSessionTitle(sid)
       if (shouldOptimisticallyShowRunStatus) serverWorking.value.add(sid)
     }
+    clearMessageReference(sid)
 
     let runSubmitted = false
     try {
@@ -1990,10 +2094,10 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         // Build content blocks with uploaded file paths
-        input = await buildContentBlocks(content, attachments, uploaded)
+        input = await buildContentBlocks(submittedContent, attachments, uploaded)
       } else {
         // No attachments: use plain text format
-        input = content.trim()
+        input = submittedContent
       }
 
       // 前置待发上下文（如 job/run 的运行结果）
@@ -3698,15 +3802,20 @@ export const useChatStore = defineStore('chat', () => {
     isSessionCompletedUnread,
     clearSessionCompletedUnread,
     sessionProfileFilter,
+    setSessionProfileFilter,
+    validateSessionProfileFilter,
     compressionState,
     abortState,
     isAborting,
     queueLengths,
     queuedUserMessages,
+    activeMessageReference,
     pendingApprovals,
     activePendingApproval,
     activePendingClarify,
     removeQueuedMessage,
+    setMessageReference,
+    clearMessageReference,
     isLoadingSessions,
     sessionsLoaded,
     isLoadingMessages,

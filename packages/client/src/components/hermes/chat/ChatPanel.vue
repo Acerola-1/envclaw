@@ -63,6 +63,8 @@ const showOutline = ref(false);
 const messageListRef = ref<InstanceType<typeof MessageList> | null>(null);
 const chatInputRef = ref<(InstanceType<typeof ChatInput> & { addFiles?: (files: File[]) => void; setInputText?: (text: string) => void }) | null>(null);
 const chatContentWrapperRef = ref<HTMLElement | null>(null);
+const chatMainContentRef = ref<HTMLElement | null>(null);
+let sessionFadeAnimation: Animation | null = null;
 const showToolPanel = ref(false);
 const activeToolPanel = ref<"files" | "terminal">("files");
 const TOOL_PANEL_MIN_WIDTH = 360;
@@ -502,7 +504,33 @@ onUnmounted(() => {
   window.removeEventListener("hermes:open-page-sidebar", openPageSidebar);
   window.removeEventListener("resize", handleToolPanelViewportResize);
   stopToolResize();
+  sessionFadeAnimation?.cancel();
+  sessionFadeAnimation = null;
 });
+
+watch(
+  () => chatStore.activeSessionId,
+  async (sessionId, previousSessionId) => {
+    if (!sessionId || !previousSessionId || sessionId === previousSessionId) return;
+
+    await nextTick();
+    const surface = chatMainContentRef.value;
+    if (!surface || typeof surface.animate !== "function") return;
+
+    sessionFadeAnimation?.cancel();
+    sessionFadeAnimation = surface.animate(
+      [
+        { opacity: 0 },
+        { opacity: 1 },
+      ],
+      {
+        duration: 1500,
+        easing: "ease",
+      },
+    );
+  },
+  { flush: "post" },
+);
 watch(showToolPanel, async (visible) => {
   if (!visible || isMobile.value) return;
   await nextTick();
@@ -1720,7 +1748,7 @@ async function handleSessionModelCustomSubmit() {
           <AgentMorePanel v-if="showAgentMorePanel" @select="handleAgentMoreSelect"
             @close="showAgentMorePanel = false" />
           <template v-if="!showAgentMorePanel">
-            <div class="chat-main-content">
+            <div ref="chatMainContentRef" class="chat-main-content">
               <MessageList ref="messageListRef" />
               <ChatInput ref="chatInputRef" />
             </div>

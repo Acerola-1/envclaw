@@ -72,6 +72,24 @@ export interface SessionSearchResult extends SessionSummary {
   rank: number
 }
 
+export interface HermesSessionGroupPage {
+  source: string
+  sessions: SessionSummary[]
+  hasMore: boolean
+}
+
+export interface HermesSessionGroupsResult {
+  groups: HermesSessionGroupPage[]
+  included: SessionSummary[]
+}
+
+export interface HermesSessionPage {
+  sessions: SessionSummary[]
+  hasMore: boolean
+  offset: number
+  limit: number
+}
+
 export interface HermesMessage {
   id: number
   session_id: string
@@ -109,6 +127,32 @@ export async function fetchHermesSessions(source?: string, limit?: number, profi
   const query = params.toString()
   const res = await request<{ sessions: SessionSummary[] }>(`/api/hermes/sessions/hermes${query ? `?${query}` : ''}`)
   return res.sessions
+}
+
+export async function fetchHermesSessionGroups(
+  limit: number,
+  profile?: string | null,
+  includedSessionIds: string[] = [],
+): Promise<HermesSessionGroupsResult> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (profile) params.set('profile', profile)
+  for (const sessionId of includedSessionIds) params.append('include', sessionId)
+  return request<HermesSessionGroupsResult>(`/api/hermes/sessions/hermes/groups?${params}`)
+}
+
+export async function fetchHermesSessionPage(
+  source: string,
+  offset: number,
+  limit: number,
+  profile?: string | null,
+): Promise<HermesSessionPage> {
+  const params = new URLSearchParams({
+    source,
+    offset: String(offset),
+    limit: String(limit),
+  })
+  if (profile) params.set('profile', profile)
+  return request<HermesSessionPage>(`/api/hermes/sessions/hermes?${params}`)
 }
 
 export async function searchSessions(q: string, source?: string, limit?: number, profile?: string): Promise<SessionSearchResult[]> {
@@ -276,7 +320,14 @@ export async function exportSession(id: string, mode: 'full' | 'compressed' = 'f
   const contentDisposition = res.headers.get('Content-Disposition') || ''
   let filename = `session_${id}.${ext}`
   const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^;\n]+)/i)
-  if (match) filename = decodeURIComponent(match[1].replace(/"/g, ''))
+  if (match) {
+    const dispositionFilename = match[1].replace(/"/g, '')
+    try {
+      filename = decodeURIComponent(dispositionFilename)
+    } catch {
+      filename = dispositionFilename
+    }
+  }
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = filename
