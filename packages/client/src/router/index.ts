@@ -134,6 +134,7 @@ const router = createRouter({
       path: '/hermes/devices',
       name: 'hermes.devices',
       component: () => import('@/views/hermes/DevicesView.vue'),
+      meta: { requiresSuperAdmin: true },
     },
     {
       path: '/hermes/group-chat',
@@ -165,7 +166,6 @@ const router = createRouter({
       path: '/hermes/mcp',
       name: 'hermes.mcp',
       component: () => import('@/views/hermes/McpManagerView.vue'),
-      meta: { requiresSuperAdmin: true },
     },
   ],
 })
