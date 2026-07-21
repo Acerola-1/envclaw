@@ -316,6 +316,10 @@ function handleAppModeChange(mode: 'smartQuery' | 'automation') {
     showGuardPanel.value = true;
     selectedRobot.value = null;
     selectedTaskJob.value = null;
+    // 重新进入值守时清掉上次残留的"创建/编辑任务"面板状态，
+    // 否则 rightPanelMode 会一直停在 create-task/edit-task，看不到任务列表。
+    showCreateTaskPanel.value = false;
+    editingJobId.value = null;
     void jobsStore.fetchJobs();
   } else {
     currentMode.value = "chat";
@@ -326,6 +330,8 @@ function handleAppModeChange(mode: 'smartQuery' | 'automation') {
     showGuardPanel.value = true;
     selectedRobot.value = null;
     selectedTaskJob.value = null;
+    showCreateTaskPanel.value = false;
+    editingJobId.value = null;
   }
 }
 
