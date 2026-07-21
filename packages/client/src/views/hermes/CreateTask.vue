@@ -5,10 +5,12 @@ import { NInput, NInputNumber, NButton, NModal, NTreeSelect, NCheckbox, NCheckbo
 import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import { useSettingsStore } from '@/stores/hermes/settings'
+import { useUserStore } from '@/stores/hermes/user'
 import { getJob, scheduleToEditableInput, jobRepeatToEditValue } from '@/api/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
 import { listPlatforms } from '@/api/envclaw/platforms'
 import type { Platform } from '@/api/envclaw/platforms'
+import { fetchCityRegionTree, type RegionTreeNode } from '@/api/hermes/city-tree'
 import { useMessage } from 'naive-ui'
 
 // ==================== Props / Emits ====================
@@ -27,6 +29,7 @@ const originalJob = ref<Job | null>(null)
 // ==================== Stores ====================
 const jobsStore = useJobsStore()
 const settingsStore = useSettingsStore()
+const userStore = useUserStore()
 const router = useRouter()
 const message = useMessage()
 
@@ -161,9 +164,13 @@ const selectedFunctions = ref<Set<string>>(new Set(['szdq-rank']))
 const selectedCapability = ref<'concentrationRanking' | 'hourlyBrief' | 'mapPackage' | 'monitoringData'>('concentrationRanking')
 const rankingPresetActive = ref(true)
 const rankingQueryTarget = ref<'city' | 'station'>('city')
-const rankingRegion = ref('pingdingshan')
-const rankingPeriod = ref('dayAccumulated')
-const rankingFactors = ref(['AQI', 'PM₂.₅', 'O₃'])
+const rankingRegion = ref<string[]>(['1320a70ee'])
+const rankingProvince = ref('') // 行政区勾选对应的 provinceCodeVO
+const rankingStationType = ref<string>('S-100')      // 当前选中的站点类型（默认标准站）
+const rankingStationDropdownOpen = ref(false)
+const rankingSelectedStations = ref<string[]>([]) // 已选的站点 value 列表
+const rankingPeriod = ref('daily_count')
+const rankingFactors = ref(['AQI', 'PM2.5', 'O3_8H']) // 默认对应 daily_count，使用 O3_8H
 const rankingIncludeScreenshot = ref(true)
 const rankingIncludeAnalysis = ref(false)
 const rankingScreenshotScope = ref<'tableOnly' | 'withFilters'>('tableOnly')
@@ -178,16 +185,22 @@ const mapScope = ref<'national' | 'henan' | 'pingdingshan'>('henan')
 const mapTimeType = ref<'realtime' | 'accumulated' | 'day'>('realtime')
 const mapMarkAssociated = ref(true)
 const mapCloseLeftPanel = ref(true)
-const hourlyRegion = ref('pingdingshan')
+const hourlyRegion = ref(['1320a70ee'])
 const hourlyQueryTarget = ref<'city' | 'station'>('city')
+const hourlyStationType = ref<string>('S-100')
+const hourlyStationDropdownOpen = ref(false)
+const hourlySelectedStations = ref<string[]>([])
 const hourlyTownship = ref('all')
 const hourlyFactors = ref(['AQI', 'PM₂.₅', 'O₃'])
 const hourlyIncludeScreenshot = ref(true)
 const hourlyIncludeSummary = ref(true)
 const hourlyScreenshotScope = ref<'contentOnly' | 'withFilters'>('contentOnly')
 const hourlyTheme = ref<'light' | 'dark'>('light')
-const monitoringRegion = ref('pingdingshan')
+const monitoringRegion = ref('1320a70ee')
 const monitoringQueryTarget = ref<'city' | 'station'>('city')
+const monitoringStationType = ref<string>('S-100')
+const monitoringStationDropdownOpen = ref(false)
+const monitoringSelectedStations = ref<string[]>([])
 const monitoringTownship = ref('all')
 const monitoringPeriod = ref<'hourAverage' | 'hour' | 'dailyCumulative' | 'dayCumulative' | 'custom'>('hour')
 const monitoringCustomRange = ref('')
@@ -197,20 +210,166 @@ const monitoringIncludeScreenshot = ref(false)
 const monitoringIncludeAnalysis = ref(false)
 const monitoringTheme = ref<'light' | 'dark'>('light')
 
-const rankingRegionOptions = [
-  { label: '河南省', key: 'henan', disabled: true, children: [
-    { label: '全部', key: 'all' },
-    { label: '平顶山市（账号关联城市）', key: 'pingdingshan', children: [
-      { label: '新华区', key: 'xinhua' }, { label: '卫东区', key: 'weidong' }, { label: '湛河区', key: 'zhanhe' },
+// 行政区级联树数据（动态从 API 加载，硬编码作为兜底）
+const STATIC_AREA_TREE: RegionTreeNode[] = [
+  { label: '河南省', value: 'henan', children: [
+    { label: '全部', value: 'all' },
+    { label: '平顶山市', value: 'pingdingshan', children: [
+      { label: '新华区', value: 'xinhua' }, { label: '卫东区', value: 'weidong' }, { label: '湛河区', value: 'zhanhe' },
     ] },
-    { label: '郑州市', key: 'zhengzhou' }, { label: '洛阳市', key: 'luoyang' },
+    { label: '郑州市', value: 'zhengzhou' }, { label: '洛阳市', value: 'luoyang' },
   ] },
 ]
-const rankingPeriods = [
-  { label: '实时', value: 'realtime' }, { label: '日累计', value: 'dayAccumulated' },
-  { label: '日', value: 'day' }, { label: '月', value: 'month' }, { label: '年', value: 'year' },
+const CITY_TREE_CACHE_KEY = 'hermes_city_region_tree'
+
+const cityRegionTree = ref<RegionTreeNode[]>(STATIC_AREA_TREE)
+const cityTreeLoading = ref(false)
+const cityTreeError = ref('')
+
+// 站点类型选项
+const STATION_TYPE_OPTIONS = [
+  { label: '标准站', value: 'S-100' },
+  { label: '国控站', value: 'S-10' },
+  { label: '省控站', value: 'S-11' },
+  { label: '市控站', value: 'S-12' },
+  { label: '对比站', value: 'S-13' },
+  { label: '乡镇站', value: 'S-14' },
+  { label: '微站', value: 'S-15' },
+  { label: 'TVOC站', value: 'S-16' },
+  { label: '粉尘站', value: 'S-17' },
+  { label: '高密度站', value: 'S-18' },
 ]
-const rankingFactorOptions = ['AQI', 'PM₂.₅', 'PM₁₀', 'SO₂', 'NO₂', 'CO', 'O₃'].map(value => ({ label: value, value }))
+
+// 站点名称选项（按类型分组）
+const STATION_NAME_OPTIONS: Record<string, { label: string; value: string }[]> = {}
+
+function loadCityRegionTreeFromCache(): RegionTreeNode[] | null {
+  try {
+    const cached = localStorage.getItem(CITY_TREE_CACHE_KEY)
+    if (cached) {
+      const tree = JSON.parse(cached) as RegionTreeNode[]
+      if (Array.isArray(tree) && tree.length > 0) return tree
+    }
+  } catch {
+    // 缓存损坏，忽略
+  }
+  return null
+}
+
+async function loadCityRegionTree() {
+  const cached = loadCityRegionTreeFromCache()
+  if (cached) {
+    cityRegionTree.value = cached
+    return
+  }
+  cityTreeLoading.value = true
+  cityTreeError.value = ''
+  try {
+    const { tree } = await fetchCityRegionTree(userStore.v5Token)
+    cityRegionTree.value = tree
+    localStorage.setItem(CITY_TREE_CACHE_KEY, JSON.stringify(tree))
+  } catch (e: any) {
+    cityTreeError.value = e.message || '加载失败'
+    console.warn('[city-tree] 回退到硬编码数据', e)
+  } finally {
+    cityTreeLoading.value = false
+  }
+}
+
+/** 在树中递归查找 value 对应的完整 label 路径（如 "河南省 / 平顶山市"） */
+function getRegionLabel(value: string): string {
+  const result: string[] = []
+  function search(nodes: RegionTreeNode[]): boolean {
+    for (const node of nodes) {
+      if (node.value === value) return true
+      if (node.children && search(node.children)) {
+        result.unshift(node.label)
+        return true
+      }
+    }
+    return false
+  }
+  if (search(cityRegionTree.value)) {
+    return result.join(' / ') || value
+  }
+  return value
+}
+
+/** 在树中按 fullName 查找匹配的节点，返回其 regionKeyVO（用于 NTreeSelect 默认选中） */
+function findRegionKeyByFullName(fullName: string): string | null {
+  function search(nodes: any[]): any | null {
+    for (const node of nodes) {
+      if (node.fullName === fullName) return node
+      if (node.children) {
+        const found = search(node.children)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  const node = search(cityRegionTree.value as any[])
+  return node?.regionKeyVO ?? null
+}
+
+/** 根据 regionKeyVO（或数组）在树中查找对应节点，返回该节点的 provinceCodeVO（取首个匹配） */
+function findProvinceCodeForRegion(regionKey: string | string[]): string {
+  const keys = Array.isArray(regionKey) ? regionKey : [regionKey]
+  for (const key of keys) {
+    if (!key) continue
+    function search(nodes: any[]): string | undefined {
+      for (const node of nodes) {
+        if (node.regionKeyVO === key) return node.provinceCodeVO
+        if (node.children) {
+          const found = search(node.children)
+          if (found) return found
+        }
+      }
+      return undefined
+    }
+    const result = search(cityRegionTree.value as any[])
+    if (result) return result
+  }
+  return ''
+}
+
+const rankingPeriods = [
+  { label: '实时', value: 'hourly' }, { label: '日累计', value: 'daily_count' },
+  { label: '日', value: 'daily' }, { label: '月', value: 'month' }, { label: '年', value: 'year' },
+  { label: '自定义', value: 'other' },
+]
+/** 污染因子定义（与 concentrationranking.vue pollutionList 一致） */
+const rankingFactorOptions = [
+  { value: 'PM2.5', label: 'PM₂.₅' },
+  { value: 'PM10', label: 'PM₁₀' },
+  { value: 'SO2', label: 'SO₂' },
+  { value: 'NO2', label: 'NO₂' },
+  { value: 'CO', label: 'CO' },
+  { value: 'O3', label: 'O₃' },
+  { value: 'O3_8H', label: 'O₃-8h' },
+  { value: 'AQI', label: 'AQI' },
+  { value: 'TSP', label: 'TSP' },
+]
+
+/** 各时间类型可勾选的污染因子（与 concentrationranking.vue 一致）
+ *  实时：PM2.5、PM10、SO2、NO2、CO、O3、AQI
+ *  日累计：PM2.5、PM10、SO2、NO2、CO、O3_8H、AQI
+ *  日：PM2.5、PM10、SO2、NO2、CO、O3_8H、AQI
+ *  月、年、自定义：PM2.5、PM10、SO2、NO2、CO、O3_8H
+ */
+const RANKING_FACTORS_BY_PERIOD: Record<string, string[]> = {
+  hourly: ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3', 'AQI'],
+  daily_count: ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3_8H', 'AQI'],
+  daily: ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3_8H', 'AQI'],
+  month: ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3_8H'],
+  year: ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3_8H'],
+  other: ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3_8H'],
+}
+
+const rankingFactorOptionsComputed = computed(() =>
+  rankingFactorOptions.filter(f =>
+    RANKING_FACTORS_BY_PERIOD[rankingPeriod.value]?.includes(f.value)
+  )
+)
 const townshipOptions = [
   { label: '全部乡镇', value: 'all' }, { label: '新华区', value: 'xinhua' }, { label: '卫东区', value: 'weidong' }, { label: '湛河区', value: 'zhanhe' },
 ]
@@ -228,7 +387,8 @@ function setRankingPeriod(period: string) {
 
 interface RankingOutputSnapshot {
   queryTarget: 'city' | 'station'
-  region: string
+  province: string    // 行政区对应的 provinceCodeVO（与 concentrationranking.vue province 参数一致）
+  region: string      // 行政区勾选的 regionKeyVO（与 concentrationranking.vue region 参数一致）
   period: string
   factors: string[]
   includeScreenshot: boolean
@@ -283,7 +443,7 @@ type DutyOutputItem =
 let outputSequence = 0
 const newOutputId = () => `output-${++outputSequence}`
 const captureRankingConfig = (): RankingOutputSnapshot => ({
-  queryTarget: rankingQueryTarget.value, region: rankingRegion.value, period: rankingPeriod.value,
+  queryTarget: rankingQueryTarget.value, province: rankingProvince.value, region: rankingRegion.value.join(','), period: rankingPeriod.value,
   factors: [...rankingFactors.value], includeScreenshot: rankingIncludeScreenshot.value,
   includeAnalysis: rankingIncludeAnalysis.value, screenshotScope: rankingScreenshotScope.value, theme: rankingTheme.value,
 })
@@ -293,7 +453,7 @@ const captureMapConfig = (): MapOutputSnapshot => ({
   timeType: mapTimeType.value, markAssociated: mapMarkAssociated.value, closeLeftPanel: mapCloseLeftPanel.value,
 })
 const captureHourlyConfig = (): HourlyBriefOutputSnapshot => ({
-  queryTarget: hourlyQueryTarget.value, region: hourlyRegion.value, township: hourlyTownship.value, factors: [...hourlyFactors.value],
+  queryTarget: hourlyQueryTarget.value, region: hourlyRegion.value.join(','), township: hourlyTownship.value, factors: [...hourlyFactors.value],
   includeScreenshot: hourlyIncludeScreenshot.value, includeSummary: hourlyIncludeSummary.value,
   screenshotScope: hourlyScreenshotScope.value, theme: hourlyTheme.value,
 })
@@ -323,7 +483,8 @@ function loadOutput(output: DutyOutputItem) {
   selectedCapability.value = output.type
   if (output.type === 'concentrationRanking') {
     const c = output.config
-    rankingQueryTarget.value = c.queryTarget; rankingRegion.value = c.region; rankingPeriod.value = c.period
+    rankingQueryTarget.value = c.queryTarget; rankingRegion.value = c.region ? c.region.split(',') : []; rankingProvince.value = c.province || ''
+    rankingPeriod.value = c.period
     rankingFactors.value = [...c.factors]
     rankingIncludeScreenshot.value = c.includeScreenshot; rankingIncludeAnalysis.value = c.includeAnalysis
     rankingScreenshotScope.value = c.screenshotScope; rankingTheme.value = c.theme
@@ -334,7 +495,7 @@ function loadOutput(output: DutyOutputItem) {
     mapTimeType.value = c.timeType; mapMarkAssociated.value = c.markAssociated; mapCloseLeftPanel.value = c.closeLeftPanel
   } else if (output.type === 'hourlyBrief') {
     const c = output.config
-    hourlyQueryTarget.value = c.queryTarget; hourlyRegion.value = c.region; hourlyTownship.value = c.township; hourlyFactors.value = [...c.factors]
+    hourlyQueryTarget.value = c.queryTarget; hourlyRegion.value = c.region ? c.region.split(',') : []; hourlyTownship.value = c.township; hourlyFactors.value = [...c.factors]
     hourlyIncludeScreenshot.value = c.includeScreenshot; hourlyIncludeSummary.value = c.includeSummary
     hourlyScreenshotScope.value = c.screenshotScope; hourlyTheme.value = c.theme
   } else {
@@ -437,6 +598,20 @@ watch([
   monitoringIncludeScreenshot, monitoringIncludeAnalysis, monitoringTheme,
 ], syncActiveOutput, { deep: true, flush: 'sync' })
 
+// 行政区勾选变化 → 推导 province（对应 concentrationranking.vue 的 provinceCodeVO）
+watch(rankingRegion, () => {
+  rankingProvince.value = findProvinceCodeForRegion(rankingRegion.value) || ''
+})
+
+// 时间类型变化 → 过滤掉当前类型不允许的污染因子
+watch(rankingPeriod, (newPeriod) => {
+  const allowed = RANKING_FACTORS_BY_PERIOD[newPeriod] || []
+  const stale = rankingFactors.value.filter(f => !allowed.includes(f))
+  if (stale.length) {
+    rankingFactors.value = rankingFactors.value.filter(f => allowed.includes(f))
+  }
+})
+
 // ==================== Step Navigation ====================
 function goStep(step: number) {
   if (step < 1 || step > totalSteps) return
@@ -526,25 +701,28 @@ const activeFunctions = computed(() =>
 
 const rankingPeriodLabel = computed(() => rankingPeriods.find(item => item.value === rankingPeriod.value)?.label || '日累计')
 const rankingTimeLabel = '官网最新可用时间'
-const rankingRegionLabel = computed(() => ({ all: '河南省 / 全部', pingdingshan: '河南省 / 平顶山市', xinhua: '河南省 / 平顶山市 / 新华区', weidong: '河南省 / 平顶山市 / 卫东区', zhanhe: '河南省 / 平顶山市 / 湛河区', zhengzhou: '河南省 / 郑州市', luoyang: '河南省 / 洛阳市' }[rankingRegion.value] || '河南省 / 平顶山市'))
+const rankingRegionLabel = computed(() => getRegionLabel(rankingRegion.value.join(',')))
 const mapScopeLabel = computed(() => ({ national: '全国', henan: '河南省', pingdingshan: '平顶山市' }[mapScope.value]))
 const mapMarkerLabel = computed(() => mapScope.value === 'national' ? '标记河南省' : mapScope.value === 'henan' ? '标记平顶山市' : '市级范围无需标记')
 const mapModeLabel = computed(() => mapMode.value === 'monitoring' ? '监测图' : '插值图')
 const mapFactorLabel = computed(() => mapFactorOptions.find(item => item.value === mapFactor.value)?.label || '首要污染物')
 const mapScreenshotScopeLabel = computed(() => ({ mapOnly: '仅地图', mapLegend: '地图和图例', fullPage: '完整页面' }[mapScreenshotScope.value]))
-const regionLabelFor = (value: string) => ({ all: '河南省 / 全部', pingdingshan: '河南省 / 平顶山市', xinhua: '河南省 / 平顶山市 / 新华区', weidong: '河南省 / 平顶山市 / 卫东区', zhanhe: '河南省 / 平顶山市 / 湛河区', zhengzhou: '河南省 / 郑州市', luoyang: '河南省 / 洛阳市' }[value] || '河南省 / 平顶山市')
+const regionLabelFor = (value: string) => getRegionLabel(value)
 const mapScopeLabelFor = (value: MapOutputSnapshot['scope']) => ({ national: '全国', henan: '河南省', pingdingshan: '平顶山市' }[value])
 const mapFactorLabelFor = (value: string) => mapFactorOptions.find(item => item.value === value)?.label || '首要污染物'
 const mapMarkerLabelFor = (scope: MapOutputSnapshot['scope']) => scope === 'national' ? '标记河南省' : scope === 'henan' ? '标记平顶山市' : '无需标记'
 const townshipLabelFor = (value: string) => townshipOptions.find(item => item.value === value)?.label || '全部乡镇'
 const monitoringPeriodLabelFor = (value: MonitoringDataOutputSnapshot['period']) => monitoringPeriodOptions.find(item => item.value === value)?.label || '小时'
 
+/** 将因子编码转为显示标签 */
+const factorLabelFor = (value: string) => rankingFactorOptions.find(f => f.value === value)?.label || value
+
 function outputDefinition(output: DutyOutputItem): string {
   if (output.type === 'concentrationRanking') {
     const c = output.config
     const period = rankingPeriods.find(item => item.value === c.period)?.label || '日累计'
     const outputs = [c.includeScreenshot ? `排名截图（${c.screenshotScope === 'tableOnly' ? '仅标题和表格' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : '', c.includeAnalysis ? '数据分析摘要' : ''].filter(Boolean).join('、')
-    return `${output.title}：${c.queryTarget === 'city' ? '城市查询' : '站点查询'}；行政区：${regionLabelFor(c.region)}；数据口径：${period}；数据时间：官网最新可用时间；污染因子：${c.factors.join('、')}；成果：${outputs}`
+    return `${output.title}：${c.queryTarget === 'city' ? '城市查询' : '站点查询'}；行政区：${regionLabelFor(c.region)}；数据口径：${period}；数据时间：官网最新可用时间；污染因子：${c.factors.map(factorLabelFor).join('、')}；成果：${outputs}`
   }
   if (output.type === 'mapPackage') {
     const c = output.config
@@ -695,6 +873,7 @@ function resetForm() {
   selectedFunctions.value = new Set(['szdq-rank'])
   selectedCapability.value = 'concentrationRanking'
   rankingPresetActive.value = true
+  rankingProvince.value = ''
   const id = newOutputId()
   dutyOutputs.value = [{ id, type: 'concentrationRanking', title: '浓度排名 1', config: captureRankingConfig() }]
   activeOutputId.value = id
@@ -705,6 +884,19 @@ function resetForm() {
 onMounted(async () => {
   resetForm()
   await loadPlatforms()
+  await loadCityRegionTree()
+
+  // 设置用户默认绑定的城市（从 hermes_platform_user 中读取）
+  const userRegionName = userStore.platformUserInfo?.region?.currentRegionName
+  if (userRegionName) {
+    const key = findRegionKeyByFullName(userRegionName)
+    if (key) {
+      console.log('[CreateTask] 设置默认城市为', userRegionName, '→', key)
+      rankingRegion.value = [key]
+      hourlyRegion.value = [key]
+      monitoringRegion.value = key
+    }
+  }
 
   // 编辑模式：加载已有任务数据
   if (props.jobId) {
@@ -808,10 +1000,45 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="ranking-config-grid">
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>查询：</span><div class="segmented query-segment"><button :class="{ active: rankingQueryTarget === 'city' }" @click="rankingQueryTarget = 'city'">城市</button><button :class="{ active: rankingQueryTarget === 'station' }" @click="rankingQueryTarget = 'station'">站点</button></div></div>
-                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="rankingRegion" :options="rankingRegionOptions" key-field="key" default-expand-all /></div>
+                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="rankingRegion" :default-value="rankingRegion" :options="cityRegionTree" :loading="cityTreeLoading" label-field="fullName" key-field="regionKeyVO" multiple placeholder="请选择行政区" /></div>
+                  <template v-if="rankingQueryTarget === 'station'">
+                    <span>站点：</span>
+                    <div class="station-dropdown">
+                      <div class="station-dropdown-trigger" @click="rankingStationDropdownOpen = !rankingStationDropdownOpen">
+                        <span class="station-dropdown-label">{{ STATION_TYPE_OPTIONS.find(t => t.value === rankingStationType)?.label || '站点' }}</span>
+                        <span v-if="rankingSelectedStations.length" class="station-dropdown-count">{{ rankingSelectedStations.length }}</span>
+                        <span class="station-dropdown-arrow">▾</span>
+                      </div>
+                      <transition name="fade">
+                        <div v-if="rankingStationDropdownOpen" class="station-dropdown-panel">
+                          <div class="station-dropdown-body">
+                            <div class="station-dropdown-types">
+                              <button
+                                v-for="type in STATION_TYPE_OPTIONS"
+                                :key="type.value"
+                                :class="{ active: rankingStationType === type.value }"
+                                @click="rankingStationType = type.value"
+                              >{{ type.label }}</button>
+                            </div>
+                            <div class="station-dropdown-items">
+                              <NCheckboxGroup v-model:value="rankingSelectedStations">
+                                <div class="station-dropdown-list">
+                                  <NCheckbox
+                                    v-for="station in (rankingStationType ? STATION_NAME_OPTIONS[rankingStationType] : [])"
+                                    :key="station.value"
+                                    :value="station.value"
+                                  >{{ station.label }}</NCheckbox>
+                                </div>
+                              </NCheckboxGroup>
+                            </div>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </template>
                 </div>
                 <div class="ranking-toolbar factor-toolbar">
-                  <div class="compact-field factor-field"><span>污染因子：</span><NCheckboxGroup v-model:value="rankingFactors"><div class="factor-chips"><NCheckbox v-for="factor in rankingFactorOptions" :key="factor.value" :value="factor.value">{{ factor.label }}</NCheckbox></div></NCheckboxGroup></div>
+                  <div class="compact-field factor-field"><span>污染因子：</span><NCheckboxGroup v-model:value="rankingFactors"><div class="factor-chips"><NCheckbox v-for="factor in rankingFactorOptionsComputed" :key="factor.value" :value="factor.value">{{ factor.label }}</NCheckbox></div></NCheckboxGroup></div>
                 </div>
                 <div class="ranking-toolbar time-toolbar">
                   <div class="compact-field"><span>时间类型：</span><div class="segmented period-segment"><button v-for="period in rankingPeriods" :key="period.value" :class="{ active: rankingPeriod === period.value }" @click="setRankingPeriod(period.value)">{{ period.label }}</button></div></div>
@@ -823,7 +1050,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   <div class="compact-field"><span>截图颜色：</span><div class="segmented"><button :class="{ active: rankingTheme === 'light' }" @click="rankingTheme = 'light'">浅色</button><button :class="{ active: rankingTheme === 'dark' }" @click="rankingTheme = 'dark'">深色</button></div></div>
                 </div>
               </div>
-              <div class="ranking-summary">本次成果：{{ rankingQueryTarget === 'city' ? '城市排名' : '站点排名' }} · {{ rankingRegionLabel }} · {{ rankingPeriodLabel }} · {{ rankingTimeLabel }} · {{ rankingFactors.join('、') }} · {{ rankingIncludeScreenshot ? '排名截图' : '' }}</div>
+              <div class="ranking-summary">本次成果：{{ rankingQueryTarget === 'city' ? '城市排名' : '站点排名' }} · {{ rankingRegionLabel }} · {{ rankingPeriodLabel }} · {{ rankingTimeLabel }} · {{ rankingFactors.map(factorLabelFor).join('、') }} · {{ rankingIncludeScreenshot ? '排名截图' : '' }}</div>
               <figure v-if="rankingIncludeScreenshot" class="effect-preview">
                 <figcaption>
                   <span>效果预览</span>
@@ -864,7 +1091,41 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="ranking-config-grid">
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>查询：</span><div class="segmented query-segment"><button :class="{ active: hourlyQueryTarget === 'city' }" @click="hourlyQueryTarget = 'city'">城市</button><button :class="{ active: hourlyQueryTarget === 'station' }" @click="hourlyQueryTarget = 'station'">站点</button></div></div>
-                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="hourlyRegion" :options="rankingRegionOptions" key-field="key" default-expand-all /></div>
+                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="hourlyRegion" :default-value="hourlyRegion" :options="cityRegionTree" :loading="cityTreeLoading"  label-field="fullName" key-field="regionKeyVO" multiple placeholder="请选择行政区"/></div>
+                  <template v-if="hourlyQueryTarget === 'station'">
+                    <div class="station-dropdown">
+                      <div class="station-dropdown-trigger" @click="hourlyStationDropdownOpen = !hourlyStationDropdownOpen">
+                        <span class="station-dropdown-label">{{ STATION_TYPE_OPTIONS.find(t => t.value === hourlyStationType)?.label || '站点' }}</span>
+                        <span v-if="hourlySelectedStations.length" class="station-dropdown-count">{{ hourlySelectedStations.length }}</span>
+                        <span class="station-dropdown-arrow">▾</span>
+                      </div>
+                      <transition name="fade">
+                        <div v-if="hourlyStationDropdownOpen" class="station-dropdown-panel">
+                          <div class="station-dropdown-body">
+                            <div class="station-dropdown-types">
+                              <button
+                                v-for="type in STATION_TYPE_OPTIONS"
+                                :key="type.value"
+                                :class="{ active: hourlyStationType === type.value }"
+                                @click="hourlyStationType = type.value"
+                              >{{ type.label }}</button>
+                            </div>
+                            <div class="station-dropdown-items">
+                              <NCheckboxGroup v-model:value="hourlySelectedStations">
+                                <div class="station-dropdown-list">
+                                  <NCheckbox
+                                    v-for="station in (hourlyStationType ? STATION_NAME_OPTIONS[hourlyStationType] : [])"
+                                    :key="station.value"
+                                    :value="station.value"
+                                  >{{ station.label }}</NCheckbox>
+                                </div>
+                              </NCheckboxGroup>
+                            </div>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </template>
                   <div class="compact-field township-field"><span>乡镇：</span><NSelect v-model:value="hourlyTownship" :options="townshipOptions" /></div>
                 </div>
                 <div class="ranking-toolbar factor-toolbar">
@@ -879,7 +1140,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   <div class="compact-field"><span>截图颜色：</span><div class="segmented"><button :class="{ active: hourlyTheme === 'light' }" @click="hourlyTheme = 'light'">浅色</button><button :class="{ active: hourlyTheme === 'dark' }" @click="hourlyTheme = 'dark'">深色</button></div></div>
                 </div>
               </div>
-              <div class="ranking-summary">本次成果：{{ hourlyQueryTarget === 'city' ? '城市' : '站点' }} · {{ regionLabelFor(hourlyRegion) }} · {{ townshipLabelFor(hourlyTownship) }} · 官网最新可用时点 · {{ hourlyFactors.join('、') }} · {{ hourlyIncludeScreenshot ? '播报截图' : '' }}{{ hourlyIncludeScreenshot && hourlyIncludeSummary ? '、' : '' }}{{ hourlyIncludeSummary ? '文字播报' : '' }}</div>
+              <div class="ranking-summary">本次成果：{{ hourlyQueryTarget === 'city' ? '城市' : '站点' }} · {{ regionLabelFor(hourlyRegion.join(',')) }} · {{ townshipLabelFor(hourlyTownship) }} · 官网最新可用时点 · {{ hourlyFactors.join('、') }} · {{ hourlyIncludeScreenshot ? '播报截图' : '' }}{{ hourlyIncludeScreenshot && hourlyIncludeSummary ? '、' : '' }}{{ hourlyIncludeSummary ? '文字播报' : '' }}</div>
             </section>
 
             <section v-if="selectedCapability === 'monitoringData'" class="ranking-config monitoring-config">
@@ -887,7 +1148,41 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="ranking-config-grid">
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>查询：</span><div class="segmented query-segment"><button :class="{ active: monitoringQueryTarget === 'city' }" @click="monitoringQueryTarget = 'city'">城市</button><button :class="{ active: monitoringQueryTarget === 'station' }" @click="monitoringQueryTarget = 'station'">站点</button></div></div>
-                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="monitoringRegion" :options="rankingRegionOptions" key-field="key" default-expand-all /></div>
+                  <div class="compact-field region-field"><span>行政区：</span><NTreeSelect v-model:value="monitoringRegion" :default-value="monitoringRegion" :options="cityRegionTree" :loading="cityTreeLoading" label-field="fullName" key-field="regionKeyVO" placeholder="请选择行政区" /></div>
+                  <template v-if="monitoringQueryTarget === 'station'">
+                    <div class="station-dropdown">
+                      <div class="station-dropdown-trigger" @click="monitoringStationDropdownOpen = !monitoringStationDropdownOpen">
+                        <span class="station-dropdown-label">{{ STATION_TYPE_OPTIONS.find(t => t.value === monitoringStationType)?.label || '站点' }}</span>
+                        <span v-if="monitoringSelectedStations.length" class="station-dropdown-count">{{ monitoringSelectedStations.length }}</span>
+                        <span class="station-dropdown-arrow">▾</span>
+                      </div>
+                      <transition name="fade">
+                        <div v-if="monitoringStationDropdownOpen" class="station-dropdown-panel">
+                          <div class="station-dropdown-body">
+                            <div class="station-dropdown-types">
+                              <button
+                                v-for="type in STATION_TYPE_OPTIONS"
+                                :key="type.value"
+                                :class="{ active: monitoringStationType === type.value }"
+                                @click="monitoringStationType = type.value"
+                              >{{ type.label }}</button>
+                            </div>
+                            <div class="station-dropdown-items">
+                              <NCheckboxGroup v-model:value="monitoringSelectedStations">
+                                <div class="station-dropdown-list">
+                                  <NCheckbox
+                                    v-for="station in (monitoringStationType ? STATION_NAME_OPTIONS[monitoringStationType] : [])"
+                                    :key="station.value"
+                                    :value="station.value"
+                                  >{{ station.label }}</NCheckbox>
+                                </div>
+                              </NCheckboxGroup>
+                            </div>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </template>
                   <div class="compact-field township-field"><span>乡镇：</span><NSelect v-model:value="monitoringTownship" :options="townshipOptions" /></div>
                 </div>
                 <div class="ranking-toolbar factor-toolbar">
@@ -1211,6 +1506,159 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 .ranking-config { margin-top: -8px; border: 1px solid #c7e2f8; border-radius: 12px; overflow: hidden; background: #fbfdff; }.ranking-config-head { display:flex; justify-content:space-between; gap:14px; padding:14px 16px; background:#eef8ff; border-bottom:1px solid #d8ebfa; }.ranking-config-head span,.ranking-config-head small { display:block; }.ranking-config-head span { color:#1a6fad; font-weight:700; font-size:13px; }.ranking-config-head small { color:#6c879c; margin-top:3px; font-size:11px; }.ranking-config-grid { display:flex; flex-direction:column; gap:12px; padding:14px 16px; }.ranking-toolbar { display:flex; align-items:center; gap:12px; min-width:0; flex-wrap:wrap; }.compact-field { display:flex; align-items:center; min-width:0; gap:7px; }.compact-field>span { flex:0 0 auto; color:$text-primary; font-size:12px; font-weight:650; }.region-field { flex:1 1 250px; max-width:420px; }.region-field :deep(.n-tree-select) { min-width:220px; width:100%; }.township-field { flex:1 1 210px; max-width:300px; }.township-field :deep(.n-select) { width:100%; }.custom-range-field { flex:1 1 480px; }.custom-range-field :deep(.n-input) { width:min(100%, 440px); }.factor-toolbar { width:100%; }.factor-field { flex:1 1 auto; }.factor-chips { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }.factor-chips :deep(.n-checkbox) { margin-right:0; white-space:nowrap; }.segmented { display:flex; overflow:hidden; border:1px solid #d6e2ea; border-radius:5px; background:#fff; }.segmented button { min-width:52px; height:31px; padding:0 10px; border:0; border-left:1px solid #d6e2ea; background:#fff; color:#5d7588; cursor:pointer; font-size:12px; }.segmented button:first-child { border-left:0; }.segmented button.active { color:#146fb5; background:#dff2ff; font-weight:700; }.query-segment button { flex:0 0 76px; width:76px; padding:0; }.period-segment button { min-width:44px; }.time-toolbar { padding-top:1px; }.latest-hint { color:#7b93a5; font-size:11px; }.ranking-time-input { width:210px; }.ranking-time-range { display:flex; align-items:center; gap:6px; color:#7690a3; font-size:12px; }.ranking-time-range :deep(.n-input) { width:155px; }.ranking-field { min-width:0; }.ranking-field.wide { width:100%; }.ranking-field label { display:block; color:$text-primary; font-size:12px; font-weight:650; margin-bottom:8px; }.output-choice { display:flex; align-items:center; gap:14px; padding-top:2px; }.output-choice label { margin:0; }.output-choice > div { display:flex; gap:20px; }.screenshot-options { display:flex; align-items:center; gap:24px; flex-wrap:wrap; padding-top:1px; }.screenshot-options .segmented button { min-width:auto; }.ranking-summary { margin:0 16px 16px; padding:10px 12px; color:#356b90; background:#edf7ff; border-left:3px solid #2496e8; font-size:12px; line-height:1.55; }
 .effect-preview { margin:0 16px 16px; overflow:hidden; border:1px solid #d9e5ed; border-radius:9px; background:#fff; box-shadow:0 4px 14px rgba(31,77,108,.06); }.effect-preview figcaption { display:flex; align-items:center; gap:8px; height:38px; padding:0 12px; border-bottom:1px solid #e7eef3; color:$text-primary; background:#f8fafc; font-size:12px; font-weight:700; }.effect-preview figcaption em { padding:2px 7px; border-radius:99px; color:#648095; background:#e8eef3; font-size:9px; font-style:normal; font-weight:600; }.effect-preview-image { width:100%; overflow-x:auto; background:#edf1f4; }.effect-preview-image img { display:block; width:100%; height:auto; min-width:620px; }
 .ranking-time-picker { width: 210px; }
+
+// ===== 站点选择器（下拉样式） =====
+.station-dropdown {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+.station-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 31px;
+  padding: 0 10px;
+  border: 1px solid #d6e2ea;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  color: $text-primary;
+  transition: all 0.15s;
+}
+
+.station-dropdown-trigger:hover {
+  border-color: #bdd8eb;
+}
+
+.station-dropdown-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.station-dropdown-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.station-dropdown-arrow {
+  color: #9aaab5;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.station-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 360px;
+  max-height: 320px;
+  border: 1px solid #d6e2ea;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(31, 77, 108, 0.1);
+  z-index: 50;
+  display: flex;
+  overflow: hidden;
+}
+
+.station-dropdown-body {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.station-dropdown-types {
+  width: 84px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-right: 1px solid #e8eef3;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+.station-dropdown-types button {
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #5d7588;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.15s;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.station-dropdown-types button:hover {
+  background: #edf1f6;
+}
+
+.station-dropdown-types button.active {
+  background: #dff2ff;
+  color: #146fb5;
+  font-weight: 700;
+}
+
+.station-dropdown-items {
+  flex: 1;
+  min-width: 0;
+  padding: 6px;
+  overflow-y: auto;
+}
+
+.station-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+}
+
+.station-dropdown-list :deep(.n-checkbox) {
+  margin-right: 0;
+  white-space: nowrap;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// 下拉面板淡入淡出动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
 .task-identity { padding: 2px 2px 0; }.task-identity label { display:block; margin-bottom:8px; color:$text-primary; font-size:12px; font-weight:650; }
 .delivery-intro { padding: 3px 0 2px; }.delivery-intro span { color:#1985d2; font-size:11px; font-weight:800; letter-spacing:.7px; }.delivery-intro h2 { margin:4px 0; color:$text-primary; font-size:19px; }.delivery-intro p { margin:0; color:$text-secondary; font-size:12px; }.delivery-note { display:flex; flex-direction:column; gap:5px; padding:13px; border:1px solid #d6eaf9; border-radius:8px; color:#4b7593; background:#f1f9ff; font-size:12px; }.delivery-note b { color:#2575ae; }.confirm-hero { display:flex; align-items:center; gap:11px; margin-bottom:16px; padding:14px; border-radius:9px; color:#226d42; background:#eefaf2; border:1px solid #c7ebd3; }.confirm-hero>span { display:grid; place-items:center; width:25px; height:25px; color:#fff; background:#34a853; border-radius:50%; font-weight:800; }.confirm-hero b,.confirm-hero small { display:block; }.confirm-hero b { font-size:13px; }.confirm-hero small { margin-top:3px; color:#5f856f; font-size:11px; }.simple-run-plan { display:flex; align-items:center; gap:9px; flex-wrap:wrap; color:#367396; font-size:12px; }.simple-run-plan span { padding:5px 8px; background:#eef7fc; border-radius:5px; }.simple-run-plan i { color:#7da8c3; font-style:normal; }
 
