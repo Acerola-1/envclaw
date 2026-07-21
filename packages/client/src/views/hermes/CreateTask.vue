@@ -4,9 +4,8 @@ import { useRouter } from 'vue-router'
 import { NInput, NInputNumber, NButton, NModal, NTreeSelect, NCheckbox, NCheckboxGroup, NSelect } from 'naive-ui'
 import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
-import { useSettingsStore } from '@/stores/hermes/settings'
-import { getJob, scheduleToEditableInput, jobRepeatToEditValue } from '@/api/hermes/jobs'
-import type { Job } from '@/api/hermes/jobs'
+import { getJob, scheduleToEditableInput, jobRepeatToEditValue, listJobDeliveryTargets } from '@/api/hermes/jobs'
+import type { Job, JobDeliveryTarget } from '@/api/hermes/jobs'
 import { listPlatforms } from '@/api/envclaw/platforms'
 import type { Platform } from '@/api/envclaw/platforms'
 import { useMessage } from 'naive-ui'
@@ -26,27 +25,11 @@ const originalJob = ref<Job | null>(null)
 
 // ==================== Stores ====================
 const jobsStore = useJobsStore()
-const settingsStore = useSettingsStore()
 const router = useRouter()
 const message = useMessage()
 
 function goToChannels() {
   router.push({ name: 'hermes.channels' })
-}
-
-// 判断推送平台是否已配置（与 CreateGuardTaskModal 逻辑一致）
-function isPlatformConfigured(key: string): boolean {
-  if (key === 'origin' || key === 'local') return true
-  const creds = (settingsStore.platforms as Record<string, any>)[key]
-  if (!creds || typeof creds !== 'object') return false
-  const keys = ['token', 'api_key', 'app_id', 'client_id', 'secret', 'app_secret', 'client_secret', 'access_token', 'bot_id', 'account_id', 'enabled']
-  const targets = [creds, creds.extra].filter(Boolean)
-  return targets.some(obj =>
-    keys.some(k => {
-      const val = (obj as Record<string, any>)[k]
-      return val !== undefined && val !== null && val !== '' && val !== false
-    })
-  )
 }
 
 // ==================== Step State ====================
@@ -55,36 +38,75 @@ const totalSteps = 3
 // const loading = ref(false)
 const submitting = ref(false)
 
-// ==================== Form Data (与 CreateGuardTaskModal 一致) ====================
+// ==================== Form Data ====================
 const taskName = ref('平顶山市空气质量值守')
 const taskPrompt = ref('按结构化成果清单生成空气质量值守成果，并统一推送。')
 const schedule = ref('0 9 * * *')
-const selectedPushChips = ref<Set<string>>(new Set(['origin']))
-const notifyGroupId = ref('')
+const selectedDeliver = ref('local')
 const repeat_times = ref<number | null>(null)
 const selectedSkills = ref<string[]>([])
 const promptSupplement = ref('') // 用户补充说明
 
-// 推送平台 chip 定义
-const pushChipList = [
-  { id: 'origin', name: '原始会话' },
-  { id: 'local', name: '本地' },
-  { id: 'wecom', name: '企业微信' },
-  { id: 'weixin', name: '微信' },
-  { id: 'dingtalk', name: '钉钉' },
-  { id: 'feishu', name: '飞书' },
-  { id: 'qqbot', name: 'QQBot' },
-]
+// ==================== Delivery Targets (from channel_directory.json) ====================
+const deliveryTargetsLoading = ref(false)
+const deliveryTargets = ref<JobDeliveryTarget[]>([])
 
-function togglePushChip(chipId: string) {
-  // 单选：选中一个时取消其他
-  if (selectedPushChips.value.has(chipId)) {
-    selectedPushChips.value.delete(chipId)
-  } else {
-    selectedPushChips.value.clear()
-    selectedPushChips.value.add(chipId)
+async function loadDeliveryTargets() {
+  deliveryTargetsLoading.value = true
+  try {
+    const data = await listJobDeliveryTargets()
+    deliveryTargets.value = Array.isArray(data.targets) ? data.targets : []
+  } catch {
+    deliveryTargets.value = []
+  } finally {
+    deliveryTargetsLoading.value = false
   }
 }
+
+function formatPlatformName(platform: string): string {
+  const names: Record<string, string> = {
+    weixin: '微信',
+    wecom: '企业微信',
+    qqbot: 'QQBot',
+    dingtalk: '钉钉',
+    feishu: '飞书',
+    telegram: 'Telegram',
+    discord: 'Discord',
+    slack: 'Slack',
+    whatsapp: 'WhatsApp',
+    matrix: 'Matrix',
+  }
+  return names[platform] || platform
+    .split('_')
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+const deliverOptions = computed(() => {
+  const options: Array<{ label: string; value: string }> = [
+    { label: '本地', value: 'local' },
+  ]
+  // Jobs created by the Web UI have no messaging origin. Keep the legacy
+  // value editable when loading an existing job, but do not offer it for new jobs.
+  if (selectedDeliver.value === 'origin') {
+    options.unshift({ label: '原始会话', value: 'origin' })
+  }
+  for (const target of deliveryTargets.value) {
+    const typeSuffix = target.type ? ` (${target.type})` : ''
+    options.push({
+      label: `${formatPlatformName(target.platform)} · ${target.name}${typeSuffix}`,
+      value: target.value,
+    })
+  }
+
+  // 如果当前值不在选项中（如编辑旧任务），追加一个自定义选项
+  const current = selectedDeliver.value.trim()
+  if (current && !options.some(option => option.value === current)) {
+    options.push({ label: current, value: current })
+  }
+  return options
+})
 
 // ==================== Platform / Function State ====================
 interface PlatformDef {
@@ -453,8 +475,8 @@ function nextStep() {
   }
 
   if (currentStep.value === 2) {
-    if (selectedPushChips.value.size === 0) {
-      message.warning('请选择推送平台')
+    if (!selectedDeliver.value) {
+      message.warning('请选择推送目标')
       return
     }
   }
@@ -473,23 +495,21 @@ function prevStep() {
 // ==================== Computed ====================
 const isFormValid = computed(() => {
   if (!taskName.value) return false
-  if (selectedPushChips.value.size === 0) return false
+  if (!selectedDeliver.value) return false
   return !!schedule.value
 })
 
-const pushChipNames = computed(() =>
-  Array.from(selectedPushChips.value).map(id => {
-    const chip = pushChipList.find(c => c.id === id)
-    return chip ? chip.name : id
-  })
-)
-
-// 只显示已配置的推送平台
-const configuredPushChips = computed(() =>
-  pushChipList.filter(chip =>
-    chip.id === 'origin' || chip.id === 'local' || isPlatformConfigured(chip.id)
-  )
-)
+const deliverDisplayName = computed(() => {
+  if (!selectedDeliver.value) return ''
+  if (selectedDeliver.value === 'local') return '本地'
+  if (selectedDeliver.value === 'origin') return '原始会话'
+  const target = deliveryTargets.value.find(t => t.value === selectedDeliver.value)
+  if (target) return `${formatPlatformName(target.platform)} · ${target.name}`
+  // 兜底：解析 platform:id 格式
+  const parts = selectedDeliver.value.split(':')
+  if (parts.length >= 2) return `${formatPlatformName(parts[0])} · ${parts.slice(1).join(':')}`
+  return selectedDeliver.value
+})
 
 // Cron 表达式转人类可读描述
 const weekDayLabels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -564,8 +584,8 @@ function outputDefinition(output: DutyOutputItem): string {
 const allOutputLabels = computed(() => dutyOutputs.value.map(outputDefinition))
 const taskExecutionOutputs = computed(() => dutyOutputs.value.map(output => ({
   id: output.id,
-  capability: ({ concentrationRanking: 'mapairs-ranking-capture', mapPackage: 'mapairs-map-capture', hourlyBrief: 'mapairs-hourly-brief', monitoringData: 'mapairs-monitoring-data' }[output.type]),
-  skill: output.type === 'concentrationRanking' && output.config.includeScreenshot ? 'mapairs-ranking-capture' : null,
+  capability: ({ concentrationRanking: 'mapairs-ranking-capture', mapPackage: 'mapairs-duty-executor', hourlyBrief: 'mapairs-hourly-brief', monitoringData: 'mapairs-monitoring-data' }[output.type]),
+  skill: output.type === 'concentrationRanking' && output.config.includeScreenshot ? 'mapairs-ranking-capture' : output.type === 'mapPackage' ? 'mapairs-duty-executor' : null,
   config: output.config,
 })))
 const taskSkills = computed(() => [...new Set([
@@ -604,8 +624,8 @@ async function handleSubmit() {
       message.warning('请输入任务名称')
       return
     }
-    if (selectedPushChips.value.size === 0) {
-      message.warning('请选择推送平台')
+    if (!selectedDeliver.value) {
+      message.warning('请选择推送目标')
       return
     }
     if (!taskPrompt.value.trim()) {
@@ -629,12 +649,11 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
-    const pushChipIds = Array.from(selectedPushChips.value)
     const payload = {
       name: taskName.value,
       schedule: schedule.value,
       prompt: finalPrompt.value,
-      deliver: pushChipIds.length > 0 ? pushChipIds[0] : 'origin',
+      deliver: selectedDeliver.value,
       skills: taskSkills.value,
       repeat: repeat_times.value ?? undefined,
       functions: activeFunctions.value.map(f => ({
@@ -677,16 +696,14 @@ function copyCommand() {
 }
 
 function shouldShowChannelGuide(): boolean {
-  const chipIds = Array.from(selectedPushChips.value)
-  if (chipIds.length === 0) return false
-  const external = chipIds.filter(id => id !== 'origin' && id !== 'local')
-  return external.length > 0
+  const deliver = selectedDeliver.value
+  if (!deliver) return false
+  return deliver !== 'origin' && deliver !== 'local'
 }
 function resetForm() {
   taskName.value = '平顶山市空气质量值守'
   taskPrompt.value = '按结构化成果清单生成空气质量值守成果，并统一推送。'
-  selectedPushChips.value = new Set(['origin'])
-  notifyGroupId.value = ''
+  selectedDeliver.value = 'local'
   repeat_times.value = null
   selectedSkills.value = []
   schedule.value = '0 9 * * *'
@@ -704,7 +721,7 @@ function resetForm() {
 // ==================== Lifecycle ====================
 onMounted(async () => {
   resetForm()
-  await loadPlatforms()
+  await Promise.all([loadPlatforms(), loadDeliveryTargets()])
 
   // 编辑模式：加载已有任务数据
   if (props.jobId) {
@@ -713,7 +730,7 @@ onMounted(async () => {
       originalJob.value = job
       taskName.value = job.name || ''
       taskPrompt.value = job.prompt || ''
-      if (job.deliver) selectedPushChips.value.add(job.deliver)
+      selectedDeliver.value = job.deliver || 'local'
       selectedSkills.value = job.skills || (job.skill ? [job.skill] : [])
       repeat_times.value = jobRepeatToEditValue(job.repeat)
       schedule.value = scheduleToEditableInput(job.schedule, job.schedule_display || '')
@@ -921,15 +938,15 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
             <div class="form-group">
               <label class="form-label">成果发送到 <span class="required-mark">*</span></label>
-              <div class="chip-group">
-                <div v-for="chip in configuredPushChips" :key="chip.id" class="chip" :class="{
-                  active: selectedPushChips.has(chip.id),
-                }" @click="togglePushChip(chip.id)">
-                  {{ chip.name }}
-                </div>
-              </div>
-              <div v-if="configuredPushChips.length === 0" class="chip-config-hint">
-                <span class="hint-text">尚未配置接收渠道，</span>
+              <NSelect
+                v-model:value="selectedDeliver"
+                :options="deliverOptions"
+                :loading="deliveryTargetsLoading"
+                filterable
+                placeholder="选择推送目标"
+              />
+              <div v-if="deliveryTargets.length === 0 && !deliveryTargetsLoading" class="chip-config-hint">
+                <span class="hint-text">尚未发现可用推送目标，请先在对应平台发起一次对话，</span>
                 <a class="hint-link" @click="goToChannels">前往配置 →</a>
               </div>
               <div v-else class="chip-config-hint">
@@ -937,11 +954,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <a class="hint-link" @click="goToChannels">前往配置 →</a>
               </div>
             </div>
-
-            <!-- <div class="form-group">
-            <label class="form-label">推送群ID</label>
-            <NInput v-model:value="notifyGroupId" placeholder="请输入推送群ID" />
-          </div> -->
 
             <div class="delivery-note"><b>本次任务将交付 {{ dutyOutputs.length }} 项成果</b><span v-for="(label, index) in allOutputLabels" :key="index">{{ index + 1 }}. {{ label }}</span></div>
           </div>
@@ -965,7 +977,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="preview-label">运行与发送</div>
               <div class="preview-line">
                 <strong>频率：</strong>{{ scheduleDescription }}
-                <span v-if="pushChipNames.length > 0"> · <strong>推送至：</strong>{{ pushChipNames.join('、') }}</span>
+                <span v-if="deliverDisplayName"> · <strong>推送至：</strong>{{ deliverDisplayName }}</span>
               </div>
             </div>
 

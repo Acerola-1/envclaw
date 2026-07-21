@@ -84,6 +84,20 @@ export interface UpdateJobRequest {
   provider?: string
 }
 
+export interface JobDeliveryTarget {
+  platform: string
+  id: string
+  name: string
+  type: string | null
+  thread_id: string | null
+  value: string
+}
+
+export interface JobDeliveryTargetsResponse {
+  updated_at: string | null
+  targets: JobDeliveryTarget[]
+}
+
 export interface JobFormValues {
   name: string
   schedule: string
@@ -149,6 +163,10 @@ export function buildJobUpdateRequest(original: Job, form: JobFormValues): Updat
   if (form.repeat_times !== originalRepeat) payload.repeat = form.repeat_times
 
   return payload
+}
+
+export async function listJobDeliveryTargets(): Promise<JobDeliveryTargetsResponse> {
+  return request<JobDeliveryTargetsResponse>('/api/hermes/jobs/delivery-targets')
 }
 
 export async function listJobs(): Promise<Job[]> {
