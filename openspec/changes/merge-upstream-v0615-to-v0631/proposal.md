@@ -12,6 +12,11 @@
 - 会话 profile 筛选持久化（`f0aa7ef6`）
 - cron delivery target 选择修复（`15be6f37`，我们已部分还原，需确认差异）
 
+### 补充 Bug 修复（绿灯/黄灯，落在 stock 或加法型区，见 tasks 第 14~16 节）
+- 绿灯（无关定制，大胆合）：Bridge 工具结果上下文上限（`#2036`）、约束 MCP 会话委托（`#1876`）、Provider 目录/缓存同步（`#2051`）、Markdown 下载扩展名（`#2058`）、畸形导出文件名（`#2026`）、未知 coding provider 默认 chat completions（`#1706`）
+- 黄灯（提取式插入）：History 纳入本地 coding_agent 会话（`#1816`/`#1838`）、coding agent 模型切换与 API 模式持久化（`#1725`/`#1944`/`#1932`/`#1711`/`#1983`）、保留自定义 Provider 状态（`#2054`）、默认模型/Provider 动作（`#1853`）、MCP admin 路由访问（`#1797`）、prompt 移出 CLI（`#1631`）
+- Bridge/Electron：bridge cwd/错误检测（`#1796`/`#1890`）、execute_code guard 兼容（`#1910`）、webui-server EPIPE 崩溃（`#1949`）、启动回退（`#1968`）、macOS 托盘图标（`#2101`）
+
 ### 功能增强（中优先级）
 - 定时任务支持选择模型/Provider（`d81b0644`）
 - 定时任务列表排序（`6143b2d5`）
