@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as systemApi from '@/api/hermes/system'
-import type { AvailableModelGroup, CustomProvider } from '@/api/hermes/system'
+import type { AvailableModelGroup, CustomProvider, ProviderEditorPatch, ProviderEditorDetail } from '@/api/hermes/system'
 import { hasApiKey } from '@/api/client'
 import { useAppStore } from './app'
 import { useProfilesStore } from './profiles'
@@ -83,6 +83,27 @@ export const useModelsStore = defineStore('models', () => {
     await useAppStore().reloadModels()
   }
 
+  async function fetchProviderEditor(providerId: string): Promise<ProviderEditorDetail> {
+    return systemApi.fetchProviderEditor(providerId)
+  }
+
+  async function saveProviderEditor(
+    providerId: string,
+    revision: string,
+    patch: ProviderEditorPatch,
+    contextLengths: Record<string, number | null> = {},
+  ): Promise<ProviderEditorDetail> {
+    const updated = await systemApi.patchProviderEditor(providerId, revision, patch)
+    let detail = updated.provider
+    if (Object.keys(contextLengths).length > 0) {
+      const contextUpdate = await systemApi.patchProviderEditorContexts(providerId, detail.revision, contextLengths)
+      detail = contextUpdate.provider
+    }
+    await fetchProviders()
+    await useAppStore().reloadModels()
+    return detail
+  }
+
   return {
     providers,
     allProviders,
@@ -98,5 +119,7 @@ export const useModelsStore = defineStore('models', () => {
     setDefaultModel,
     addProvider,
     removeProvider,
+    fetchProviderEditor,
+    saveProviderEditor,
   }
 })

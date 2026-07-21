@@ -396,15 +396,15 @@ function lookupContextFromCache(config: any, modelName: string, provider: string
 /**
  * 从数据库 model_context 表查找上下文长度（最高优先级）
  */
-function lookupContextFromDatabase(modelName: string, provider: string | null): number | null {
+function lookupContextFromDatabase(modelName: string, provider: string | null, profile = 'default'): number | null {
   const db = getDb()
   if (!db) return null
 
   try {
-    // 尝试精确匹配 provider 和 model
+    // Match the request-scoped profile, provider, and model exactly.
     const row = db
-      .prepare(`SELECT context_limit FROM ${MODEL_CONTEXT_TABLE} WHERE provider = ? AND model = ?`)
-      .get(provider || 'default', modelName) as { context_limit: number } | undefined
+      .prepare(`SELECT context_limit FROM ${MODEL_CONTEXT_TABLE} WHERE profile = ? AND provider = ? AND model = ?`)
+      .get(profile || 'default', provider || 'default', modelName) as { context_limit: number } | undefined
 
     return row?.context_limit || null
   } catch {
@@ -427,7 +427,7 @@ export function getModelContextLength(input?: string | ModelContextLengthOptions
   const provider = String(options.provider || '').trim() || getDefaultProvider(config)
 
   // 0. Database model_context table (highest priority)
-  const dbCtx = lookupContextFromDatabase(model, provider)
+  const dbCtx = lookupContextFromDatabase(model, provider, profile)
   if (dbCtx && dbCtx > 0) return dbCtx
 
   // 1. Provider-specific context_length in config.yaml

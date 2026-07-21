@@ -118,13 +118,13 @@
 
 ## 12. Provider 编辑器
 
-- [ ] 12.1 复制新增后端：`provider-editor.ts` service、`provider-audit-store.ts` db、`safe-file-store.ts`
-- [ ] 12.2 复制新增前端：`ProviderEditorModal.vue`
-- [ ] 12.3 提取 `ff8d78f6` 的 providers controller/routes 改动
-- [ ] 12.4 提取 `ff8d78f6` 的 schemas.ts 改动（provider audit 表）
-- [ ] 12.5 提取 `ff8d78f6` 的 model-context.ts 和 app-config.ts 改动
-- [ ] 12.6 提取 `ff8d78f6` 的 user-auth.ts 改动
-- [ ] 12.7 复制新增测试文件
+- [x] 12.1 复制新增后端：`provider-editor.ts` service、`provider-audit-store.ts` db、`safe-file-store.ts`（**safe-file-store 加 `MultiTextUpdate`/`updateTexts` 多文件锁；provider-editor/audit-store 整段 checkout `ff8d78f6`**）
+- [x] 12.2 复制新增前端：`ProviderEditorModal.vue`（checkout `ff8d78f6`）
+- [x] 12.3 提取 `ff8d78f6` 的 providers controller/routes 改动（**controller checkout 后重加 `google-gemini-cli` 到 2 个 Set；routes checkout，用 fork 的 `requireAdmin`/`requireUserProfile`**）
+- [x] 12.4 提取 `ff8d78f6` 的 schemas.ts 改动（**model_context 加 `profile` 列 + profile-scoped 索引 + legacy 索引迁移；新增 provider audit 表/schema/索引，向后兼容默认 `default` profile**）
+- [x] 12.5 提取 `ff8d78f6` 的 model-context.ts 和 app-config.ts 改动（**model-context 加 `profile` 参数；app-config checkout：providerLabels/providerPreferredModels/providerDisplayLabel/appConfigFilePath/invalidateAppConfigCache；models 控制器 6 处接入 provider_editable/editable_fields/displayLabel/profile UPSERT；models store 加 fetch/saveProviderEditor；ProviderCard 加 edit 按钮 + 挂载 modal；system.ts API + 类型**）
+- [x] 12.6 提取 `ff8d78f6` 的 user-auth.ts 改动（**加 `requireAdmin` 中间件**）
+- [x] 12.7 复制新增测试文件（**provider-editor / provider-editor-controller / provider-audit-store / app-config-concurrency / provider-editor-modal 全绿；i18n：39 个 provider editor key + models 作用域 `clearCredentialsConfirm` 扩展到 10 语言，i18n-coverage 7 例通过；build 通过。注：`user-auth.test.ts` 的 `external_platform` 用例为 fork 基线既有失败（`initAllHermesTables` 未跑 `migrateAddExternalPlatformFields`），与本节无关**）
 
 ## 13. 渠道凭证清除
 
