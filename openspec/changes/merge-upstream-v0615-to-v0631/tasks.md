@@ -86,35 +86,35 @@
 
 ## 11. 生成文件预览（拆组件接入，避开 MessageItem 大重构）
 
-> 接入方式：**只摘独立预览组件挂到现有 MessageItem**，不吃上游对 `MessageItem.vue`（−469）/`MarkdownRenderer.vue`（−128）的渲染层重构，也不引入 `ToolChangeCard` 拆分。文件预览依赖 workspace-diff 数据链，**必须先补 `#1919` 建表**，否则预览取不到数据。
+> 接入方式（fork 适配）：fork 已**大幅简化** Files 子系统（files store −163 / sessions API −167 / FilesView −135 相对上游 pre-patch），上游预览建立在被 fork 删掉的结构上，无法整段合。故改为**加法式扩展 fork 的 FilesView 预览分发器**：把独立预览组件挂到 `FilePreview.vue`，store 用 util 的 `getFilePreviewKind` 扩展 `previewFile.type`。**不接** MessageItem(−469)/MarkdownRenderer(−128) 重构、`ToolChangeCard`、群聊工作区(11C)、workspace-diff(#1919)。数据经现有 `/api/hermes/download` 端点抓取，无需新后端。
 
 ### 11A. 前置依赖：workspace-diff 数据链（`#1919`）
 
-- [ ] 11A.1 复制新增 DB：`packages/server/src/db/hermes/workspace-run-changes-store.ts`
-- [ ] 11A.2 从 `schemas.ts` 只提取 workspace-run-changes 建表语句（**跳过 mcu-devices / workflow 相关表**）
-- [ ] 11A.3 提取 `#1919` 的文件系统 workspace run diff 生成逻辑（后端 service），加法型插入，不动我们的会话主流程
-- [ ] 11A.4 复制 `#1919` 相关新增测试
+- [~] 11A.1 ~~复制 `workspace-run-changes-store.ts`~~ —— 延后（仅 `WorkspaceDiffPreview` 需要，本批未接该组件）
+- [~] 11A.2 ~~schemas.ts workspace-run-changes 建表~~ —— 延后（同上，避免动 DB schema）
+- [~] 11A.3 ~~文件系统 workspace run diff 生成逻辑~~ —— 延后
+- [~] 11A.4 ~~复制 `#1919` 测试~~ —— 延后
 
-### 11B. 预览组件（挂到现有 MessageItem，不接受上游重构）
+### 11B. 预览组件（挂到 FilesView 的 FilePreview 分发器）
 
-- [ ] 11B.1 复制独立预览组件：`DocxFilePreview.vue`、`HtmlFilePreview.vue`、`HtmlFileContextMenu.vue`、`PdfFilePreview.vue`、`PptxFilePreview.vue`、`SpreadsheetFilePreview.vue`、`WorkspaceDiffPreview.vue`、`xlsx-preview.worker.ts`
-- [ ] 11B.2 复制工具函数：`file-preview.ts`、`ooxml-archive.ts`、`tabular-preview.ts`
-- [ ] 11B.3 复制新增 API `binary-content.ts`；扩展 `packages/client/src/api/hermes/files.ts`（加法型）
-- [ ] 11B.4 复制新增后端：`file-preview.ts` controller、`file-preview.ts` service、`file-provider.ts`（含路由注册，放在 proxy catch-all 之前）
-- [ ] 11B.5 在**我们现有的 `MessageItem.vue`** 上手动接线：识别文件类型 → 渲染对应 `*Preview` 组件；**不合入上游 MessageItem −469 重构，不引入 ToolChangeCard**
-- [ ] 11B.6 提取 `62166315` 的 FileList/FilesPanel 改动，适配到我们的组件（与定制冲突时仅补充入口/按钮，不覆盖）
-- [ ] 11B.7 提取 `62166315` 的 sessions controller 文件预览相关后端改动（加法型插入）
-- [ ] 11B.8 复制新增 store：`tool-panel.ts`
+- [x] 11B.1 复制独立预览组件：`DocxFilePreview.vue`、`HtmlFilePreview.vue`、`PdfFilePreview.vue`、`PptxFilePreview.vue`、`SpreadsheetFilePreview.vue`、`xlsx-preview.worker.ts`（**`WorkspaceDiffPreview.vue` 依赖 #1919 未接；`HtmlFileContextMenu.vue` 该 commit 不存在**）
+- [x] 11B.2 复制工具函数：`file-preview.ts`、`ooxml-archive.ts`、`tabular-preview.ts`（自足，无外部依赖）
+- [~] 11B.3 ~~复制 `binary-content.ts`~~ —— fork 适配删除，改用 fork 现有 `getFileDownloadUrl`（tokened URL）抓 ArrayBuffer，避开缺失的 `ensureDesktopAuthReady`；`files.ts` API 无需扩展
+- [~] 11B.4 ~~复制后端 file-preview controller/service~~ —— 不需要，fork 经现有 `/api/hermes/download`（已支持 docx/pdf/xlsx MIME）取 blob
+- [~] 11B.5 ~~MessageItem 手动接线~~ —— 延后（chat 内联预览触前端定制主体，改为落在 FilesView）
+- [x] 11B.6 适配 FilesView 预览：`FilePreview.vue` 加 html/pdf/docx/presentation/spreadsheet/csv 分支（异步组件+按需抓 blob+错误回退）；store `openPreview`/`previewFile.type`/`isPreviewableFile` 用 `getFilePreviewKind` 扩展；`getLanguageFromPath` 优先委托 util 富映射。FileList 的 👁️ 预览按钮经广义化 `isPreviewableFile` 自动覆盖新格式
+- [~] 11B.7 ~~sessions controller 文件预览后端~~ —— 不需要（不接 session/group workspace 预览）
+- [~] 11B.8 ~~复制 `tool-panel.ts` store~~ —— 不需要（chat 工具面板相关，未接 MessageItem）
 
 ### 11C. 群聊工作区（可选，高风险，视需要延后）
 
-- [ ] 11C.1 群聊工作区涉及 `GroupChatPanel.vue`（我们已重写 −362），如需支持则仅摘预览挂接，**不合入上游 GroupChatPanel +330**；否则本项延后
+- [~] 11C.1 群聊工作区 —— 延后（触 fork 已重写的 `GroupChatPanel.vue`，且依赖 session/group workspace API 链）
 
 ### 11D. 依赖与验证
 
-- [ ] 11D.1 安装并锁版本：`docx-preview@^0.3.7`、`pdfjs-dist@^5.7.284`、`@aiden0z/pptx-renderer@^1.2.4`、`read-excel-file@^7.0.3`（**确认不误引入 `@vue-flow/*`，那是被排除的 Workflow v2 依赖**）
-- [ ] 11D.2 复制新增测试文件
-- [ ] 11D.3 验证：docx/pdf/pptx/xlsx/html 预览可正常渲染，且 workspace-diff 有数据（前置 `#1919` 生效）
+- [x] 11D.1 安装并锁版本：`docx-preview@^0.3.7`、`pdfjs-dist@^5.7.284`、`@aiden0z/pptx-renderer@^1.2.4`、`read-excel-file@^7.0.3`（devDependencies，未引入 `@vue-flow/*`）
+- [x] 11D.2 复制新增测试：`tests/client/file-preview-formats.test.ts`、`tests/client/pptx-file-preview.test.ts`（**适配后 15 例全绿**；i18n 新增 13 个 `files.*` key × 10 语言经 i18n-coverage 校验通过）
+- [x] 11D.3 验证：`npm run build` 全绿（预览组件按需代码分割）；单测通过；docx/pdf/pptx/xlsx/csv/html 渲染路径就绪，**桌面端人工渲染验收留待 18.5**
 
 ## 12. Provider 编辑器
 

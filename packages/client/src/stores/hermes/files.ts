@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as filesApi from '@/api/hermes/files'
 import type { FileEntry } from '@/api/hermes/files'
+import { getFilePreviewKind, getTextPreviewLanguage, type FilePreviewKind } from '@/utils/hermes/file-preview'
 
 const EXT_LANG_MAP: Record<string, string> = {
   '.js': 'javascript', '.jsx': 'javascript',
@@ -71,6 +72,11 @@ const TEXT_EXTS = new Set([
 ])
 
 export function getLanguageFromPath(filePath: string): string {
+  // Prefer the shared preview classifier (covers many more languages: hcl,
+  // powershell, twig, Dockerfile.* variants, dotfiles, ...), then fall back to
+  // the local map so editor highlighting still degrades to a sensible default.
+  const shared = getTextPreviewLanguage(filePath)
+  if (shared) return shared
   const name = filePath.split('/').pop() || ''
   const specialLanguage = SPECIAL_FILE_LANG_MAP[name]
   if (specialLanguage) return specialLanguage
@@ -101,7 +107,10 @@ export function isTextFile(name: string): boolean {
 }
 
 export function isPreviewableFile(name: string): boolean {
-  return isImageFile(name) || isMarkdownFile(name) || isTextFile(name)
+  // Delegate to the shared preview classifier so the preview affordance and
+  // openPreview() always agree on which formats are renderable (images,
+  // markdown, text, html, csv, and the office/pdf binary formats).
+  return getFilePreviewKind(name) !== null
 }
 
 // Returns true if `targetPath` is the same as `changedPath` or lives inside it
@@ -129,7 +138,7 @@ export const useFilesStore = defineStore('files', () => {
 
   const previewFile = ref<{
     path: string
-    type: 'image' | 'markdown' | 'text'
+    type: FilePreviewKind
     content?: string
     language?: string
   } | null>(null)
@@ -200,18 +209,22 @@ export const useFilesStore = defineStore('files', () => {
   function closeEditor() { editingFile.value = null }
 
   async function openPreview(entry: FileEntry) {
-    if (isImageFile(entry.name)) {
+    const kind = getFilePreviewKind(entry.name)
+    if (!kind) return
+    if (kind === 'image') {
       previewFile.value = { path: entry.path, type: 'image' }
-    } else if (isMarkdownFile(entry.name)) {
-      const result = await filesApi.readFile(entry.path)
-      previewFile.value = { path: entry.path, type: 'markdown', content: result.content }
-    } else if (isTextFile(entry.name)) {
+    } else if (kind === 'pdf' || kind === 'docx' || kind === 'presentation' || kind === 'spreadsheet') {
+      // Binary office/pdf formats are streamed as a blob by the preview
+      // component itself; the store only records which renderer to mount.
+      previewFile.value = { path: entry.path, type: kind }
+    } else {
+      // markdown / text / html / csv render from text content.
       const result = await filesApi.readFile(entry.path)
       previewFile.value = {
         path: entry.path,
-        type: 'text',
+        type: kind,
         content: result.content,
-        language: getLanguageFromPath(entry.path),
+        language: kind === 'text' ? getLanguageFromPath(entry.path) : undefined,
       }
     }
   }
