@@ -4026,8 +4026,9 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
 // The duty flow has its own business panels, so its blue-tinted light surfaces
 // need explicit dark counterparts rather than relying on the global page shell.
-.create-task-page {
-  :global(.dark) & {
+// NOTE: must use the flat `.dark .create-task-page` pattern, NOT `:global(.dark) &`
+// nesting — the latter miscompiles under Vue scoped CSS (targets get stripped to bare `.dark`).
+.dark .create-task-page {
     --duty-surface: #202b34;
     --duty-surface-raised: #26343e;
     --duty-surface-muted: #182128;
@@ -4179,5 +4180,4 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
       color: $text-primary;
     }
   }
-}
 </style>
