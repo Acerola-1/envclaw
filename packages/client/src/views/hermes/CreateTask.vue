@@ -1345,7 +1345,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div><span class="capability-kicker">01 · 组合任务成果</span>
                   <h2>这次任务需要交付什么？</h2>
                 </div>
-                <span class="bound-context">关联城市：<b>平顶山市</b></span>
+                <span class="bound-context">关联城市：<b>{{ userStore.platformUserInfo?.region?.currentRegionName || '—' }}</b></span>
               </div>
               <div class="output-list">
                 <article v-for="(output, index) in dutyOutputs" :key="output.id" class="output-item"
