@@ -1,0 +1,4 @@
+interface:
+  display_name: "浓度排名截图"
+  short_description: "按结构化业务参数 URL 直连稳定生成数智大气浓度排名截图成果文件"
+  default_prompt: "按本成果参数执行浓度排名截图脚本，返回图片路径并推送到指定推送目标。"

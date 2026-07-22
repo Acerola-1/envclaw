@@ -629,6 +629,52 @@ function selectDutyOutput(output: DutyOutputItem) {
   loadOutput(output)
 }
 
+// 编辑模式：从已保存任务的 prompt 中反解析【成果执行清单】JSON 与自由文本，重建 dutyOutputs 及各项配置回显。
+function hydrateFromPrompt(prompt: string) {
+  // 提取【任务说明】与【补充说明】自由文本（避免把整个 composed prompt 回填导致嵌套）
+  const descMatch = prompt.match(/【任务说明】\n([\s\S]*?)(?=\n\n【|$)/)
+  taskPrompt.value = descMatch ? descMatch[1].trim() : ''
+  const supMatch = prompt.match(/【补充说明】\n([\s\S]*?)(?=\n\n【|$)/)
+  promptSupplement.value = supMatch ? supMatch[1].trim() : ''
+
+  // 提取并解析【成果执行清单】JSON
+  const manifestMatch = prompt.match(/【成果执行清单】\n([\s\S]*?)(?=\n\n【|$)/)
+  if (!manifestMatch) return
+  let parsed: any
+  try { parsed = JSON.parse(manifestMatch[1].trim()) } catch { return }
+  const outputs = Array.isArray(parsed?.outputs) ? parsed.outputs : []
+  if (!outputs.length) return
+
+  const capabilityToType: Record<string, DutyOutputItem['type']> = {
+    'mapairs-ranking-capture': 'concentrationRanking',
+    'mapairs-onemap-capture': 'mapPackage',
+    'mapairs-hourly-brief': 'hourlyBrief',
+    'mapairs-monitoring-data': 'monitoringData',
+  }
+  const titlePrefix: Record<DutyOutputItem['type'], string> = {
+    concentrationRanking: '浓度排名', mapPackage: '一张图', hourlyBrief: '小时播报', monitoringData: '监测数据',
+  }
+  const counters: Record<string, number> = {}
+  const rebuilt: DutyOutputItem[] = []
+  let maxSeq = 0
+  for (const o of outputs) {
+    const type = capabilityToType[o?.capability]
+    if (!type || !o?.config) continue
+    counters[type] = (counters[type] || 0) + 1
+    const id = typeof o.id === 'string' && o.id ? o.id : newOutputId()
+    const seqMatch = /output-(\d+)/.exec(id)
+    if (seqMatch) maxSeq = Math.max(maxSeq, Number(seqMatch[1]))
+    rebuilt.push({ id, type, title: `${titlePrefix[type]} ${counters[type]}`, config: o.config } as DutyOutputItem)
+  }
+  if (!rebuilt.length) return
+  outputSequence = Math.max(outputSequence, maxSeq)
+  dutyOutputs.value = rebuilt
+  activeOutputId.value = rebuilt[0].id
+  selectedPlatforms.value = new Set(['szdq'])
+  loadOutput(rebuilt[0])
+  refreshSelectedFunctions()
+}
+
 function refreshSelectedFunctions() {
   const functionByType = { concentrationRanking: 'szdq-rank', mapPackage: 'szdq-map', hourlyBrief: 'szdq-trace', monitoringData: 'szdq-review' }
   selectedFunctions.value = new Set(dutyOutputs.value.map(item => functionByType[item.type]))
@@ -1009,8 +1055,8 @@ function outputDefinition(output: DutyOutputItem): string {
 const allOutputLabels = computed(() => dutyOutputs.value.map(outputDefinition))
 const taskExecutionOutputs = computed(() => dutyOutputs.value.map(output => ({
   id: output.id,
-  capability: ({ concentrationRanking: 'mapairs-ranking-capture', mapPackage: 'mapairs-duty-executor', hourlyBrief: 'mapairs-hourly-brief', monitoringData: 'mapairs-monitoring-data' }[output.type]),
-  skill: output.type === 'concentrationRanking' && output.config.includeScreenshot ? 'mapairs-ranking-capture' : output.type === 'mapPackage' ? 'mapairs-duty-executor' : null,
+  capability: ({ concentrationRanking: 'mapairs-ranking-capture', mapPackage: 'mapairs-onemap-capture', hourlyBrief: 'mapairs-hourly-brief', monitoringData: 'mapairs-monitoring-data' }[output.type]),
+  skill: output.type === 'concentrationRanking' && output.config.includeScreenshot ? 'mapairs-ranking-capture' : output.type === 'mapPackage' ? 'mapairs-onemap-capture' : null,
   config: output.config,
 })))
 const taskSkills = computed(() => [...new Set([
@@ -1022,11 +1068,50 @@ const taskExecutionManifest = computed(() => JSON.stringify({
   outputs: taskExecutionOutputs.value,
 }, null, 2))
 
+// 每个成果“应交付物”推导：仅依据用户勾选的生成成果，驱动交付验收清单。
+// kind=screenshot 为需 MEDIA: 附件的截图文件；text 为写入回复正文的文字成果。
+interface ExpectedDeliverable { label: string; kind: 'screenshot' | 'text' }
+function outputDeliverables(output: DutyOutputItem): ExpectedDeliverable[] {
+  const list: ExpectedDeliverable[] = []
+  if (output.type === 'concentrationRanking') {
+    if (output.config.includeScreenshot) list.push({ label: '排名截图', kind: 'screenshot' })
+    if (output.config.includeAnalysis) list.push({ label: '数据分析摘要', kind: 'text' })
+  } else if (output.type === 'mapPackage') {
+    list.push({ label: '一张图截图', kind: 'screenshot' })
+  } else if (output.type === 'hourlyBrief') {
+    if (output.config.includeScreenshot) list.push({ label: '播报截图', kind: 'screenshot' })
+    if (output.config.includeSummary) list.push({ label: '文字播报', kind: 'text' })
+  } else {
+    if (output.config.includeTable) list.push({ label: '监测数据表', kind: 'text' })
+    if (output.config.includeScreenshot) list.push({ label: '数据截图', kind: 'screenshot' })
+    if (output.config.includeAnalysis) list.push({ label: '数据分析摘要', kind: 'text' })
+  }
+  return list
+}
+const deliveryChecklist = computed(() => {
+  const lines: string[] = []
+  let screenshotCount = 0
+  dutyOutputs.value.forEach((output) => {
+    const items = outputDeliverables(output)
+    screenshotCount += items.filter(i => i.kind === 'screenshot').length
+    const desc = items.map(i => i.kind === 'screenshot' ? `${i.label}（截图文件，需 MEDIA:）` : `${i.label}（文字，写入回复正文）`).join('；')
+    lines.push(`- 【${output.title}】${desc || '（未勾选任何成果）'}`)
+  })
+  return { lines, screenshotCount }
+})
+
 const finalPrompt = computed(() => {
   const parts: string[] = []
 
   parts.push(`【成果执行清单】\n${taskExecutionManifest.value}`)
   parts.push('【执行规则】\n按 outputs 数组顺序逐项执行。每项成果只能读取自身 config；禁止将一个成果的主题、时间、因子、截图范围带入其他成果。带 skill 的成果必须使用该 Skill 附带的固定脚本，不得自行使用 agent-browser 或网页操作替代。')
+
+  // 【成果附带规则】无论用户任务说明如何，都强制追加；投递由 Hermes 系统按 deliver 配置自动完成，agent 不要自己推送或派发子任务。
+  parts.push('【成果附带规则｜强制】\n所有成果生成后，你的最终回复中必须为每一个产出文件原样附上一行 `MEDIA:/绝对路径`（路径取脚本输出的 MEDIA:/ARTIFACT: 行）。Hermes 会据此自动将文件作为原生媒体投递到任务配置的推送目标。严禁自行调用任何推送工具、也不要用 delegate/派发子任务的方式去发送；只要把 MEDIA: 行写进最终回复即可。不允许只在本地生成而不在回复中用 MEDIA: 附上，不允许遗漏任何一项成果。')
+
+  // 【交付验收清单】按每个成果勾选的生成成果逐项列出，并给出截图总数，防止多截图时只推一张。
+  const { lines: checklistLines, screenshotCount } = deliveryChecklist.value
+  parts.push(`【交付验收清单｜强制】\n本任务需按下表逐项交付，缺一不可：\n${checklistLines.join('\n')}\n其中截图类文件共 ${screenshotCount} 个：你的最终回复必须包含 ${screenshotCount} 行独立的 \`MEDIA:/绝对路径\`（每个截图一行，取脚本输出路径），行数必须等于 ${screenshotCount}，不得合并、省略或只发其中一张。文字类成果直接写入回复正文。任一截图若未成功生成，必须明确报告失败原因，不得跳过或以其他截图替代。`)
 
   // 用户补充说明不参与脚本参数解析。
   if (taskPrompt.value.trim()) {
@@ -1093,8 +1178,7 @@ async function handleSubmit() {
       await jobsStore.updateJob(props.jobId, payload)
       message.success('任务更新成功')
     } else {
-      console.log(payload)
-      // await jobsStore.createJob(payload)
+      await jobsStore.createJob(payload)
       message.success('任务创建成功')
     }
 
@@ -1190,13 +1274,14 @@ onMounted(async () => {
       const job = await getJob(props.jobId)
       originalJob.value = job
       taskName.value = job.name || ''
-      taskPrompt.value = job.prompt || ''
       selectedDeliver.value = job.deliver || 'local'
       selectedSkills.value = job.skills || (job.skill ? [job.skill] : [])
       repeat_times.value = jobRepeatToEditValue(job.repeat)
       selectedProvider.value = job.provider || ''
       selectedModel.value = job.model || ''
       schedule.value = scheduleToEditableInput(job.schedule, job.schedule_display || '')
+      // 从 prompt 反解析成果清单与自由文本，回显各项任务配置
+      hydrateFromPrompt(job.prompt || '')
     } catch (e: any) {
       message.error('加载任务失败: ' + (e.message || e))
     }
@@ -1293,6 +1378,27 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               </div>
               <div class="ranking-config-grid">
                 <div class="ranking-toolbar">
+                  <div class="compact-field"><span>生成成果：</span>
+                    <div class="output-checks">
+                      <NCheckbox v-model:checked="rankingIncludeScreenshot">排名截图</NCheckbox>
+                      <NCheckbox v-model:checked="rankingIncludeAnalysis">数据分析</NCheckbox>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="rankingIncludeScreenshot" class="screenshot-options">
+                  <div class="compact-field"><span>截图区域：</span>
+                    <div class="segmented"><button :class="{ active: rankingScreenshotScope === 'tableOnly' }"
+                        @click="rankingScreenshotScope = 'tableOnly'">仅标题和表格</button><button
+                        :class="{ active: rankingScreenshotScope === 'withFilters' }"
+                        @click="rankingScreenshotScope = 'withFilters'">含查询条件</button></div>
+                  </div>
+                  <div class="compact-field"><span>截图颜色：</span>
+                    <div class="segmented"><button :class="{ active: rankingTheme === 'light' }"
+                        @click="rankingTheme = 'light'">浅色</button><button :class="{ active: rankingTheme === 'dark' }"
+                        @click="rankingTheme = 'dark'">深色</button></div>
+                  </div>
+                </div>
+                <div class="ranking-toolbar">
                   <div class="compact-field"><span>查询：</span>
                     <div class="segmented query-segment"><button :class="{ active: rankingQueryTarget === 'city' }"
                         @click="rankingQueryTarget = 'city'">城市</button><button
@@ -1381,24 +1487,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                         @click="rankingGbKey = '1'">旧</button></div>
                   </div>
                 </div>
-                <div class="ranking-field wide output-choice"><label>生成成果</label>
-                  <div>
-                    <NCheckbox v-model:checked="rankingIncludeScreenshot">排名截图</NCheckbox>
-                  </div>
-                </div>
-                <div v-if="rankingIncludeScreenshot" class="screenshot-options">
-                  <div class="compact-field"><span>截图区域：</span>
-                    <div class="segmented"><button :class="{ active: rankingScreenshotScope === 'tableOnly' }"
-                        @click="rankingScreenshotScope = 'tableOnly'">仅标题和表格</button><button
-                        :class="{ active: rankingScreenshotScope === 'withFilters' }"
-                        @click="rankingScreenshotScope = 'withFilters'">含查询条件</button></div>
-                  </div>
-                  <div class="compact-field"><span>截图颜色：</span>
-                    <div class="segmented"><button :class="{ active: rankingTheme === 'light' }"
-                        @click="rankingTheme = 'light'">浅色</button><button :class="{ active: rankingTheme === 'dark' }"
-                        @click="rankingTheme = 'dark'">深色</button></div>
-                  </div>
-                </div>
               </div>
               <div class="ranking-summary">本次成果：{{ rankingQueryTarget === 'city' ? '城市排名' : '站点排名' }} · {{
                 rankingRegionLabel }} · {{ rankingQueryTarget === 'site' && rankingStationTypeLabels.length ? '站点类型：'
@@ -1407,7 +1495,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   rankingQueryTarget === 'site' && rankingSelectedStationNames.length ? ' · 站点：' +
                     rankingSelectedStationNames.join('、') : '' }} · {{
                   rankingPeriodLabel }} · {{ rankingTimeLabel }} · {{ rankingFactors.map(factorLabelFor).join('、') }} · {{
-                  rankingIncludeScreenshot ? '排名截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[rankingGbKey] || '默' }}</div>
+                  rankingIncludeScreenshot ? '排名截图' : '' }}{{ rankingIncludeScreenshot && rankingIncludeAnalysis ? '、' : '' }}{{ rankingIncludeAnalysis ? '数据分析' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[rankingGbKey] || '默' }}</div>
               <figure v-if="rankingIncludeScreenshot" class="effect-preview">
                 <figcaption>
                   <span>效果预览</span>
@@ -1424,6 +1512,13 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div><span>02 · 配置一张图</span></div>
               </div>
               <div class="ranking-config-grid">
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>生成成果：</span>
+                    <div class="output-checks">
+                      <NCheckbox :checked="true" disabled>一张图截图</NCheckbox>
+                    </div>
+                  </div>
+                </div>
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>地图范围：</span>
                     <div class="segmented"><button v-for="opt in mapScopeOptions" :key="opt.value"
@@ -1485,6 +1580,28 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div><span>02 · 配置小时播报</span></div>
               </div>
               <div class="ranking-config-grid">
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>生成成果：</span>
+                    <div class="output-checks">
+                      <NCheckbox v-model:checked="hourlyIncludeScreenshot">播报截图</NCheckbox>
+                      <NCheckbox v-model:checked="hourlyIncludeSummary">文字播报</NCheckbox>
+                    </div>
+                  </div>
+                  <span class="latest-hint">任务执行时自动使用官网最新可用时点</span>
+                </div>
+                <div v-if="hourlyIncludeScreenshot" class="screenshot-options">
+                  <div class="compact-field"><span>截图区域：</span>
+                    <div class="segmented"><button :class="{ active: hourlyScreenshotScope === 'contentOnly' }"
+                        @click="hourlyScreenshotScope = 'contentOnly'">仅播报内容</button><button
+                        :class="{ active: hourlyScreenshotScope === 'withFilters' }"
+                        @click="hourlyScreenshotScope = 'withFilters'">含查询条件</button></div>
+                  </div>
+                  <div class="compact-field"><span>截图颜色：</span>
+                    <div class="segmented"><button :class="{ active: hourlyTheme === 'light' }"
+                        @click="hourlyTheme = 'light'">浅色</button><button :class="{ active: hourlyTheme === 'dark' }"
+                        @click="hourlyTheme = 'dark'">深色</button></div>
+                  </div>
+                </div>
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>查询：</span>
                     <div class="segmented query-segment"><button :class="{ active: hourlyQueryTarget === 'city' }"
@@ -1554,28 +1671,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                         @click="hourlyGbKey = '1'">旧</button></div>
                   </div>
                 </div>
-                <div class="ranking-toolbar">
-                  <div class="compact-field"><span>生成成果：</span>
-                    <div class="output-checks">
-                      <NCheckbox v-model:checked="hourlyIncludeScreenshot">播报截图</NCheckbox>
-                      <NCheckbox v-model:checked="hourlyIncludeSummary">文字播报</NCheckbox>
-                    </div>
-                  </div>
-                  <span class="latest-hint">任务执行时自动使用官网最新可用时点</span>
-                </div>
-                <div v-if="hourlyIncludeScreenshot" class="screenshot-options">
-                  <div class="compact-field"><span>截图区域：</span>
-                    <div class="segmented"><button :class="{ active: hourlyScreenshotScope === 'contentOnly' }"
-                        @click="hourlyScreenshotScope = 'contentOnly'">仅播报内容</button><button
-                        :class="{ active: hourlyScreenshotScope === 'withFilters' }"
-                        @click="hourlyScreenshotScope = 'withFilters'">含查询条件</button></div>
-                  </div>
-                  <div class="compact-field"><span>截图颜色：</span>
-                    <div class="segmented"><button :class="{ active: hourlyTheme === 'light' }"
-                        @click="hourlyTheme = 'light'">浅色</button><button :class="{ active: hourlyTheme === 'dark' }"
-                        @click="hourlyTheme = 'dark'">深色</button></div>
-                  </div>
-                </div>
               </div>
               <div class="ranking-summary">本次成果：{{ hourlyQueryTarget === 'city' ? '城市' : '站点' }} · {{
                 regionLabelFor(hourlyRegion.join(',')) }} · {{ townshipLabelFor(hourlyTownship) }} · 官网最新可用时点 · {{
@@ -1588,6 +1683,21 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div><span>02 · 配置监测数据</span></div>
               </div>
               <div class="ranking-config-grid">
+                <div class="ranking-toolbar">
+                  <div class="compact-field"><span>生成成果：</span>
+                    <div class="output-checks">
+                      <NCheckbox v-model:checked="monitoringIncludeTable">监测数据表</NCheckbox>
+                      <NCheckbox v-model:checked="monitoringIncludeScreenshot">数据截图</NCheckbox>
+                      <NCheckbox v-model:checked="monitoringIncludeAnalysis">数据分析</NCheckbox>
+                    </div>
+                  </div>
+                  <div v-if="monitoringIncludeScreenshot" class="compact-field"><span>截图颜色：</span>
+                    <div class="segmented"><button :class="{ active: monitoringTheme === 'light' }"
+                        @click="monitoringTheme = 'light'">浅色</button><button
+                        :class="{ active: monitoringTheme === 'dark' }" @click="monitoringTheme = 'dark'">深色</button>
+                    </div>
+                  </div>
+                </div>
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>查询：</span>
                     <div class="segmented query-segment"><button :class="{ active: monitoringQueryTarget === 'city' }"
@@ -1670,21 +1780,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   <div class="compact-field custom-range-field"><span>时间范围：</span>
                     <NInput v-model:value="monitoringCustomRange"
                       placeholder="例如：2026-07-16 01:00 - 2026-07-16 14:00" />
-                  </div>
-                </div>
-                <div class="ranking-toolbar">
-                  <div class="compact-field"><span>生成成果：</span>
-                    <div class="output-checks">
-                      <NCheckbox v-model:checked="monitoringIncludeTable">监测数据表</NCheckbox>
-                      <NCheckbox v-model:checked="monitoringIncludeScreenshot">数据截图</NCheckbox>
-                      <NCheckbox v-model:checked="monitoringIncludeAnalysis">数据分析</NCheckbox>
-                    </div>
-                  </div>
-                  <div v-if="monitoringIncludeScreenshot" class="compact-field"><span>截图颜色：</span>
-                    <div class="segmented"><button :class="{ active: monitoringTheme === 'light' }"
-                        @click="monitoringTheme = 'light'">浅色</button><button
-                        :class="{ active: monitoringTheme === 'dark' }" @click="monitoringTheme = 'dark'">深色</button>
-                    </div>
                   </div>
                 </div>
               </div>

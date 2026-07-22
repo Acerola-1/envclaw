@@ -1,30 +1,30 @@
 ## 1. Backend: Credential Storage
 
-- [ ] 1.1 In `externalLogin` (packages/server/src/controllers/auth.ts), after successful Mapairs login, decrypt SM2 password and save username+password encrypted to `envclaw_platform_accounts`
+- [x] 1.1 In `externalLogin` (packages/server/src/controllers/auth.ts), store the plaintext password sent by the frontend (AES-encrypted) into `envclaw_platform_accounts` via `saveMapairsCredentials`. Backend cannot SM2-decrypt (private key belongs to Mapairs), so the frontend sends plaintext alongside the SM2 ciphertext.
 
-- [ ] 1.2 Add `getMapairsCredentials` function in `packages/server/src/services/envclaw/platforms.ts` to retrieve and decrypt credentials
+- [x] 1.2 Add `getMapairsCredentials` (and `saveMapairsCredentials` upsert) in `packages/server/src/services/envclaw/platforms.ts` to retrieve/decrypt and store credentials
 
-- [ ] 1.3 Modify skill runner to inject `MAPAIRS_USERNAME` and `MAPAIRS_PASSWORD` environment variables before executing a Mapairs skill
+- [x] 1.3 Inject `MAPAIRS_USERNAME` and `MAPAIRS_PASSWORD` into the Hermes gateway process env (packages/server/src/services/hermes/gateway-runner.ts); externalLogin triggers a gateway restart so new credentials propagate
 
 ## 2. Common Python Module
 
-- [ ] 2.1 Create `packages/skills/mapairs-common/mapairs_common/` package structure
+- [x] 2.1 Create `packages/skills/mapairs-common/mapairs_common/` package structure
 
-- [ ] 2.2 Implement `preflight.py` - shared preflight checking (Python version, playwright, chromium, credentials, network)
+- [x] 2.2 Implement `preflight.py` - shared preflight checking (Python version, playwright, chromium, credentials, network)
 
-- [ ] 2.3 Implement `auth.py` - shared login function with device limit handling
+- [x] 2.3 Implement `auth.py` - shared login function with device limit handling
 
-- [ ] 2.4 Implement `screenshot.py` - shared naming, output formatting
+- [x] 2.4 Implement `screenshot.py` - shared naming, cropping, output and artifact reporting
 
-- [ ] 2.5 Implement `config.py` - base URL configuration with environment override
+- [x] 2.5 Implement `config.py` - base URL configuration with environment override + URL builder
 
 ## 3. New Skill: mapairs-onemap-capture
 
-- [ ] 3.1 Create skill directory structure: `packages/skills/mapairs-onemap-capture/`
+- [x] 3.1 Create skill directory structure: `packages/skills/mapairs-onemap-capture/`
 
-- [ ] 3.2 Write `SKILL.md` defining input/output contract
+- [x] 3.2 Write `SKILL.md` (+ agents/openai.yaml) defining input/output contract
 
-- [ ] 3.3 Implement `scripts/mapairs_onemap_capture.py` - main script that:
+- [x] 3.3 Implement `scripts/mapairs_onemap_capture.py` - main script that:
   - imports from `mapairs_common`
   - parses JSON config
   - builds full URL with query parameters
@@ -37,20 +37,20 @@
 
 ## 4. Refactor: mapairs-ranking-capture to URL direct mode
 
-- [ ] 4.1 Refactor existing script to import shared functions from `mapairs_common`
+- [x] 4.1 Refactor existing script to import shared functions from `mapairs_common`
 
-- [ ] 4.2 Change from menu navigation to direct URL navigation with parameter building
+- [x] 4.2 Change from menu navigation to direct URL navigation with parameter building
 
-- [ ] 4.3 Verify existing config format still works (no breaking change)
+- [x] 4.3 Verify existing config format still works (no breaking change)
 
 ## 5. Frontend: Fix "forget to push" issue
 
-- [ ] 5.1 In `packages/client/src/views/hermes/CreateTask.vue`, modify `finalPrompt` computed to force-add推送 instruction to execution rules
+- [x] 5.1 In `packages/client/src/views/hermes/CreateTask.vue`, modify `finalPrompt` computed to force-add 推送 instruction to execution rules
 
 ## 6. Validation
 
-- [ ] 6.1 Verify TypeScript compiles with `npm run build`
+- [x] 6.1 Verify TypeScript compiles with `npm run build`
 
-- [ ] 6.2 Verify existing tests pass with `npm run test -- tests/server/...` relevant tests
+- [x] 6.2 Verify existing tests pass with `npm run test -- tests/server/...` relevant tests
 
-- [ ] 6.3 Update documentation if needed
+- [x] 6.3 Update documentation if needed

@@ -628,11 +628,22 @@ export async function unlockIpHandler(ctx: Context) {
  * 外部平台（Mapairs）OAuth2 登录（公开接口）
  * 前端传 Mapairs 账号 + SM2 加密密码 → 后端调 Mapairs 平台 →
  * 自动创建/查找用户 → 签发 Hermes JWT + 返回用户信息
+ * 登录成功后将前端额外传来的明文密码 AES 加密存入 envclaw_platform_accounts 供后续截图技能使用
  */
+import { saveMapairsCredentials } from '../services/envclaw/platforms'
+import { gatewayAutostartDisabledByEnv, restartGatewayForProfile } from '../services/hermes/gateway-autostart'
+import { normalizeGatewayAutoStartConfig, readAppConfig } from '../services/app-config'
+
+async function gatewayAutoRestartAllowed(): Promise<boolean> {
+  if (gatewayAutostartDisabledByEnv()) return false
+  return normalizeGatewayAutoStartConfig((await readAppConfig()).gatewayAutoStart).enabled !== false
+}
+
 export async function externalLogin(ctx: Context) {
-  const { username, password } = ctx.request.body as {
+  const { username, password, plainPassword } = ctx.request.body as {
     username?: string
-    password?: string   // SM2 加密后的密文
+    password?: string       // SM2 加密后的密文（登录验证用）
+    plainPassword?: string  // 明文密码（仅用于后端加密存储凭证）
   }
 
   if (!username || !password) {
@@ -689,6 +700,27 @@ export async function externalLogin(ctx: Context) {
     const token = await issueUserJwt(hermesUser)
     recordPasswordSuccess(ip)
     touchUserLogin(hermesUser.id)
+
+    // 4. 将前端传来的明文密码 AES 加密存储 Mapairs 凭证，供后续截图技能注入环境变量
+    // 仅当前端提供了明文密码时存储；凭证存储失败不影响登录成功。
+    if (plainPassword) {
+      try {
+        saveMapairsCredentials(username, plainPassword)
+        // 重启 gateway，让新凭证通过环境变量注入到后续技能执行进程（尽力而为）
+        if (await gatewayAutoRestartAllowed()) {
+          const userProfiles = listUserProfiles(hermesUser.id)
+          const profile = userProfiles.find(p => p.is_default)?.profile_name
+            || userProfiles[0]?.profile_name
+            || 'default'
+          restartGatewayForProfile(profile).catch((err) => {
+            console.error('[external-login] gateway restart after credential save failed', err)
+          })
+        }
+      } catch (e: any) {
+        // 凭证存储失败不影响登录成功，只记录日志（不输出密码明文）
+        console.error('[external-login] Failed to save Mapairs credentials', e?.message || e)
+      }
+    }
 
     // 同时返回用户信息给前端（UI 展示用）
     const platformUserInfo: HermesPlatformUserInfo = userInfo

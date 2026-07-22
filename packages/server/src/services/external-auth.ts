@@ -110,7 +110,7 @@ export async function fetchPlatformToken(
           'Authorization': MAPAIRS_BASIC_AUTH,
           'Tenant-Id': MAPAIRS_TENANT_ID,
         },
-      }
+      },
     )
 
     if (!res.ok) {

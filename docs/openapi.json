@@ -362,6 +362,9 @@
                   "password": {
                     "type": "string"
                   },
+                  "plainPassword": {
+                    "type": "string"
+                  },
                   "username": {
                     "type": "string"
                   }

@@ -97,16 +97,17 @@ packages/skills/
 
 ### 4. 凭证注入：技能执行前从数据库取出注入为环境变量
 
-**Decision:** 在 `skill-runner` 层，执行 Python 脚本之前：
-1. 从数据库取出当前用户的 Mapairs 凭证
-2. AES 解密得到明文
-3. 设置环境变量 `MAPAIRS_USERNAME` and `MAPAIRS_PASSWORD`
-4. 执行脚本，脚本从环境变量读取
+**Decision:** SM2 密钥对属于 Mapairs 平台（Envclaw 只持有公钥），后端无法解密 SM2 密文。因此：
+1. 前端登录时在 SM2 密文之外，额外把明文密码发给后端
+2. 后端用系统 AES 密钥加密明文，存入 `envclaw_platform_accounts`（platform_id='mapairs'）
+3. Hermes gateway 子进程启动（gateway-runner）时，从数据库取出并解密凭证，设置环境变量 `MAPAIRS_USERNAME` / `MAPAIRS_PASSWORD`
+4. 登录成功存储凭证后触发 gateway 重启（尽力而为），让运行中的 gateway 及其执行的技能脚本读到最新凭证
 
 **Rationale:**
-- 现有 `mapairs-ranking-capture` 已经从环境变量读取，不需要改脚本读取逻辑
-- 凭证只存在于进程环境，不会写到磁盘
-- 环境变量在子进程退出后自动清除，符合安全最佳实践
+- 技能脚本由 Hermes agent 通过 bash 执行 `python3 <脚本>`，凭证需存在于 gateway 进程环境
+- 现有截图脚本已经从环境变量读取，脚本读取逻辑不变
+- 凭证只存在于进程环境，不落盘；子进程退出后自动清除
+- 后端无 Mapairs 私钥，无法 SM2 解密，故由前端提供明文（内网/HTTPS 传输）
 
 ### 5. 推送问题根治：prompt 强制增加推送规则
 

@@ -328,3 +328,59 @@ export function deleteAccount(platformId: string, accountId: string): any {
   db.prepare('DELETE FROM envclaw_platform_accounts WHERE id=? AND platform_id=?').run(accountId, platformId)
   return getPlatform(platformId)
 }
+
+/**
+ * Get the current user's Mapairs credentials (decrypted)
+ * @returns { username: string, password: string } | null
+ */
+export function getMapairsCredentials(): { username: string; password: string } | null {
+  initTable()
+  const db = getDb()
+  if (!db) return null
+
+  // Get the first account for mapairs platform (each user has one mapairs account)
+  const row = db.prepare(
+    'SELECT credential_data FROM envclaw_platform_accounts WHERE platform_id = ? ORDER BY created_at ASC LIMIT 1'
+  ).get('mapairs') as { credential_data: string } | undefined
+
+  if (!row) return null
+
+  try {
+    const credentials = JSON.parse(decrypt(row.credential_data))
+    return {
+      username: credentials.username || '',
+      password: credentials.password || '',
+    }
+  } catch (e) {
+    console.error('[getMapairsCredentials] Failed to decrypt credentials', e)
+    return null
+  }
+}
+
+/**
+ * Upsert the Mapairs credentials (AES encrypted) for the固定 platform_id 'mapairs'.
+ * 每个部署只保留一份 Mapairs 凭证：已存在则更新，否则新增。
+ * 直接写 envclaw_platform_accounts，不依赖 envclaw_platforms 中的平台行，
+ * 与 getMapairsCredentials 的查询方式一致。
+ */
+export function saveMapairsCredentials(username: string, password: string): void {
+  initTable()
+  const db = getDb()
+  if (!db) throw new Error('Database not available')
+
+  const ts = now()
+  const encrypted = encrypt(JSON.stringify({ username, password }))
+  const existing = db.prepare(
+    'SELECT id FROM envclaw_platform_accounts WHERE platform_id = ? ORDER BY created_at ASC LIMIT 1'
+  ).get('mapairs') as { id: string } | undefined
+
+  if (existing) {
+    db.prepare(
+      'UPDATE envclaw_platform_accounts SET name=?, credential_data=?, credential_type=?, updated_at=? WHERE id=?'
+    ).run(username, encrypted, 'password', ts, existing.id)
+  } else {
+    db.prepare(
+      'INSERT INTO envclaw_platform_accounts (id, platform_id, name, credential_type, credential_data, status, auto_refresh, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(randomUUID(), 'mapairs', username, 'password', encrypted, 'active', 0, ts, ts)
+  }
+}

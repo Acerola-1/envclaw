@@ -221,12 +221,14 @@ export interface PlatformLoginResult {
 
 /**
  * 外部平台（Mapairs）登录
- * 前端传 Mapairs 账号 + SM2 加密密码
+ * 前端传 Mapairs 账号 + SM2 加密密码（登录验证）
+ * 同时传明文密码供后端 AES 加密存储，供定时截图任务注入凭证
  * 后端调 Mapairs 平台验证，返回 Hermes JWT + 用户信息
  */
 export async function loginWithExternalPlatform(
   username: string,
   encryptedPassword: string,   // SM2 加密后的密文
+  plainPassword?: string,      // 明文密码，仅用于后端加密存储凭证
 ): Promise<PlatformLoginResult> {
   const res = await fetch('/api/auth/external-login', {
     method: 'POST',
@@ -234,6 +236,7 @@ export async function loginWithExternalPlatform(
     body: JSON.stringify({
       username,
       password: encryptedPassword,
+      plainPassword,
     }),
   })
 

@@ -70,6 +70,7 @@ async function handlePlatformLogin() {
     const result = await loginWithExternalPlatform(
       username.value.trim(),
       encryptedPassword,
+      password.value,
     );
 
     // 存储 Hermes JWT 和平台用户信息
