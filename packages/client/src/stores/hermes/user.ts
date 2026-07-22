@@ -19,6 +19,7 @@ export interface PlatformUserInfo {
   hermesUserId: number
   hermesUsername: string
   hermesRole: string
+  v5Token?: string   // Mapairs V5 OAuth2 access_token
 }
 
 const PLATFORM_USER_KEY = 'hermes_platform_user'
@@ -40,6 +41,7 @@ export const useUserStore = defineStore('user', () => {
   const userName = computed(() => platformUserInfo.value?.nickName || platformUserInfo.value?.hermesUsername || '')
   const userRole = computed(() => platformUserInfo.value?.hermesRole || '')
   const userAccount = computed(() => platformUserInfo.value?.account || '')
+  const v5Token = computed(() => platformUserInfo.value?.v5Token || '')
 
   function setLogin(tokenValue: string, userInfo?: PlatformUserInfo) {
     token.value = tokenValue
@@ -80,6 +82,7 @@ export const useUserStore = defineStore('user', () => {
     userName,
     userRole,
     userAccount,
+    v5Token,
     setLogin,
     setUserInfo,
     logout,

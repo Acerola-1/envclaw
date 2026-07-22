@@ -45,6 +45,7 @@ import { mcpRoutes } from './hermes/mcp'
 import { runtimeVersionRoutes } from './hermes/runtime-versions'
 import { writeGateRoutes } from './hermes/write-gate'
 import { channelContactRoutes } from './hermes/channel-contacts'
+import { cityTreeRoutes } from './hermes/city-tree'
 
 // Envclaw route modules
 import { platformRoutes } from './envclaw/platforms'
@@ -106,5 +107,6 @@ export function registerRoutes(app: any, authMiddleware: Array<(ctx: Context, ne
   app.use(runtimeVersionRoutes.routes())         // Runtime and version management
   app.use(writeGateRoutes.routes())              // Hermes Agent write approval review
   app.use(channelContactRoutes.routes())         // Channel contacts from channel_directory.json
+  app.use(cityTreeRoutes.routes())               // City region tree (proxied from V5 backend)
   app.use(platformRoutes.routes())                // Envclaw platform management
 }

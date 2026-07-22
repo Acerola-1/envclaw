@@ -18,3 +18,27 @@ export async function fetchCityRegionTree(v5Token?: string): Promise<{ tree: Reg
     body: JSON.stringify({ radio: 'no' }),
   })
 }
+
+/** V5 返回的站点对象 */
+export interface StationItem {
+  [key: string]: any
+  stationName?: string
+  stationCode?: string
+  stationType?: string
+}
+
+/** 从 envclaw 后端代理获取站点列表（代理 V5 /air/statistics/station/list） */
+export async function fetchStationList(
+  province: string,
+  region: string,
+  stationType: string,
+  v5Token?: string,
+): Promise<{ stations: StationItem[] }> {
+  const headers: Record<string, string> = {}
+  if (v5Token) headers['X-V5-Token'] = v5Token
+  return request('/api/hermes/station-list', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ province, region, stationType }),
+  })
+}
