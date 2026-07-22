@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { NInput, NInputNumber, NButton, NModal, NTreeSelect, NCheckbox, NCheckboxGroup, NSelect } from 'naive-ui'
+import { NInput, NButton, NModal, NTreeSelect, NCheckbox, NCheckboxGroup, NSelect } from 'naive-ui'
 import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import { useAppStore } from '@/stores/hermes/app'
-import { useSettingsStore } from '@/stores/hermes/settings'
 import { useUserStore } from '@/stores/hermes/user'
 import { getJob, scheduleToEditableInput, jobRepeatToEditValue, listJobDeliveryTargets } from '@/api/hermes/jobs'
 import type { Job, JobDeliveryTarget } from '@/api/hermes/jobs'
@@ -30,7 +29,6 @@ const originalJob = ref<Job | null>(null)
 // ==================== Stores ====================
 const jobsStore = useJobsStore()
 const appStore = useAppStore()
-const settingsStore = useSettingsStore()
 const userStore = useUserStore()
 const router = useRouter()
 const message = useMessage()
@@ -363,7 +361,7 @@ function getRegionLabel(value: string): string {
     for (const node of nodes) {
       if (node.regionKeyVO === value) return true
       if (node.children && search(node.children)) {
-        result.unshift(node.fullName)
+        result.unshift(node.fullName || node.label)
         return true
       }
     }
@@ -398,7 +396,7 @@ function findProvinceCodeForRegion(regionKey: string | string[]): string {
   const keys = Array.isArray(regionKey) ? regionKey : [regionKey]
   const provinceCodes = new Set<string>()
 
-  function findNode(nodes: any[], targetKey: string, inheritedProvince: string | null): void {
+  function findNode(nodes: any[], targetKey: string): void {
     for (const node of nodes) {
       const currentProvince = node.provinceCodeVO
       if (node.regionKeyVO === targetKey) {
@@ -406,14 +404,14 @@ function findProvinceCodeForRegion(regionKey: string | string[]): string {
         return
       }
       if (node.children) {
-        findNode(node.children, targetKey, currentProvince)
+        findNode(node.children, targetKey)
       }
     }
   }
 
   for (const key of keys) {
     if (!key) continue
-    findNode(cityRegionTree.value as any[], key, null)
+    findNode(cityRegionTree.value as any[], key)
   }
   console.log('provinceCodes-',Array.from(provinceCodes).join(','))
   
@@ -510,6 +508,7 @@ interface MapOutputSnapshot {
   region: string  // 'national' 或用户的 provinceShortCode / currentShortCode
   timeType: 'hourly' | 'dt' | 'daily'
   leftPanel: boolean
+  closeLeftPanel?: boolean
 }
 
 interface HourlyBriefOutputSnapshot {
@@ -607,7 +606,7 @@ function loadOutput(output: DutyOutputItem) {
     const c = output.config
     mapTheme.value = c.theme; mapMode.value = c.mode; mapZoom.value = c.zoom; mapFactor.value = c.factor
     mapWindWaves.value = c.windWaves; mapScreenshotScope.value = c.screenshotScope; mapScope.value = c.region
-    mapTimeType.value = c.timeType; mapCloseLeftPanel.value = c.closeLeftPanel
+    mapTimeType.value = c.timeType; mapCloseLeftPanel.value = c.closeLeftPanel ?? true
   } else if (output.type === 'hourlyBrief') {
     const c = output.config
     hourlyQueryTarget.value = c.zone; hourlyRegion.value = c.region ? c.region.split(',') : []; hourlyTownship.value = c.township; hourlyFactors.value = c.factors ? c.factors.split(',') : []
@@ -779,7 +778,7 @@ async function loadStationList() {
     rankingStationListLoading.value = false
   }
 }
-let stationTypesLabel = ref([])
+let stationTypesLabel = ref<string[]>([])
 watch([rankingQueryTarget, rankingProvince, rankingRegion, stationTypesLabel], () => {
   if (rankingQueryTarget.value !== 'site') {
     return
@@ -955,18 +954,6 @@ const mapScopeLabel = computed(() => {
   if (mapScope.value === 'national') return '全国'
   return mapScopeOptions.value.find(o => o.value === mapScope.value)?.label || mapScope.value
 })
-// 当前 region 是否为最低层级（城市账号→城市，区县账号→区县）：最低层级无需额外标记
-const isCityScope = computed(() => {
-  const opts = mapScopeOptions.value
-  return opts.length > 1 && mapScope.value === opts[opts.length - 1].value
-})
-// region 对应的 marker 标签（当前层级 → 标记下一层级；最低层级无需标记）
-const mapMarkerLabel = computed(() => {
-  const opts = mapScopeOptions.value
-  const idx = opts.findIndex(o => o.value === mapScope.value)
-  if (idx < opts.length - 1) return `标记${opts[idx + 1]?.label || ''}`
-  return '无需标记'
-})
 const mapModeLabel = computed(() => mapMode.value === 'monitoring' ? '监测图' : '插值图')
 const mapFactorLabel = computed(() => mapFactorOptions.find(item => item.value === mapFactor.value)?.label || '首要污染物')
 const mapScreenshotScopeLabel = computed(() => ({ mapOnly: '仅地图', mapLegend: '地图和图例', fullPage: '完整页面' }[mapScreenshotScope.value]))
@@ -976,12 +963,6 @@ const mapScopeLabelFor = (value: MapOutputSnapshot['region']) => {
   return mapScopeOptions.value.find(o => o.value === value)?.label || value
 }
 const mapFactorLabelFor = (value: string) => mapFactorOptions.find(item => item.value === value)?.label || '首要污染物'
-const mapMarkerLabelFor = (region: MapOutputSnapshot['region']) => {
-  const opts = mapScopeOptions.value
-  const idx = opts.findIndex(o => o.value === region)
-  if (idx < opts.length - 1) return `标记${opts[idx + 1]?.label || ''}`
-  return '无需标记'
-}
 const townshipLabelFor = (value: string) => townshipOptions.find(item => item.value === value)?.label || '全部乡镇'
 const monitoringPeriodLabelFor = (value: MonitoringDataOutputSnapshot['type']) => monitoringPeriodOptions.find(item => item.value === value)?.label || '小时'
 

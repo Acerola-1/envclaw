@@ -1,10 +1,12 @@
 import { request } from '@/api/client'
 
-/** 级联树节点 */
+/** 级联树节点（V5 /region/tree 实际返回结构） */
 export interface RegionTreeNode {
   label: string
   value: string
-  provinceCodeVO?: string  // 对应 concentrationranking.vue 的 province 参数
+  fullName?: string         // 完整名称路径（如 "河南省平顶山市"）
+  regionKeyVO?: string      // 区域唯一标识 key
+  provinceCodeVO?: string   // 对应 province 参数
   children?: RegionTreeNode[]
 }
 
