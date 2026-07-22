@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 LOGIN_URL = "https://mapairs.com/lock"
 RANKING_URL = "https://www.mapairs.com/dataStatistics/concentrationranking"
-PERIODS = {"realtime": "实时", "dayAccumulated": "日累计", "day": "日", "month": "月", "year": "年"}
+PERIODS = {"hourly": "实时", "daily_count": "日累计", "daily": "日", "month": "月", "year": "年", "other": "自定义"}
 THEMES = {"light", "dark"}
 TARGETS = {"city": "城市", "station": "站点"}
 SCOPES = {"tableOnly", "withFilters"}
@@ -100,7 +100,7 @@ def read_config(raw: str) -> dict[str, Any]:
         fail("任务参数必须是 JSON 对象")
     config.setdefault("queryTarget", "city")
     config.setdefault("region", "pingdingshan")
-    config.setdefault("period", "dayAccumulated")
+    config.setdefault("period", "daily_count")
     config.setdefault("factors", ["AQI", "PM₂.₅", "O₃"])
     config.setdefault("theme", "light")
     config.setdefault("screenshotScope", "tableOnly")
@@ -226,7 +226,7 @@ def set_controls(page: "Page", config: dict[str, Any]) -> None:
     # 该页面的 radio input 由 Vue 重建，原生 check() 不会触发组件状态。
     # 点击实际可见按钮，并以日期控件形态验证切换已完成。
     page.locator("#data-statistics").get_by_text(PERIODS[config["period"]], exact=True).click()
-    expected_editor = "el-date-editor--datetime" if config["period"] in {"realtime", "dayAccumulated"} else "el-date-editor--date"
+    expected_editor = "el-date-editor--datetime" if config["period"] in {"hourly", "daily_count"} else "el-date-editor--date"
     page.locator(f"#data-statistics .{expected_editor}").first.wait_for(state="visible", timeout=10_000)
     page.get_by_role("button", name="查询", exact=True).click()
     page.wait_for_selector(".el-table__body tbody tr", timeout=20_000)

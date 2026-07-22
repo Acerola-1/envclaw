@@ -706,6 +706,7 @@ export async function externalLogin(ctx: Context) {
         hermesUserId: hermesUser.id,
         hermesUsername: hermesUser.username,
         hermesRole: hermesUser.role,
+        v5Token: platformUserInfo.v5Token,
       },
     }
   } catch (err: any) {

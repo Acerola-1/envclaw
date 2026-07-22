@@ -6,7 +6,7 @@ describe('ranking duty demo preset', () => {
     expect(defaultRankingDutyDraft()).toMatchObject({
       target: 'city',
       region: '河南省 / 平顶山市',
-      timeKind: 'dayAccumulated',
+      timeKind: 'daily_count',
       timeIntent: 'latestPublished',
       includeScreenshot: true,
       includeAnalysis: true,

@@ -15,7 +15,7 @@ description: 使用固定 Playwright 脚本按结构化参数生成数智大气�
 {
   "queryTarget": "city",
   "region": "pingdingshan",
-  "period": "dayAccumulated",
+  "period": "daily_count",
   "timeIntent": "latest",
   "factors": ["AQI", "PM₂.₅", "O₃"],
   "theme": "light",

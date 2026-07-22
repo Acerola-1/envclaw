@@ -63,6 +63,7 @@ export interface HermesPlatformUserInfo {
   roleName: string
   avatar: string
   region: MapairsRegion
+  v5Token?: string   // Mapairs V5 OAuth2 access_token
 }
 
 export interface FetchResult {
@@ -143,6 +144,7 @@ export async function fetchPlatformToken(
         latitude: 0,
         longitude: 0,
       },
+      v5Token: data.access_token,
     }
 
     return { ok: true, platformResponse: data, userInfo }

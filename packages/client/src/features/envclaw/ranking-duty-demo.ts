@@ -1,5 +1,5 @@
 export type RankingTarget = 'city' | 'station'
-export type TimeKind = 'realtime' | 'dayAccumulated' | 'day' | 'month' | 'year' | 'range'
+export type TimeKind = 'hourly' | 'daily_count' | 'daily' | 'month' | 'year' | 'other'
 export type TimeIntent = 'latestPublished' | 'specified'
 
 export interface RankingDutyDraft {
@@ -24,7 +24,7 @@ export interface RankingDutyDefinition extends RankingDutyDraft {
 export const defaultRankingDutyDraft = (): RankingDutyDraft => ({
   target: 'city',
   region: '河南省 / 平顶山市',
-  timeKind: 'dayAccumulated',
+  timeKind: 'daily_count',
   timeIntent: 'latestPublished',
   specifiedTime: '2026-07-15 08:00',
   factors: ['AQI', 'PM₂.₅', 'O₃'],
