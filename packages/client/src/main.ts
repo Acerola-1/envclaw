@@ -30,21 +30,12 @@ if (isDesktopShell) {
   document.documentElement.classList.add('hermes-desktop-shell')
 }
 
-// Auto-login: silently authenticate using default credentials so the user
-// never sees a login page.  The desktop preload does the same thing, but
-// this covers the web-UI path and any race where the preload hasn't finished
-// by the time the Vue app boots.
+// Ensure the user is authenticated before mounting the app.
+// Desktop and web both require explicit login via LoginView.
 async function ensureAuthenticated(): Promise<void> {
   if (hasApiKey()) return
   // User explicitly logged out — skip silent auto-login
   if (sessionStorage.getItem('hermes_manual_logout') === '1') return
-  try {
-    // const token = await loginWithPassword('admin', '123456')
-    // if (token) setApiKey(token)
-  } catch {
-    // Server may not be ready yet (desktop splash screen); the preload
-    // will handle auth in that case.  Ignore errors silently.
-  }
 }
 
 async function mountApp(): Promise<void> {
