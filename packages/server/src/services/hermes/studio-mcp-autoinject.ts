@@ -276,3 +276,77 @@ export async function injectBundledMcpServer(): Promise<BundledMcpInjectionResul
 
   return result
 }
+
+// ─── Bundled third-party HTTP MCP servers ───
+// Shipped with Envclaw and seeded into every profile's config.yaml so they are
+// available out-of-the-box. sampling/elicitation are disabled because these are
+// Spring AI (Java MCP SDK) servers that reject the extended client capabilities
+// Hermes advertises by default (rejects Unrecognized field "tools"/"form").
+const BUNDLED_HTTP_SERVERS: ReadonlyArray<{ name: string; url: string }> = [
+  { name: 'datacenter-statistics', url: 'http://192.168.4.25:8090/product/datacenter/api/mcp' },
+  { name: 'ipp-air-mcp-server', url: 'http://192.168.4.25:8090/product/datacenter/api2/mcp' },
+]
+
+function bundledHttpServerConfig(url: string): Record<string, unknown> {
+  return {
+    url,
+    sampling: { enabled: false },
+    elicitation: { enabled: false },
+    enabled: true,
+  }
+}
+
+async function injectHttpServersIntoProfile(profile: string): Promise<BundledMcpInjectionTargetResult> {
+  return await updateConfigYamlForProfile(profile, current => {
+    const cfg = isRecord(current) ? current : {}
+    if (!isRecord(cfg.mcp_servers)) cfg.mcp_servers = {}
+
+    let injected = false
+    for (const server of BUNDLED_HTTP_SERVERS) {
+      // Seed-if-absent: never overwrite the user's edits or a user-disabled entry.
+      // Deleting an entry re-seeds it on next boot (expected for a bundled server);
+      // disabling it (enabled: false) is the supported off switch.
+      if (server.name in cfg.mcp_servers) continue
+      cfg.mcp_servers[server.name] = bundledHttpServerConfig(server.url)
+      injected = true
+    }
+
+    if (!injected) {
+      return {
+        data: cfg,
+        write: false,
+        result: { profile, status: 'unchanged' } satisfies BundledMcpInjectionTargetResult,
+      }
+    }
+    return { data: cfg, result: { profile, status: 'injected' } satisfies BundledMcpInjectionTargetResult }
+  }) as BundledMcpInjectionTargetResult
+}
+
+export async function injectBundledHttpMcpServers(): Promise<BundledMcpInjectionResult> {
+  const result: BundledMcpInjectionResult = {
+    serverNames: BUNDLED_HTTP_SERVERS.map(server => server.name),
+    command: '(http)',
+    targets: [],
+  }
+
+  if (isDisabled()) {
+    logger.info('[mcp-autoinject] bundled HTTP MCP servers disabled by HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT')
+    return result
+  }
+
+  if (shouldSkipTransientAutoinject()) {
+    logger.info({ appHome: config.appHome }, '[mcp-autoinject] bundled HTTP MCP servers skipped for transient Web UI home')
+    return result
+  }
+
+  for (const profile of listProfileNamesFromDisk()) {
+    result.targets.push(await injectHttpServersIntoProfile(profile))
+  }
+
+  const changed = result.targets.filter(target => target.status === 'injected' || target.status === 'updated')
+  if (changed.length > 0) {
+    logger.info({ serverNames: result.serverNames, targets: changed }, '[mcp-autoinject] synced bundled HTTP MCP servers')
+  }
+
+  return result
+}
