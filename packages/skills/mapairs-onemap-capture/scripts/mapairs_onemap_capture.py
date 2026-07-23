@@ -2,7 +2,7 @@
 """数智大气"一张图"截图（URL 直连模式）。
 
 仅使用 Playwright；任务参数由 JSON 传入，登录凭证只从环境变量读取。
-用用户配置参数拼接完整 /oneMap URL 后直接跳转截图。
+截图流程：登录 → 拼接 URL 直连 → 等地图渲染 → 整页截图。
 公共逻辑（预检、登录、截图、配置）复用 mapairs_common。
 """
 from __future__ import annotations
@@ -12,11 +12,9 @@ import json
 import os as _os
 import sys
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 # --- 定位并加载公共模块 mapairs_common ---
-# 安装后目录结构：<skills>/mapairs-onemap-capture/scripts/本脚本
-#                <skills>/mapairs-common/mapairs_common
 _COMMON_PATH = Path(__file__).resolve().parent.parent.parent / "mapairs-common"
 _ENV_COMMON = _os.environ.get("MAPAIRS_COMMON_PATH", "").strip()
 if _ENV_COMMON:
@@ -32,20 +30,10 @@ from mapairs_common import (  # noqa: E402
     build_url,
 )
 
-if TYPE_CHECKING:
-    from playwright.sync_api import Page
-
 ONEMAP_PATH = "/oneMap"
 THEMES = {"light": "Light", "dark": "Dark"}
 MODES = {"monitoring", "interpolation"}
 TIME_TYPES = {"hourly", "dt", "daily"}
-SCOPES = {"mapOnly", "mapLegend", "fullPage"}
-
-# 各截图范围对应的候选容器选择器；命中首个存在的元素，否则整页。
-SCOPE_SELECTORS = {
-    "mapOnly": ["#map", ".map-container", ".mapboxgl-map", ".ol-viewport"],
-    "mapLegend": [".oneMap", ".one-map", ".map-page", "#oneMap"],
-}
 
 
 def fail(message: str) -> None:
@@ -69,15 +57,12 @@ def read_config(raw: str) -> dict[str, Any]:
     config.setdefault("mode", "monitoring")
     config.setdefault("factor", "PM2.5")
     config.setdefault("timeType", "hourly")
-    config.setdefault("screenshotScope", "mapLegend")
     if config["theme"] not in THEMES:
         fail("theme 仅支持 light 或 dark")
     if config["mode"] not in MODES:
         fail("mode 仅支持 monitoring 或 interpolation")
     if config["timeType"] not in TIME_TYPES:
         fail("timeType 仅支持 hourly、dt 或 daily")
-    if config["screenshotScope"] not in SCOPES:
-        fail("screenshotScope 仅支持 mapOnly、mapLegend 或 fullPage")
     if not config.get("region"):
         fail("region（地图范围 regionKeyVO）为必填")
     return config
@@ -97,19 +82,6 @@ def build_onemap_url(config: dict[str, Any]) -> str:
     return build_url(ONEMAP_PATH, params)
 
 
-def clip_for(page: "Page", scope: str) -> dict | None:
-    """按截图范围计算裁剪区域；fullPage 或无法命中容器时返回 None（整页）。"""
-    if scope == "fullPage":
-        return None
-    for selector in SCOPE_SELECTORS.get(scope, []):
-        locator = page.locator(selector).first
-        if locator.count() > 0:
-            box = locator.bounding_box()
-            if box and box.get("width", 0) > 0 and box.get("height", 0) > 0:
-                return box
-    return None
-
-
 def capture(config: dict[str, Any], output_dir: Path) -> Path:
     preflight_check()
     from playwright.sync_api import sync_playwright
@@ -121,20 +93,18 @@ def capture(config: dict[str, Any], output_dir: Path) -> Path:
         page = context.new_page()
         try:
             login(page)
-            # URL 直连：主题、因子、地图范围、模式、时间类型均通过查询参数携带。
             page.goto(target_url, wait_until="domcontentloaded")
             # 地图为异步瓦片渲染：等网络空闲后再固定等待，确保底图与图层绘制完成。
             try:
                 page.wait_for_load_state("networkidle", timeout=30_000)
             except Exception:
                 pass
-            page.wait_for_timeout(6_000)
+            page.wait_for_timeout(10_000)
             path = save_screenshot(
                 page,
                 output_dir,
                 capability="一张图",
                 region_key=str(config.get("region", "")),
-                clip=clip_for(page, config["screenshotScope"]),
             )
         finally:
             context.close()

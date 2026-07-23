@@ -243,7 +243,6 @@ const rankingStationListByType: Record<string, StationItem[]> = {} // 按站点�
 const rankingPeriod = ref('hourly')
 const rankingFactors = ref<string[]>([]) // 初始化值由后续 period watcher 设置
 const rankingIncludeScreenshot = ref(true)
-const rankingScreenshotScope = ref<'tableOnly' | 'withFilters'>('tableOnly')
 const rankingTheme = ref<'light' | 'dark'>('light')
 const rankingGbKey = ref<'2' | '0' | '1'>('0') // 国标类型，默认默
 const mapTheme = ref<'light' | 'dark'>('light')
@@ -251,7 +250,6 @@ const mapMode = ref<'monitoring' | 'interpolation'>('monitoring')
 const mapZoom = ref(8)
 const mapFactor = ref('PM2.5')
 const mapWindWaves = ref(true)
-const mapScreenshotScope = ref<'mapOnly' | 'mapLegend' | 'fullPage'>('mapLegend')
 // 地图范围：'national' 表示全国；其他值为用户区域 provinceShortCode / currentShortCode（动态）
 const mapScope = ref<string>('national')
 const mapTimeType = ref<'hourly' | 'dt' | 'daily'>('hourly')
@@ -264,7 +262,6 @@ const hourlySelectedStations = ref<string[]>([])
 const hourlyTownship = ref('all')
 const hourlyFactors = ref(['AQI', 'PM₂.₅', 'O₃'])
 const hourlyIncludeScreenshot = ref(true)
-const hourlyScreenshotScope = ref<'contentOnly' | 'withFilters'>('contentOnly')
 const hourlyTheme = ref<'light' | 'dark'>('light')
 const hourlyGbKey = ref<'2' | '0' | '1'>('0') // 国标类型，默认默
 const monitoringRegion = ref(['1320a70ee'])
@@ -478,8 +475,6 @@ interface RankingOutputSnapshot {
   factors: string     // 选中的污染因子逗号分隔
   gbKey: '2' | '0' | '1' // 国标类型：2=新, 0=默认, 1=旧
   includeScreenshot: boolean
-  includeAnalysis: boolean
-  screenshotScope: 'tableOnly' | 'withFilters'
   theme: 'light' | 'dark'
 }
 
@@ -500,7 +495,6 @@ interface MapOutputSnapshot {
   zoom: number
   factor: string
   windWaves: boolean
-  screenshotScope: 'mapOnly' | 'mapLegend' | 'fullPage'
   region: string  // 'national' 或用户的 provinceShortCode / currentShortCode
   timeType: 'hourly' | 'dt' | 'daily'
   leftPanel: boolean
@@ -513,8 +507,6 @@ interface HourlyBriefOutputSnapshot {
   factors: string // 选中的污染因子逗号分隔
   gbKey: '2' | '0' | '1' // 国标类型：2=新, 0=默认, 1=旧
   includeScreenshot: boolean
-  includeSummary: boolean
-  screenshotScope: 'contentOnly' | 'withFilters'
   theme: 'light' | 'dark'
 }
 
@@ -526,9 +518,7 @@ interface MonitoringDataOutputSnapshot {
   customRange: string
   factors: string // 选中的污染因子逗号分隔
   gbKey: '2' | '0' | '1' // 国标类型：2=新, 0=默认, 1=旧
-  includeTable: boolean
   includeScreenshot: boolean
-  includeAnalysis: boolean
   theme: 'light' | 'dark'
 }
 
@@ -547,27 +537,24 @@ const captureRankingConfig = (): RankingOutputSnapshot => {
     ...(isStation && { stationType: rankingStationTypes.value.join(','), station: rankingSelectedStations.value.join(',') }),
     type: rankingPeriod.value,
     factors: rankingFactors.value.join(','), gbKey: rankingGbKey.value,
-    includeScreenshot: rankingIncludeScreenshot.value,
-    includeAnalysis: false, screenshotScope: rankingScreenshotScope.value, theme: rankingTheme.value,
+    includeScreenshot: rankingIncludeScreenshot.value, theme: rankingTheme.value,
   }
 }
 const captureMapConfig = (): MapOutputSnapshot => ({
   theme: mapTheme.value, mode: mapMode.value, zoom: mapZoom.value, factor: mapFactor.value,
-  windWaves: mapWindWaves.value, screenshotScope: mapScreenshotScope.value, region: mapScope.value,
+  windWaves: mapWindWaves.value, region: mapScope.value,
   timeType: mapTimeType.value, leftPanel: mapCloseLeftPanel.value,
 })
 const captureHourlyConfig = (): HourlyBriefOutputSnapshot => ({
   zone: hourlyQueryTarget.value, region: hourlyRegion.value.join(','), township: hourlyTownship.value, factors: hourlyFactors.value.join(','),
   gbKey: hourlyGbKey.value,
-  includeScreenshot: hourlyIncludeScreenshot.value, includeSummary: false,
-  screenshotScope: hourlyScreenshotScope.value, theme: hourlyTheme.value,
+  includeScreenshot: hourlyIncludeScreenshot.value, theme: hourlyTheme.value,
 })
 const captureMonitoringConfig = (): MonitoringDataOutputSnapshot => ({
   zone: monitoringQueryTarget.value, region: monitoringRegion.value.join(','), township: monitoringTownship.value,
   type: monitoringPeriod.value, customRange: monitoringCustomRange.value,
   factors: monitoringFactors.value.join(','), gbKey: monitoringGbKey.value,
-  includeTable: false,
-  includeScreenshot: monitoringIncludeScreenshot.value, includeAnalysis: false,
+  includeScreenshot: monitoringIncludeScreenshot.value,
   theme: monitoringTheme.value,
 })
 
@@ -595,18 +582,18 @@ function loadOutput(output: DutyOutputItem) {
     rankingPeriod.value = c.type
     rankingFactors.value = c.factors ? c.factors.split(',') : []
     rankingIncludeScreenshot.value = c.includeScreenshot
-    rankingScreenshotScope.value = c.screenshotScope; rankingTheme.value = c.theme
+    rankingTheme.value = c.theme
     rankingGbKey.value = c.gbKey || '0'
   } else if (output.type === 'mapPackage') {
     const c = output.config
     mapTheme.value = c.theme; mapMode.value = c.mode; mapZoom.value = c.zoom; mapFactor.value = c.factor
-    mapWindWaves.value = c.windWaves; mapScreenshotScope.value = c.screenshotScope; mapScope.value = c.region
+    mapWindWaves.value = c.windWaves; mapScope.value = c.region
     mapTimeType.value = c.timeType; mapCloseLeftPanel.value = c.leftPanel ?? true
   } else if (output.type === 'hourlyBrief') {
     const c = output.config
     hourlyQueryTarget.value = c.zone; hourlyRegion.value = c.region ? c.region.split(',') : []; hourlyTownship.value = c.township; hourlyFactors.value = c.factors ? c.factors.split(',') : []
     hourlyIncludeScreenshot.value = c.includeScreenshot
-    hourlyScreenshotScope.value = c.screenshotScope; hourlyTheme.value = c.theme
+    hourlyTheme.value = c.theme
     hourlyGbKey.value = c.gbKey || '0'
   } else {
     const c = output.config
@@ -754,11 +741,11 @@ watch(rankingRegion, () => {
 watch([
   rankingQueryTarget, rankingRegion, rankingPeriod,
   rankingFactors, rankingIncludeScreenshot,
-  rankingScreenshotScope, rankingTheme, rankingProvince, rankingGbKey,
+  rankingTheme, rankingProvince, rankingGbKey,
   rankingStationTypes, rankingSelectedStations,
   mapTheme, mapMode, mapZoom, mapFactor, mapWindWaves,
-  mapScreenshotScope, mapScope, mapTimeType, mapCloseLeftPanel,
-  hourlyQueryTarget, hourlyRegion, hourlyTownship, hourlyFactors, hourlyIncludeScreenshot, hourlyScreenshotScope, hourlyTheme, hourlyGbKey,
+  mapScope, mapTimeType, mapCloseLeftPanel,
+  hourlyQueryTarget, hourlyRegion, hourlyTownship, hourlyFactors, hourlyIncludeScreenshot, hourlyTheme, hourlyGbKey,
   monitoringQueryTarget, monitoringRegion, monitoringTownship, monitoringPeriod, monitoringCustomRange, monitoringFactors,
   monitoringIncludeScreenshot, monitoringTheme, monitoringGbKey,
 ], syncActiveOutput, { deep: true, flush: 'sync' })
@@ -997,7 +984,6 @@ const mapScopeLabel = computed(() => {
 })
 const mapModeLabel = computed(() => mapMode.value === 'monitoring' ? '监测图' : '插值图')
 const mapFactorLabel = computed(() => mapFactorOptions.find(item => item.value === mapFactor.value)?.label || '首要污染物')
-const mapScreenshotScopeLabel = computed(() => ({ mapOnly: '仅地图', mapLegend: '地图和图例', fullPage: '完整页面' }[mapScreenshotScope.value]))
 const regionLabelFor = (value: string) => getRegionLabel(value)
 const mapScopeLabelFor = (value: MapOutputSnapshot['region']) => {
   if (value === 'national') return '全国'
@@ -1014,7 +1000,7 @@ function outputDefinition(output: DutyOutputItem): string {
   if (output.type === 'concentrationRanking') {
     const c = output.config
     const type = rankingPeriods.find(item => item.value === c.type)?.label || '日累计'
-    const outputs = [c.includeScreenshot ? `页面截图（${c.screenshotScope === 'tableOnly' ? '仅标题和表格' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : ''].filter(Boolean).join('、')
+    const outputs = [c.includeScreenshot ? `页面截图（${c.theme === 'light' ? '浅色' : '深色'}）` : ''].filter(Boolean).join('、')
     const factorsLabel = c.factors ? c.factors.split(',').map(factorLabelFor).join('、') : ''
     const parts: string[] = []
     if (c.stationType) {
@@ -1030,11 +1016,11 @@ function outputDefinition(output: DutyOutputItem): string {
   }
   if (output.type === 'mapPackage') {
     const c = output.config
-    return `${output.title}：范围：${mapScopeLabelFor(c.region)}；地图类型：${c.mode === 'monitoring' ? '监测图' : '插值图'}；因子：${mapFactorLabelFor(c.factor)}；时间类型：${({ hourly: '实时', dt: '累计', daily: '日' }[c.timeType])}；缩放等级：${c.zoom}；颜色：${c.theme === 'light' ? '浅色' : '深色'}；风/海浪：${c.windWaves ? '开启' : '关闭'}；左侧面板：${c.leftPanel ? '显示' : '关闭'}；截图区域：${({ mapOnly: '仅地图', mapLegend: '地图和图例', fullPage: '完整页面' }[c.screenshotScope])}`
+    return `${output.title}：范围：${mapScopeLabelFor(c.region)}；地图类型：${c.mode === 'monitoring' ? '监测图' : '插值图'}；因子：${mapFactorLabelFor(c.factor)}；时间类型：${({ hourly: '实时', dt: '累计', daily: '日' }[c.timeType])}；缩放等级：${c.zoom}；颜色：${c.theme === 'light' ? '浅色' : '深色'}；风/海浪：${c.windWaves ? '开启' : '关闭'}；左侧面板：${c.leftPanel ? '显示' : '关闭'}`
   }
   if (output.type === 'hourlyBrief') {
     const c = output.config
-    const delivery = [c.includeScreenshot ? `页面截图（${c.screenshotScope === 'contentOnly' ? '仅播报内容' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : ''].filter(Boolean).join('、')
+    const delivery = [c.includeScreenshot ? `页面截图（${c.theme === 'light' ? '浅色' : '深色'}）` : ''].filter(Boolean).join('、')
     const factorsLabel = c.factors ? c.factors.split(',').map(factorLabelFor).join('、') : ''
     const gbLabel = { '2': '新', '0': '默', '1': '旧' }[c.gbKey] || '默'
     return `${output.title}：${c.zone === 'city' ? '城市' : '站点'}；行政区：${regionLabelFor(c.region)}；乡镇：${townshipLabelFor(c.township)}；国标类型：${gbLabel}；数据时间：官网最新可用时间；污染因子：${factorsLabel}；成果：${delivery}`
@@ -1048,12 +1034,24 @@ function outputDefinition(output: DutyOutputItem): string {
 }
 
 const allOutputLabels = computed(() => dutyOutputs.value.map(outputDefinition))
-const taskExecutionOutputs = computed(() => dutyOutputs.value.map(output => ({
-  id: output.id,
-  capability: ({ concentrationRanking: 'mapairs-ranking-capture', mapPackage: 'mapairs-onemap-capture', hourlyBrief: 'mapairs-hourly-brief', monitoringData: 'mapairs-monitoring-data' }[output.type]),
-  skill: output.type === 'concentrationRanking' && output.config.includeScreenshot ? 'mapairs-ranking-capture' : output.type === 'mapPackage' ? 'mapairs-onemap-capture' : null,
-  config: output.config,
-})))
+const SKILL_BY_TYPE: Record<DutyOutputItem['type'], string> = {
+  concentrationRanking: 'mapairs-ranking-capture',
+  mapPackage: 'mapairs-onemap-capture',
+  hourlyBrief: 'mapairs-hourly-brief',
+  monitoringData: 'mapairs-monitoring-data',
+}
+const taskExecutionOutputs = computed(() => dutyOutputs.value.map(output => {
+  const isScreenshotOutput =
+    (output.type === 'concentrationRanking' || output.type === 'hourlyBrief' || output.type === 'monitoringData')
+      ? output.config.includeScreenshot
+      : true // mapPackage 一张图始终为截图成果
+  return {
+    id: output.id,
+    capability: SKILL_BY_TYPE[output.type],
+    skill: isScreenshotOutput ? SKILL_BY_TYPE[output.type] : null,
+    config: output.config,
+  }
+}))
 const taskSkills = computed(() => [...new Set([
   ...selectedSkills.value,
   ...taskExecutionOutputs.value.map(output => output.skill).filter((skill): skill is string => !!skill),
@@ -1376,12 +1374,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   </div>
                 </div>
                 <div v-if="rankingIncludeScreenshot" class="screenshot-options">
-                  <div class="compact-field"><span>截图区域：</span>
-                    <div class="segmented"><button :class="{ active: rankingScreenshotScope === 'tableOnly' }"
-                        @click="rankingScreenshotScope = 'tableOnly'">仅标题和表格</button><button
-                        :class="{ active: rankingScreenshotScope === 'withFilters' }"
-                        @click="rankingScreenshotScope = 'withFilters'">含查询条件</button></div>
-                  </div>
                   <div class="compact-field"><span>截图颜色：</span>
                     <div class="segmented"><button :class="{ active: rankingTheme === 'light' }"
                         @click="rankingTheme = 'light'">浅色</button><button :class="{ active: rankingTheme === 'dark' }"
@@ -1560,9 +1552,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               </div>
               <div class="ranking-summary">本次一张图：{{ mapScopeLabel }} · {{ mapModeLabel }} · {{ mapFactorLabel }} · 缩放 {{
                 mapZoom }}
-                · {{ mapTheme === 'light' ? '浅色' : '深色' }} · {{ mapWindWaves ? '开启风/海浪' : '关闭风/海浪' }} · {{
-                  mapScreenshotScopeLabel
-                }} · {{ mapCloseLeftPanel ? '保留左侧面板' : '关闭左侧面板' }} </div>
+                · {{ mapTheme === 'light' ? '浅色' : '深色' }} · {{ mapWindWaves ? '开启风/海浪' : '关闭风/海浪' }} · {{ mapCloseLeftPanel ? '保留左侧面板' : '关闭左侧面板' }} </div>
             </section>
 
             <section v-if="selectedCapability === 'hourlyBrief'" class="ranking-config hourly-config">
@@ -1579,12 +1569,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   <span class="latest-hint">任务执行时自动使用官网最新可用时点</span>
                 </div>
                 <div v-if="hourlyIncludeScreenshot" class="screenshot-options">
-                  <div class="compact-field"><span>截图区域：</span>
-                    <div class="segmented"><button :class="{ active: hourlyScreenshotScope === 'contentOnly' }"
-                        @click="hourlyScreenshotScope = 'contentOnly'">仅播报内容</button><button
-                        :class="{ active: hourlyScreenshotScope === 'withFilters' }"
-                        @click="hourlyScreenshotScope = 'withFilters'">含查询条件</button></div>
-                  </div>
                   <div class="compact-field"><span>截图颜色：</span>
                     <div class="segmented"><button :class="{ active: hourlyTheme === 'light' }"
                         @click="hourlyTheme = 'light'">浅色</button><button :class="{ active: hourlyTheme === 'dark' }"

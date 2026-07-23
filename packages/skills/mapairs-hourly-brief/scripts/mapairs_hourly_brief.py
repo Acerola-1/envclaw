@@ -2,8 +2,8 @@
 """数智大气小时播报截图（URL 直连模式）。
 
 仅使用 Playwright；任务参数由 JSON 传入，登录凭证只从环境变量读取。
-与旧版逐级点击菜单不同：本脚本用用户配置参数拼接完整 URL 后直接跳转，
-截图更稳定可靠。公共逻辑（预检、登录、截图、配置）复用 mapairs_common。
+截图流程：登录 → 拼接 URL 直连 → 等表格加载 → 整页截图。
+公共逻辑（预检、登录、截图、配置）复用 mapairs_common。
 """
 from __future__ import annotations
 
@@ -11,11 +11,9 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 # --- 定位并加载公共模块 mapairs_common ---
-# 安装后目录结构：<skills>/mapairs-hourly-broadcast-capture/scripts/本脚本
-#                <skills>/mapairs-common/mapairs_common
 _COMMON_PATH = Path(__file__).resolve().parent.parent.parent / "mapairs-common"
 import os as _os
 _ENV_COMMON = _os.environ.get("MAPAIRS_COMMON_PATH", "").strip()
@@ -32,13 +30,8 @@ from mapairs_common import (  # noqa: E402
     build_url,
 )
 
-if TYPE_CHECKING:
-    from playwright.sync_api import Page
-
 HOURLY_PATH = "/dataStatistics/CityHourBroadcast"
 THEMES = {"light": "Light", "dark": "Dark"}
-SCOPES = {"contentOnly", "withFilters"}
-
 
 # 因子编码归一：URL 使用半角编码；容错处理 Unicode 下标写法。
 FACTOR_NORMALIZE = {
@@ -70,15 +63,10 @@ def read_config(raw: str) -> dict[str, Any]:
     config.setdefault("zone", "city")
     config.setdefault("township", "")
     config.setdefault("theme", "light")
-    config.setdefault("screenshotScope", "contentOnly")
-    config.setdefault("includeScreenshot", True)
-    config.setdefault("includeSummary", True)
     if config["zone"] not in ("city", "site"):
         fail("zone 仅支持 city 或 site")
     if config["theme"] not in THEMES:
         fail("theme 仅支持 light 或 dark")
-    if config["screenshotScope"] not in SCOPES:
-        fail("screenshotScope 仅支持 contentOnly 或 withFilters")
     if not config.get("region"):
         fail("region（行政区 regionKeyVO）为必填")
     index = normalize_factors(config.get("factors"))
@@ -106,24 +94,6 @@ def build_hourly_url(config: dict[str, Any]) -> str:
     return build_url(HOURLY_PATH, params)
 
 
-def clip_for(page: "Page", scope: str) -> dict | None:
-    """按截图范围计算裁剪区域；无法计算时返回 None（整页）。"""
-    if scope == "contentOnly":
-        return page.evaluate(
-            """() => {
-                const container = document.querySelector('.container');
-                if (!container) return null;
-                const content = document.querySelector('.hour-broadcast-content') ||
-                             document.querySelector('.dataStatistics-main');
-                if (!content) return null;
-                const rc = content.getBoundingClientRect();
-                return { x: rc.x, y: rc.y, width: rc.width, height: rc.height };
-            }"""
-        )
-    box = page.locator(".container").first().bounding_box()
-    return box
-
-
 def capture(config: dict[str, Any], output_dir: Path) -> Path:
     preflight_check()
     from playwright.sync_api import sync_playwright
@@ -135,16 +105,18 @@ def capture(config: dict[str, Any], output_dir: Path) -> Path:
         page = context.new_page()
         try:
             login(page)
-            # URL 直连：主题、行政区、因子均通过查询参数携带。
             page.goto(target_url, wait_until="domcontentloaded")
-            page.wait_for_selector(".hour-broadcast-content, .dataStatistics-main", timeout=30_000)
-            page.wait_for_timeout(1_500)
+            # 等网络空闲确保数据加载完成，不再依赖特定 DOM 选择器
+            try:
+                page.wait_for_load_state("networkidle", timeout=30_000)
+            except Exception:
+                pass
+            page.wait_for_timeout(10_000)
             path = save_screenshot(
                 page,
                 output_dir,
                 capability="小时播报",
                 region_key=str(config.get("region", "")),
-                clip=clip_for(page, config["screenshotScope"]),
             )
         finally:
             context.close()
