@@ -508,7 +508,6 @@ interface MapOutputSnapshot {
   region: string  // 'national' 或用户的 provinceShortCode / currentShortCode
   timeType: 'hourly' | 'dt' | 'daily'
   leftPanel: boolean
-  closeLeftPanel?: boolean
 }
 
 interface HourlyBriefOutputSnapshot {
@@ -606,7 +605,7 @@ function loadOutput(output: DutyOutputItem) {
     const c = output.config
     mapTheme.value = c.theme; mapMode.value = c.mode; mapZoom.value = c.zoom; mapFactor.value = c.factor
     mapWindWaves.value = c.windWaves; mapScreenshotScope.value = c.screenshotScope; mapScope.value = c.region
-    mapTimeType.value = c.timeType; mapCloseLeftPanel.value = c.closeLeftPanel ?? true
+    mapTimeType.value = c.timeType; mapCloseLeftPanel.value = c.leftPanel ?? true
   } else if (output.type === 'hourlyBrief') {
     const c = output.config
     hourlyQueryTarget.value = c.zone; hourlyRegion.value = c.region ? c.region.split(',') : []; hourlyTownship.value = c.township; hourlyFactors.value = c.factors ? c.factors.split(',') : []
