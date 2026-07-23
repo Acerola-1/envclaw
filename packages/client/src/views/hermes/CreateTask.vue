@@ -265,11 +265,10 @@ const hourlySelectedStations = ref<string[]>([])
 const hourlyTownship = ref('all')
 const hourlyFactors = ref(['AQI', 'PM₂.₅', 'O₃'])
 const hourlyIncludeScreenshot = ref(true)
-const hourlyIncludeSummary = ref(true)
 const hourlyScreenshotScope = ref<'contentOnly' | 'withFilters'>('contentOnly')
 const hourlyTheme = ref<'light' | 'dark'>('light')
 const hourlyGbKey = ref<'2' | '0' | '1'>('0') // 国标类型，默认默
-const monitoringRegion = ref('1320a70ee')
+const monitoringRegion = ref(['1320a70ee'])
 const monitoringQueryTarget = ref<'city' | 'site'>('city')
 const monitoringStationType = ref<string>('S-100')
 const monitoringStationDropdownOpen = ref(false)
@@ -278,9 +277,7 @@ const monitoringTownship = ref('all')
 const monitoringPeriod = ref<'hour_avg' | 'hour' | 'daily' | 'daily_count' | 'other'>('hour')
 const monitoringCustomRange = ref('')
 const monitoringFactors = ref(['AQI', 'PM₂.₅', 'O₃'])
-const monitoringIncludeTable = ref(true)
-const monitoringIncludeScreenshot = ref(false)
-const monitoringIncludeAnalysis = ref(false)
+const monitoringIncludeScreenshot = ref(true)
 const monitoringTheme = ref<'light' | 'dark'>('light')
 const monitoringGbKey = ref<'2' | '0' | '1'>('0') // 国标类型，默认默
 
@@ -563,15 +560,15 @@ const captureMapConfig = (): MapOutputSnapshot => ({
 const captureHourlyConfig = (): HourlyBriefOutputSnapshot => ({
   zone: hourlyQueryTarget.value, region: hourlyRegion.value.join(','), township: hourlyTownship.value, factors: hourlyFactors.value.join(','),
   gbKey: hourlyGbKey.value,
-  includeScreenshot: hourlyIncludeScreenshot.value, includeSummary: hourlyIncludeSummary.value,
+  includeScreenshot: hourlyIncludeScreenshot.value, includeSummary: false,
   screenshotScope: hourlyScreenshotScope.value, theme: hourlyTheme.value,
 })
 const captureMonitoringConfig = (): MonitoringDataOutputSnapshot => ({
-  zone: monitoringQueryTarget.value, region: monitoringRegion.value, township: monitoringTownship.value,
+  zone: monitoringQueryTarget.value, region: monitoringRegion.value.join(','), township: monitoringTownship.value,
   type: monitoringPeriod.value, customRange: monitoringCustomRange.value,
   factors: monitoringFactors.value.join(','), gbKey: monitoringGbKey.value,
-  includeTable: monitoringIncludeTable.value,
-  includeScreenshot: monitoringIncludeScreenshot.value, includeAnalysis: monitoringIncludeAnalysis.value,
+  includeTable: false,
+  includeScreenshot: monitoringIncludeScreenshot.value, includeAnalysis: false,
   theme: monitoringTheme.value,
 })
 
@@ -609,15 +606,15 @@ function loadOutput(output: DutyOutputItem) {
   } else if (output.type === 'hourlyBrief') {
     const c = output.config
     hourlyQueryTarget.value = c.zone; hourlyRegion.value = c.region ? c.region.split(',') : []; hourlyTownship.value = c.township; hourlyFactors.value = c.factors ? c.factors.split(',') : []
-    hourlyIncludeScreenshot.value = c.includeScreenshot; hourlyIncludeSummary.value = c.includeSummary
+    hourlyIncludeScreenshot.value = c.includeScreenshot
     hourlyScreenshotScope.value = c.screenshotScope; hourlyTheme.value = c.theme
     hourlyGbKey.value = c.gbKey || '0'
   } else {
     const c = output.config
-    monitoringQueryTarget.value = c.zone; monitoringRegion.value = c.region; monitoringTownship.value = c.township
+    monitoringQueryTarget.value = c.zone; monitoringRegion.value = c.region ? c.region.split(',') : []; monitoringTownship.value = c.township
     monitoringPeriod.value = c.type; monitoringCustomRange.value = c.customRange
-    monitoringFactors.value = c.factors ? c.factors.split(',') : []; monitoringIncludeTable.value = c.includeTable
-    monitoringIncludeScreenshot.value = c.includeScreenshot; monitoringIncludeAnalysis.value = c.includeAnalysis
+    monitoringFactors.value = c.factors ? c.factors.split(',') : []
+    monitoringIncludeScreenshot.value = c.includeScreenshot
     monitoringTheme.value = c.theme
     monitoringGbKey.value = c.gbKey || '0'
   }
@@ -762,9 +759,9 @@ watch([
   rankingStationTypes, rankingSelectedStations,
   mapTheme, mapMode, mapZoom, mapFactor, mapWindWaves,
   mapScreenshotScope, mapScope, mapTimeType, mapCloseLeftPanel,
-  hourlyQueryTarget, hourlyRegion, hourlyTownship, hourlyFactors, hourlyIncludeScreenshot, hourlyIncludeSummary, hourlyScreenshotScope, hourlyTheme, hourlyGbKey,
-  monitoringQueryTarget, monitoringRegion, monitoringTownship, monitoringPeriod, monitoringCustomRange, monitoringFactors, monitoringIncludeTable,
-  monitoringIncludeScreenshot, monitoringIncludeAnalysis, monitoringTheme, monitoringGbKey,
+  hourlyQueryTarget, hourlyRegion, hourlyTownship, hourlyFactors, hourlyIncludeScreenshot, hourlyScreenshotScope, hourlyTheme, hourlyGbKey,
+  monitoringQueryTarget, monitoringRegion, monitoringTownship, monitoringPeriod, monitoringCustomRange, monitoringFactors,
+  monitoringIncludeScreenshot, monitoringTheme, monitoringGbKey,
 ], syncActiveOutput, { deep: true, flush: 'sync' })
 
 // 时间类型变化 → 默认全选当前时间类型的所有污染因子
@@ -1038,13 +1035,13 @@ function outputDefinition(output: DutyOutputItem): string {
   }
   if (output.type === 'hourlyBrief') {
     const c = output.config
-    const delivery = [c.includeScreenshot ? `播报截图（${c.screenshotScope === 'contentOnly' ? '仅播报内容' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : '', c.includeSummary ? '文字播报' : ''].filter(Boolean).join('、')
+    const delivery = [c.includeScreenshot ? `页面截图（${c.screenshotScope === 'contentOnly' ? '仅播报内容' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : ''].filter(Boolean).join('、')
     const factorsLabel = c.factors ? c.factors.split(',').map(factorLabelFor).join('、') : ''
     const gbLabel = { '2': '新', '0': '默', '1': '旧' }[c.gbKey] || '默'
     return `${output.title}：${c.zone === 'city' ? '城市' : '站点'}；行政区：${regionLabelFor(c.region)}；乡镇：${townshipLabelFor(c.township)}；国标类型：${gbLabel}；数据时间：官网最新可用时间；污染因子：${factorsLabel}；成果：${delivery}`
   }
   const c = output.config
-  const delivery = [c.includeTable ? '监测数据表' : '', c.includeScreenshot ? `${c.theme === 'light' ? '浅色' : '深色'}截图` : '', c.includeAnalysis ? '数据分析摘要' : ''].filter(Boolean).join('、')
+  const delivery = [c.includeScreenshot ? `页面截图（${c.theme === 'light' ? '浅色' : '深色'}）` : ''].filter(Boolean).join('、')
   const time = c.type === 'other' ? `自定义：${c.customRange || '待设置'}` : `官网最新${monitoringPeriodLabelFor(c.type)}数据`
   const factorsLabel = c.factors ? c.factors.split(',').map(factorLabelFor).join('、') : ''
   const gbLabel = { '2': '新', '0': '默', '1': '旧' }[c.gbKey] || '默'
@@ -1078,12 +1075,9 @@ function outputDeliverables(output: DutyOutputItem): ExpectedDeliverable[] {
   } else if (output.type === 'mapPackage') {
     list.push({ label: '一张图截图', kind: 'screenshot' })
   } else if (output.type === 'hourlyBrief') {
-    if (output.config.includeScreenshot) list.push({ label: '播报截图', kind: 'screenshot' })
-    if (output.config.includeSummary) list.push({ label: '文字播报', kind: 'text' })
+    if (output.config.includeScreenshot) list.push({ label: '页面截图', kind: 'screenshot' })
   } else {
-    if (output.config.includeTable) list.push({ label: '监测数据表', kind: 'text' })
-    if (output.config.includeScreenshot) list.push({ label: '数据截图', kind: 'screenshot' })
-    if (output.config.includeAnalysis) list.push({ label: '数据分析摘要', kind: 'text' })
+    if (output.config.includeScreenshot) list.push({ label: '页面截图', kind: 'screenshot' })
   }
   return list
 }
@@ -1255,7 +1249,7 @@ onMounted(async () => {
       console.log('[CreateTask] 设置默认城市为', userRegionName, '→', key)
       rankingRegion.value = [key]
       hourlyRegion.value = [key]
-      monitoringRegion.value = key
+      monitoringRegion.value = [key]
     }
   }
 
@@ -1582,8 +1576,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>生成成果：</span>
                     <div class="output-checks">
-                      <NCheckbox v-model:checked="hourlyIncludeScreenshot">播报截图</NCheckbox>
-                      <NCheckbox v-model:checked="hourlyIncludeSummary">文字播报</NCheckbox>
+                      <NCheckbox v-model:checked="hourlyIncludeScreenshot" disabled>页面截图</NCheckbox>
                     </div>
                   </div>
                   <span class="latest-hint">任务执行时自动使用官网最新可用时点</span>
@@ -1673,8 +1666,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               </div>
               <div class="ranking-summary">本次成果：{{ hourlyQueryTarget === 'city' ? '城市' : '站点' }} · {{
                 regionLabelFor(hourlyRegion.join(',')) }} · {{ townshipLabelFor(hourlyTownship) }} · 官网最新可用时点 · {{
-                  hourlyFactors.join('、') }} · {{ hourlyIncludeScreenshot ? '播报截图' : '' }}{{ hourlyIncludeScreenshot &&
-                  hourlyIncludeSummary ? '、' : '' }}{{ hourlyIncludeSummary ? '文字播报' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[hourlyGbKey] || '默' }}</div>
+                  hourlyFactors.join('、') }} · {{ hourlyIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[hourlyGbKey] || '默' }}</div>
             </section>
 
             <section v-if="selectedCapability === 'monitoringData'" class="ranking-config monitoring-config">
@@ -1685,12 +1677,10 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>生成成果：</span>
                     <div class="output-checks">
-                      <NCheckbox v-model:checked="monitoringIncludeTable">监测数据表</NCheckbox>
-                      <NCheckbox v-model:checked="monitoringIncludeScreenshot">数据截图</NCheckbox>
-                      <NCheckbox v-model:checked="monitoringIncludeAnalysis">数据分析</NCheckbox>
+                      <NCheckbox v-model:checked="monitoringIncludeScreenshot" disabled>页面截图</NCheckbox>
                     </div>
                   </div>
-                  <div v-if="monitoringIncludeScreenshot" class="compact-field"><span>截图颜色：</span>
+                  <div class="compact-field"><span>截图颜色：</span>
                     <div class="segmented"><button :class="{ active: monitoringTheme === 'light' }"
                         @click="monitoringTheme = 'light'">浅色</button><button
                         :class="{ active: monitoringTheme === 'dark' }" @click="monitoringTheme = 'dark'">深色</button>
@@ -1707,7 +1697,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   <div class="compact-field region-field"><span>行政区：</span>
                     <NTreeSelect v-model:value="monitoringRegion" :default-value="monitoringRegion"
                       :options="cityRegionTree" :loading="cityTreeLoading" label-field="fullName"
-                      key-field="regionKeyVO" placeholder="请选择行政区" />
+                      key-field="regionKeyVO" multiple placeholder="请选择行政区" />
                   </div>
                   <template v-if="monitoringQueryTarget === 'site'">
                     <div class="station-dropdown">
@@ -1783,12 +1773,10 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 </div>
               </div>
               <div class="ranking-summary">本次成果：{{ monitoringQueryTarget === 'city' ? '城市' : '站点' }} · {{
-                regionLabelFor(monitoringRegion) }} · {{ townshipLabelFor(monitoringTownship) }} · {{ monitoringPeriod
+                regionLabelFor(monitoringRegion.join(',')) }} · {{ townshipLabelFor(monitoringTownship) }} · {{ monitoringPeriod
                   === 'other'
                   ? (monitoringCustomRange || '自定义时间范围') : `官网最新${monitoringPeriodLabelFor(monitoringPeriod)}数据` }} · {{
-                  monitoringFactors.join('、') }} · {{ monitoringIncludeTable ? '监测数据表' : '' }}{{
-                  monitoringIncludeScreenshot ? '、数据截图'
-                    : '' }}{{ monitoringIncludeAnalysis ? '、数据分析' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[monitoringGbKey] || '默' }}</div>
+                  monitoringFactors.join('、') }} · {{ monitoringIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[monitoringGbKey] || '默' }}</div>
             </section>
           </div>
         </div>
