@@ -3,7 +3,7 @@ import { promisify } from 'util'
 import { logger } from '../logger'
 import { getActiveProfileDir } from './hermes-profile'
 import { spawnHermesWithBin } from './hermes-process'
-import { getMapairsCredentialsEnv } from '../envclaw/platforms'
+import { getMapairsCredentials } from '../envclaw/platforms'
 
 /**
  * 为 gateway 子进程构建环境变量：在继承父进程环境基础上，
@@ -14,8 +14,16 @@ import { getMapairsCredentialsEnv } from '../envclaw/platforms'
 function buildGatewayEnv(profileDir: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    ...getMapairsCredentialsEnv(),
     HERMES_HOME: profileDir,
+  }
+  try {
+    const creds = getMapairsCredentials()
+    if (creds && creds.username && creds.password) {
+      env.MAPAIRS_USERNAME = creds.username
+      env.MAPAIRS_PASSWORD = creds.password
+    }
+  } catch (err) {
+    logger.warn(err, '[gateway-runner] failed to load Mapairs credentials for gateway env')
   }
   return env
 }

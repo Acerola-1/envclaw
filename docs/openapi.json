@@ -371,7 +371,6 @@
                 },
                 "required": [
                   "password",
-                  "plainPassword",
                   "username"
                 ]
               }
