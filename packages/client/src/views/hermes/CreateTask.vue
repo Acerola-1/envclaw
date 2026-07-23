@@ -53,6 +53,27 @@ const selectedProvider = ref('')
 const selectedModel = ref('')
 const selectedSkills = ref<string[]>([])
 const promptSupplement = ref('') // 用户补充说明
+const savePath = ref('') // 成果保存位置（可选）
+
+async function browseSavePath() {
+  // Electron 环境：使用原生文件夹选择对话框
+  const desktop = (window as any).hermesDesktop
+  if (desktop?.selectFolder) {
+    try {
+      const path = await desktop.selectFolder()
+      if (path) savePath.value = path
+    } catch { /* 用户取消 */ }
+    return
+  }
+  // Web 环境：使用 FolderPicker 的后端 API 浏览
+  try {
+    const { request } = await import('@/api/client')
+    const res = await request<{ base: string; folders: Array<{ name: string; path: string; fullPath: string }> }>('/api/hermes/workspace/folders')
+    if (res.base) savePath.value = res.base
+  } catch {
+    message.warning('无法浏览文件夹，请手动输入路径')
+  }
+}
 
 // ==================== Delivery Targets (from channel_directory.json) ====================
 const deliveryTargetsLoading = ref(false)
@@ -1113,6 +1134,12 @@ const finalPrompt = computed(() => {
     parts.push(`\n【补充说明】\n${supplement}`)
   }
 
+  // 成果保存位置
+  const sp = savePath.value.trim()
+  if (sp) {
+    parts.push(`【成果保存位置｜强制】\n所有截图、文件等成果必须额外保存到本地路径：${sp}。若该路径不存在则先创建，确保每个成果文件都保存一份到该目录。`)
+  }
+
   return parts.join('\n\n')
 })
 
@@ -1793,6 +1820,28 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
             </div>
 
             <div class="form-group">
+              <label class="form-label">成果保存位置（可选）</label>
+              <div class="save-path-row">
+                <NInput
+                  v-model:value="savePath"
+                  placeholder="留空则不保存到本地文件夹"
+                  clearable
+                />
+                <NButton size="small" @click="browseSavePath">
+                  <template #icon>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </template>
+                  浏览
+                </NButton>
+              </div>
+              <div class="chip-config-hint">
+                <span class="hint-text">填写后，Agent 会将截图和文件保存到该路径。</span>
+              </div>
+            </div>
+
+            <div class="form-group">
               <label class="form-label">运行模型（可选）</label>
               <div class="model-select-row">
                 <NSelect
@@ -1843,6 +1892,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="preview-line">
                 <strong>频率：</strong>{{ scheduleDescription }}
                 <span v-if="deliverDisplayName"> · <strong>推送至：</strong>{{ deliverDisplayName }}</span>
+                <span v-if="savePath.trim()"> · <strong>保存到：</strong>{{ savePath.trim() }}</span>
               </div>
             </div>
 
@@ -2045,6 +2095,16 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   gap: 8px;
 
   > * {
+    flex: 1;
+  }
+}
+
+.save-path-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  > .n-input {
     flex: 1;
   }
 }

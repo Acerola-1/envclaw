@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, shell, ipcMain, nativeImage, Notification } from 'electron'
+import { app, BrowserWindow, Menu, Tray, shell, ipcMain, nativeImage, Notification, dialog } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { startWebUiServer, stopWebUiServer, getToken } from './webui-server'
@@ -548,6 +548,15 @@ ipcMain.handle('hermes-desktop:retry-bootstrap', async (_event, source?: Runtime
 })
 ipcMain.handle('hermes-desktop:get-app-version', () => getAppVersion())
 ipcMain.handle('hermes-desktop:check-for-updates', () => checkForUpdatesUi())
+ipcMain.handle('hermes-desktop:select-folder', async (_event, title?: unknown) => {
+  const win = mainWindow
+  if (!win) return null
+  const result = await dialog.showOpenDialog(win, {
+    title: typeof title === 'string' ? title : '选择文件夹',
+    properties: ['openDirectory', 'createDirectory'],
+  })
+  return result.canceled ? null : result.filePaths[0] ?? null
+})
 
 function runDesktopApp() {
   const gotLock = app.requestSingleInstanceLock(QUIT_EXISTING ? { quit: true } : undefined)

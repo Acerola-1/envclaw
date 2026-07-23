@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   windowControl: (action: 'minimize' | 'toggle-maximize' | 'close'): Promise<{ isMaximized: boolean }> => ipcRenderer.invoke('hermes-desktop:window-control', action),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('hermes-desktop:get-app-version'),
   checkForUpdates: (): Promise<{ currentVersion: string; updateAvailable: boolean; latestVersion?: string; error?: string }> => ipcRenderer.invoke('hermes-desktop:check-for-updates'),
+  selectFolder: (title?: string): Promise<string | null> => ipcRenderer.invoke('hermes-desktop:select-folder', title),
   platform: process.platform,
   isDesktop: true,
 })
