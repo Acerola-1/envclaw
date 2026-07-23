@@ -9,6 +9,7 @@ import { getHermesBaseDir, getProfileDir, listProfileNamesFromDisk } from './her
 import { retireManagedGatewayForProfile, startGatewayRunManaged } from './gateway-runner'
 import { parseGatewayStatusesFromProfileList } from './profile-list-parser'
 import { execHermesWithBin } from './hermes-process'
+import { getMapairsCredentialsEnv } from '../envclaw/platforms'
 
 const execFileAsync = promisify(execFile)
 const GATEWAY_RUNTIME_FILES = ['gateway.pid', 'gateway.lock', 'gateway_state.json'] as const
@@ -607,6 +608,7 @@ export async function startGatewayForProfile(
       windowsHide: true,
       env: {
         ...process.env,
+        ...getMapairsCredentialsEnv(),
         HERMES_HOME: profileDir,
       },
     })

@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const originalEnv = { ...process.env }
 
+const { mockGetMapairsCredentialsEnv } = vi.hoisted(() => ({
+  mockGetMapairsCredentialsEnv: vi.fn(() => ({})),
+}))
+
 class FakeChild extends EventEmitter {
   pid: number
   killSignals: string[] = []
@@ -33,6 +37,10 @@ vi.mock('../../packages/server/src/services/hermes/hermes-process', () => ({
   resolveHermesBin: () => 'hermes',
 }))
 
+vi.mock('../../packages/server/src/services/envclaw/platforms', () => ({
+  getMapairsCredentialsEnv: mockGetMapairsCredentialsEnv,
+}))
+
 afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
@@ -42,6 +50,36 @@ afterEach(() => {
 })
 
 describe('gateway-runner supervision', () => {
+  it('passes stored Mapairs credentials only to the gateway child environment', async () => {
+    mockGetMapairsCredentialsEnv.mockReturnValue({
+      MAPAIRS_USERNAME: 'updated-user',
+      MAPAIRS_PASSWORD: 'updated-password',
+    })
+    vi.resetModules()
+    const { startGatewayRunManaged } = await import(
+      '../../packages/server/src/services/hermes/gateway-runner'
+    )
+    const { spawnHermesWithBin } = await import(
+      '../../packages/server/src/services/hermes/hermes-process'
+    )
+
+    startGatewayRunManaged('/usr/bin/hermes', { profileDir: '/tmp/mapairs-refresh' })
+
+    expect(spawnHermesWithBin).toHaveBeenCalledWith(
+      '/usr/bin/hermes',
+      ['gateway', 'run', '--replace'],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          MAPAIRS_USERNAME: 'updated-user',
+          MAPAIRS_PASSWORD: 'updated-password',
+          HERMES_HOME: '/tmp/mapairs-refresh',
+        }),
+      }),
+    )
+    expect(process.env.MAPAIRS_USERNAME).toBe(originalEnv.MAPAIRS_USERNAME)
+    expect(process.env.MAPAIRS_PASSWORD).toBe(originalEnv.MAPAIRS_PASSWORD)
+  })
+
   it('respawns the gateway when the spawned child dies unexpectedly', async () => {
     vi.useFakeTimers()
     vi.resetModules()

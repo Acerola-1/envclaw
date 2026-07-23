@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'fs'
 import { createConnection, createServer } from 'net'
 import { dirname, isAbsolute, join, resolve } from 'path'
 import { logger } from '../../logger'
+import { getMapairsCredentialsEnv } from '../../envclaw/platforms'
 import { detectHermesHome, getHermesBin } from '../hermes-path'
 import { AgentBridgeClient, DEFAULT_AGENT_BRIDGE_ENDPOINT } from './client'
 
@@ -90,6 +91,7 @@ function isLegacyGlobalDefaultEndpoint(endpoint: string): boolean {
 export function buildAgentBridgeProcessEnv(endpoint: string, hermesHome: string | undefined, agentRoot: string | undefined): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
+    ...getMapairsCredentialsEnv(),
     HERMES_AGENT_BRIDGE_ENDPOINT: endpoint,
     HERMES_HOME: hermesHome,
     HERMES_OPENROUTER_APP_REFERER: process.env.HERMES_OPENROUTER_APP_REFERER || OPENROUTER_WEB_UI_ATTRIBUTION_ENV.HERMES_OPENROUTER_APP_REFERER,

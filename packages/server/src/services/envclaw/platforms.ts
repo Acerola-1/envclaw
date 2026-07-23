@@ -38,6 +38,9 @@ export interface PlatformAccountRow {
   updated_at: string
 }
 
+const MAPAIRS_PLATFORM_ID = 'szdq'
+const LEGACY_MAPAIRS_PLATFORM_ID = 'mapairs'
+
 // --- 建表 ---
 
 let tableInitialized = false
@@ -338,10 +341,15 @@ export function getMapairsCredentials(): { username: string; password: string } 
   const db = getDb()
   if (!db) return null
 
-  // Get the first account for mapairs platform (each user has one mapairs account)
+  // Prefer the seeded Mapairs platform record and retain a read fallback for
+  // credentials written before the platform ID was corrected.
   const row = db.prepare(
-    'SELECT credential_data FROM envclaw_platform_accounts WHERE platform_id = ? ORDER BY created_at ASC LIMIT 1'
-  ).get('mapairs') as { credential_data: string } | undefined
+    `SELECT credential_data
+     FROM envclaw_platform_accounts
+     WHERE platform_id IN (?, ?)
+     ORDER BY CASE platform_id WHEN ? THEN 0 ELSE 1 END, created_at ASC
+     LIMIT 1`
+  ).get(MAPAIRS_PLATFORM_ID, LEGACY_MAPAIRS_PLATFORM_ID, MAPAIRS_PLATFORM_ID) as { credential_data: string } | undefined
 
   if (!row) return null
 
@@ -358,10 +366,26 @@ export function getMapairsCredentials(): { username: string; password: string } 
 }
 
 /**
- * Upsert the Mapairs credentials (AES encrypted) for the固定 platform_id 'mapairs'.
- * 每个部署只保留一份 Mapairs 凭证：已存在则更新，否则新增。
- * 直接写 envclaw_platform_accounts，不依赖 envclaw_platforms 中的平台行，
- * 与 getMapairsCredentials 的查询方式一致。
+ * Build the credential environment passed to a Mapairs-capable child process.
+ * Keep the decrypted values out of the Web UI process environment.
+ */
+export function getMapairsCredentialsEnv(): NodeJS.ProcessEnv {
+  try {
+    const credentials = getMapairsCredentials()
+    if (!credentials?.username || !credentials.password) return {}
+    return {
+      MAPAIRS_USERNAME: credentials.username,
+      MAPAIRS_PASSWORD: credentials.password,
+    }
+  } catch (err) {
+    logger.warn(err, '[envclaw/platforms] failed to load Mapairs credentials for child process')
+    return {}
+  }
+}
+
+/**
+ * Upsert Mapairs credentials under the seeded Mapairs platform record.
+ * Legacy records are migrated on the next successful login.
  */
 export function saveMapairsCredentials(username: string, password: string): void {
   initTable()
@@ -371,16 +395,20 @@ export function saveMapairsCredentials(username: string, password: string): void
   const ts = now()
   const encrypted = encrypt(JSON.stringify({ username, password }))
   const existing = db.prepare(
-    'SELECT id FROM envclaw_platform_accounts WHERE platform_id = ? ORDER BY created_at ASC LIMIT 1'
-  ).get('mapairs') as { id: string } | undefined
+    `SELECT id
+     FROM envclaw_platform_accounts
+     WHERE platform_id IN (?, ?)
+     ORDER BY CASE platform_id WHEN ? THEN 0 ELSE 1 END, created_at ASC
+     LIMIT 1`
+  ).get(MAPAIRS_PLATFORM_ID, LEGACY_MAPAIRS_PLATFORM_ID, MAPAIRS_PLATFORM_ID) as { id: string } | undefined
 
   if (existing) {
     db.prepare(
-      'UPDATE envclaw_platform_accounts SET name=?, credential_data=?, credential_type=?, updated_at=? WHERE id=?'
-    ).run(username, encrypted, 'password', ts, existing.id)
+      'UPDATE envclaw_platform_accounts SET platform_id=?, name=?, credential_data=?, credential_type=?, updated_at=? WHERE id=?'
+    ).run(MAPAIRS_PLATFORM_ID, username, encrypted, 'password', ts, existing.id)
   } else {
     db.prepare(
       'INSERT INTO envclaw_platform_accounts (id, platform_id, name, credential_type, credential_data, status, auto_refresh, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(randomUUID(), 'mapairs', username, 'password', encrypted, 'active', 0, ts, ts)
+    ).run(randomUUID(), MAPAIRS_PLATFORM_ID, username, 'password', encrypted, 'active', 0, ts, ts)
   }
 }
