@@ -243,7 +243,6 @@ const rankingStationListByType: Record<string, StationItem[]> = {} // 按站点�
 const rankingPeriod = ref('hourly')
 const rankingFactors = ref<string[]>([]) // 初始化值由后续 period watcher 设置
 const rankingIncludeScreenshot = ref(true)
-const rankingIncludeAnalysis = ref(false)
 const rankingScreenshotScope = ref<'tableOnly' | 'withFilters'>('tableOnly')
 const rankingTheme = ref<'light' | 'dark'>('light')
 const rankingGbKey = ref<'2' | '0' | '1'>('0') // 国标类型，默认默
@@ -549,7 +548,7 @@ const captureRankingConfig = (): RankingOutputSnapshot => {
     type: rankingPeriod.value,
     factors: rankingFactors.value.join(','), gbKey: rankingGbKey.value,
     includeScreenshot: rankingIncludeScreenshot.value,
-    includeAnalysis: rankingIncludeAnalysis.value, screenshotScope: rankingScreenshotScope.value, theme: rankingTheme.value,
+    includeAnalysis: false, screenshotScope: rankingScreenshotScope.value, theme: rankingTheme.value,
   }
 }
 const captureMapConfig = (): MapOutputSnapshot => ({
@@ -595,7 +594,7 @@ function loadOutput(output: DutyOutputItem) {
     rankingSelectedStations.value = c.station ? c.station.split(',') : []
     rankingPeriod.value = c.type
     rankingFactors.value = c.factors ? c.factors.split(',') : []
-    rankingIncludeScreenshot.value = c.includeScreenshot; rankingIncludeAnalysis.value = c.includeAnalysis
+    rankingIncludeScreenshot.value = c.includeScreenshot
     rankingScreenshotScope.value = c.screenshotScope; rankingTheme.value = c.theme
     rankingGbKey.value = c.gbKey || '0'
   } else if (output.type === 'mapPackage') {
@@ -754,7 +753,7 @@ watch(rankingRegion, () => {
 
 watch([
   rankingQueryTarget, rankingRegion, rankingPeriod,
-  rankingFactors, rankingIncludeScreenshot, rankingIncludeAnalysis,
+  rankingFactors, rankingIncludeScreenshot,
   rankingScreenshotScope, rankingTheme, rankingProvince, rankingGbKey,
   rankingStationTypes, rankingSelectedStations,
   mapTheme, mapMode, mapZoom, mapFactor, mapWindWaves,
@@ -1015,7 +1014,7 @@ function outputDefinition(output: DutyOutputItem): string {
   if (output.type === 'concentrationRanking') {
     const c = output.config
     const type = rankingPeriods.find(item => item.value === c.type)?.label || '日累计'
-    const outputs = [c.includeScreenshot ? `排名截图（${c.screenshotScope === 'tableOnly' ? '仅标题和表格' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : '', c.includeAnalysis ? '数据分析摘要' : ''].filter(Boolean).join('、')
+    const outputs = [c.includeScreenshot ? `页面截图（${c.screenshotScope === 'tableOnly' ? '仅标题和表格' : '含查询条件'}、${c.theme === 'light' ? '浅色' : '深色'}）` : ''].filter(Boolean).join('、')
     const factorsLabel = c.factors ? c.factors.split(',').map(factorLabelFor).join('、') : ''
     const parts: string[] = []
     if (c.stationType) {
@@ -1070,8 +1069,7 @@ interface ExpectedDeliverable { label: string; kind: 'screenshot' | 'text' }
 function outputDeliverables(output: DutyOutputItem): ExpectedDeliverable[] {
   const list: ExpectedDeliverable[] = []
   if (output.type === 'concentrationRanking') {
-    if (output.config.includeScreenshot) list.push({ label: '排名截图', kind: 'screenshot' })
-    if (output.config.includeAnalysis) list.push({ label: '数据分析摘要', kind: 'text' })
+    if (output.config.includeScreenshot) list.push({ label: '页面截图', kind: 'screenshot' })
   } else if (output.type === 'mapPackage') {
     list.push({ label: '一张图截图', kind: 'screenshot' })
   } else if (output.type === 'hourlyBrief') {
@@ -1373,8 +1371,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>生成成果：</span>
                     <div class="output-checks">
-                      <NCheckbox v-model:checked="rankingIncludeScreenshot">排名截图</NCheckbox>
-                      <NCheckbox v-model:checked="rankingIncludeAnalysis">数据分析</NCheckbox>
+                      <NCheckbox v-model:checked="rankingIncludeScreenshot" disabled>页面截图</NCheckbox>
                     </div>
                   </div>
                 </div>
@@ -1488,7 +1485,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   rankingQueryTarget === 'site' && rankingSelectedStationNames.length ? ' · 站点：' +
                     rankingSelectedStationNames.join('、') : '' }} · {{
                   rankingPeriodLabel }} · {{ rankingTimeLabel }} · {{ rankingFactors.map(factorLabelFor).join('、') }} · {{
-                  rankingIncludeScreenshot ? '排名截图' : '' }}{{ rankingIncludeScreenshot && rankingIncludeAnalysis ? '、' : '' }}{{ rankingIncludeAnalysis ? '数据分析' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[rankingGbKey] || '默' }}</div>
+                  rankingIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[rankingGbKey] || '默' }}</div>
               <figure v-if="rankingIncludeScreenshot" class="effect-preview">
                 <figcaption>
                   <span>效果预览</span>
