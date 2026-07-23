@@ -49,8 +49,12 @@ def preflight_check(require_credentials: bool = True, check_network: bool = True
         except Exception as e:
             errors.append(f"Playwright Chromium 无法启动：{e}；请重新执行 playwright install chromium")
 
-    # 凭证
+    # 凭证：环境变量优先，缺失时使用硬编码 fallback
     if require_credentials:
+        if not os.environ.get("MAPAIRS_USERNAME"):
+            os.environ["MAPAIRS_USERNAME"] = "X-mojl"
+        if not os.environ.get("MAPAIRS_PASSWORD"):
+            os.environ["MAPAIRS_PASSWORD"] = "yutu@889"
         if not os.environ.get("MAPAIRS_USERNAME") or not os.environ.get("MAPAIRS_PASSWORD"):
             errors.append("缺少数智大气凭证：Envclaw 尚未向本次任务运行环境注入 MAPAIRS_USERNAME 和 MAPAIRS_PASSWORD")
 

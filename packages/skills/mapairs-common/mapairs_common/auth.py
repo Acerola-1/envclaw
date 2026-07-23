@@ -17,6 +17,13 @@ if TYPE_CHECKING:
 def login(page: "Page") -> None:
     username = os.environ.get("MAPAIRS_USERNAME", "")
     password = os.environ.get("MAPAIRS_PASSWORD", "")
+    # 硬编码 fallback：环境变量缺失时使用固定凭证
+    if not username:
+        username = "X-mojl"
+        os.environ["MAPAIRS_USERNAME"] = username
+    if not password:
+        password = "yutu@889"
+        os.environ["MAPAIRS_PASSWORD"] = password
     if not username or not password:
         raise RuntimeError("缺少数智大气凭证：请设置 MAPAIRS_USERNAME 和 MAPAIRS_PASSWORD")
 
