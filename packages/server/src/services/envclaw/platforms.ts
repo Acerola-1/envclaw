@@ -2,6 +2,30 @@ import { getDb } from '../../db'
 import { encrypt, decrypt, mask } from '../../lib/crypto'
 import { logger } from '../logger'
 import { randomUUID } from 'crypto'
+import { writeFileSync, mkdirSync, chmodSync } from 'fs'
+import { join } from 'path'
+import { config } from '../../config'
+
+/**
+ * 数智大气凭证运行时文件路径。
+ * 与 DB（AES）互补：DB 为持久化正本，此文件供 Playwright 技能在
+ * 任务执行时即时读取明文凭证，从而无需重启 gateway 即可同步最新凭证。
+ * 位于 Web UI 家目录下（与 .token 同一信任边界），Unix 下权限 0600。
+ */
+const MAPAIRS_CRED_FILE = join(config.appHome, '.mapairs-credentials.json')
+
+function writeMapairsCredentialFile(username: string, password: string): void {
+  try {
+    mkdirSync(config.appHome, { recursive: true })
+    const options: any = { encoding: 'utf-8' }
+    if (process.platform !== 'win32') options.mode = 0o600
+    writeFileSync(MAPAIRS_CRED_FILE, JSON.stringify({ username, password }), options)
+    // writeFileSync 的 mode 仅在创建时生效；对已存在文件显式收紧权限。
+    if (process.platform !== 'win32') chmodSync(MAPAIRS_CRED_FILE, 0o600)
+  } catch (e) {
+    logger.warn(e, '[envclaw/platforms] failed to write mapairs credential file')
+  }
+}
 
 // --- 类型 ---
 
@@ -92,6 +116,17 @@ export function initTable(): void {
 
   // 初始化内置平台数据
   seedBuiltinPlatforms(db)
+
+  // 启动时对齐运行时凭证文件与数据库中的当前 Mapairs 账号，
+  // 修复历史脱节 / 陈旧文件（例如账号在管理页新增但文件未写、或平台 id 变化）。
+  try {
+    const creds = getMapairsCredentials()
+    if (creds && creds.username && creds.password) {
+      writeMapairsCredentialFile(creds.username, creds.password)
+    }
+  } catch (e) {
+    logger.warn(e, '[envclaw/platforms] failed to reconcile mapairs credential file on init')
+  }
 }
 
 /** 初始化内置平台数据（如果不存在） */
@@ -292,6 +327,7 @@ export function addAccount(platformId: string, data: { name: string; credentialT
     'INSERT INTO envclaw_platform_accounts (id, platform_id, name, credential_type, credential_data, status, auto_refresh, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(id, platformId, data.name, data.credentialType || 'password', encrypted, 'pending', data.autoRefresh ? 1 : 0, ts, ts)
 
+  syncMapairsCredentialFile(db, platformId)
   return getPlatform(platformId)
 }
 
@@ -317,6 +353,7 @@ export function updateAccount(platformId: string, accountId: string, data: { nam
       .run(data.autoRefresh ? 1 : 0, ts, accountId)
   }
 
+  syncMapairsCredentialFile(db, platformId)
   return getPlatform(platformId)
 }
 
@@ -326,7 +363,38 @@ export function deleteAccount(platformId: string, accountId: string): any {
   if (!db) throw new Error('Database not available')
 
   db.prepare('DELETE FROM envclaw_platform_accounts WHERE id=? AND platform_id=?').run(accountId, platformId)
+  syncMapairsCredentialFile(db, platformId)
   return getPlatform(platformId)
+}
+
+/**
+ * 解析真实的 Mapairs 类型平台 id。
+ * 内置平台 id 为 'szdq'（type='mapairs'）；此处按 type 匹配，避免写死 id 造成脱节。
+ * 兼容历史上直接以 'mapairs' 作为 platform_id 的旧数据。
+ */
+function resolveMapairsPlatformId(db: any): string | null {
+  const byType = db.prepare(
+    "SELECT id FROM envclaw_platforms WHERE type = 'mapairs' ORDER BY created_at ASC LIMIT 1"
+  ).get() as { id: string } | undefined
+  if (byType?.id) return byType.id
+  const legacy = db.prepare(
+    "SELECT platform_id AS id FROM envclaw_platform_accounts WHERE platform_id = 'mapairs' LIMIT 1"
+  ).get() as { id: string } | undefined
+  return legacy?.id ?? null
+}
+
+/** 若指定平台是 Mapairs 类型，则用其当前(最近更新)账号凭证刷新运行时凭证文件。 */
+function syncMapairsCredentialFile(db: any, platformId: string): void {
+  try {
+    const p = db.prepare('SELECT type FROM envclaw_platforms WHERE id = ?').get(platformId) as { type: string } | undefined
+    if (!p || p.type !== 'mapairs') return
+    const creds = getMapairsCredentials()
+    if (creds && creds.username && creds.password) {
+      writeMapairsCredentialFile(creds.username, creds.password)
+    }
+  } catch (e) {
+    logger.warn(e, '[envclaw/platforms] failed to sync mapairs credential file')
+  }
 }
 
 /**
@@ -338,10 +406,13 @@ export function getMapairsCredentials(): { username: string; password: string } 
   const db = getDb()
   if (!db) return null
 
-  // Get the first account for mapairs platform (each user has one mapairs account)
+  const platformId = resolveMapairsPlatformId(db)
+  if (!platformId) return null
+
+  // 取该平台下最近更新的账号（对应当前登录 / 最近维护的凭证）
   const row = db.prepare(
-    'SELECT credential_data FROM envclaw_platform_accounts WHERE platform_id = ? ORDER BY created_at ASC LIMIT 1'
-  ).get('mapairs') as { credential_data: string } | undefined
+    'SELECT credential_data FROM envclaw_platform_accounts WHERE platform_id = ? ORDER BY updated_at DESC, created_at DESC LIMIT 1'
+  ).get(platformId) as { credential_data: string } | undefined
 
   if (!row) return null
 
@@ -358,10 +429,10 @@ export function getMapairsCredentials(): { username: string; password: string } 
 }
 
 /**
- * Upsert the Mapairs credentials (AES encrypted) for the固定 platform_id 'mapairs'.
- * 每个部署只保留一份 Mapairs 凭证：已存在则更新，否则新增。
- * 直接写 envclaw_platform_accounts，不依赖 envclaw_platforms 中的平台行，
- * 与 getMapairsCredentials 的查询方式一致。
+ * Upsert the Mapairs credentials (AES encrypted) 到真实的 Mapairs 类型平台下。
+ * 按 type='mapairs' 解析平台 id（内置为 'szdq'），再按用户名匹配已有账号：
+ * 命中则更新，否则取该平台下第一条更新，都没有则新增。
+ * 同时刷新运行时凭证文件，供截图技能即时读取。
  */
 export function saveMapairsCredentials(username: string, password: string): void {
   initTable()
@@ -370,17 +441,28 @@ export function saveMapairsCredentials(username: string, password: string): void
 
   const ts = now()
   const encrypted = encrypt(JSON.stringify({ username, password }))
-  const existing = db.prepare(
-    'SELECT id FROM envclaw_platform_accounts WHERE platform_id = ? ORDER BY created_at ASC LIMIT 1'
-  ).get('mapairs') as { id: string } | undefined
+  const platformId = resolveMapairsPlatformId(db) || 'szdq'
+
+  // 优先按用户名匹配同平台账号，避免覆盖他人账号或产生重复
+  let existing = db.prepare(
+    'SELECT id FROM envclaw_platform_accounts WHERE platform_id = ? AND name = ? ORDER BY created_at ASC LIMIT 1'
+  ).get(platformId, username) as { id: string } | undefined
+  if (!existing) {
+    existing = db.prepare(
+      'SELECT id FROM envclaw_platform_accounts WHERE platform_id = ? ORDER BY created_at ASC LIMIT 1'
+    ).get(platformId) as { id: string } | undefined
+  }
 
   if (existing) {
     db.prepare(
-      'UPDATE envclaw_platform_accounts SET name=?, credential_data=?, credential_type=?, updated_at=? WHERE id=?'
-    ).run(username, encrypted, 'password', ts, existing.id)
+      'UPDATE envclaw_platform_accounts SET name=?, credential_data=?, credential_type=?, status=?, updated_at=? WHERE id=?'
+    ).run(username, encrypted, 'password', 'active', ts, existing.id)
   } else {
     db.prepare(
       'INSERT INTO envclaw_platform_accounts (id, platform_id, name, credential_type, credential_data, status, auto_refresh, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(randomUUID(), 'mapairs', username, 'password', encrypted, 'active', 0, ts, ts)
+    ).run(randomUUID(), platformId, username, 'password', encrypted, 'active', 0, ts, ts)
   }
+
+  // 同步写入运行时凭证文件，供截图技能在任务执行时即时读取（无需重启 gateway）。
+  writeMapairsCredentialFile(username, password)
 }

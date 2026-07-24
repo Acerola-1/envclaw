@@ -1,31 +1,23 @@
 #!/usr/bin/env python3
 """数智大气（Mapairs）共享登录逻辑。
 
-凭证只从环境变量读取，自动处理共享值守账号的"设备数量上限"清退。
+凭证由 Envclaw 写入的运行时凭证文件读取，自动处理共享值守账号的"设备数量上限"清退。
 不在日志中输出任何凭证内容。
 """
 
-import os
 from typing import TYPE_CHECKING
 
 from .config import get_login_url, POST_LOGIN_PATH
+from .credentials import load_credentials
 
 if TYPE_CHECKING:
     from playwright.sync_api import Page
 
 
 def login(page: "Page") -> None:
-    username = os.environ.get("MAPAIRS_USERNAME", "")
-    password = os.environ.get("MAPAIRS_PASSWORD", "")
-    # 硬编码 fallback：环境变量缺失时使用固定凭证
-    if not username:
-        username = "X-mojl"
-        os.environ["MAPAIRS_USERNAME"] = username
-    if not password:
-        password = "yutu@889"
-        os.environ["MAPAIRS_PASSWORD"] = password
+    username, password = load_credentials()
     if not username or not password:
-        raise RuntimeError("缺少数智大气凭证：请设置 MAPAIRS_USERNAME 和 MAPAIRS_PASSWORD")
+        raise RuntimeError("缺少数智大气凭证：Envclaw 尚未写入凭证文件，请在客户端重新登录平台")
 
     page.goto(get_login_url(), wait_until="domcontentloaded")
     page.locator(".loginBg").wait_for(state="visible", timeout=30_000)

@@ -3,27 +3,16 @@ import { promisify } from 'util'
 import { logger } from '../logger'
 import { getActiveProfileDir } from './hermes-profile'
 import { spawnHermesWithBin } from './hermes-process'
-import { getMapairsCredentials } from '../envclaw/platforms'
 
 /**
- * 为 gateway 子进程构建环境变量：在继承父进程环境基础上，
- * 注入当前已存储的 Mapairs 凭证（解密后），供数智大气截图技能的
- * Playwright 脚本通过 MAPAIRS_USERNAME / MAPAIRS_PASSWORD 读取。
- * 无凭证或解密失败时不注入，不阻断 gateway 启动。
+ * 为 gateway 子进程构建环境变量：在继承父进程环境基础上注入 HERMES_HOME。
+ * Mapairs 凭证不再通过环境变量注入：截图技能在任务执行时直接读取
+ * Web UI 家目录下的运行时凭证文件，从而无需因凭证变更而重启 gateway。
  */
 function buildGatewayEnv(profileDir: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     HERMES_HOME: profileDir,
-  }
-  try {
-    const creds = getMapairsCredentials()
-    if (creds && creds.username && creds.password) {
-      env.MAPAIRS_USERNAME = creds.username
-      env.MAPAIRS_PASSWORD = creds.password
-    }
-  } catch (err) {
-    logger.warn(err, '[gateway-runner] failed to load Mapairs credentials for gateway env')
   }
   return env
 }

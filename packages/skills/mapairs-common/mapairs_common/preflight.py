@@ -6,7 +6,7 @@
 - Python 版本 >= 3.10
 - 可导入 Python Playwright
 - Chromium 浏览器可无头启动
-- 已注入 MAPAIRS_USERNAME 与 MAPAIRS_PASSWORD 环境变量
+- Envclaw 已写入运行时凭证文件（含 username 与 password）
 - 网络可解析 Mapairs 基础 URL 主机
 """
 
@@ -16,6 +16,7 @@ import sys
 from typing import List
 
 from .config import get_base_host
+from .credentials import load_credentials
 
 MINIMUM_PYTHON = (3, 10)
 
@@ -49,14 +50,11 @@ def preflight_check(require_credentials: bool = True, check_network: bool = True
         except Exception as e:
             errors.append(f"Playwright Chromium 无法启动：{e}；请重新执行 playwright install chromium")
 
-    # 凭证：环境变量优先，缺失时使用硬编码 fallback
+    # 凭证：读取 Envclaw 写入的运行时凭证文件
     if require_credentials:
-        if not os.environ.get("MAPAIRS_USERNAME"):
-            os.environ["MAPAIRS_USERNAME"] = "X-mojl"
-        if not os.environ.get("MAPAIRS_PASSWORD"):
-            os.environ["MAPAIRS_PASSWORD"] = "yutu@889"
-        if not os.environ.get("MAPAIRS_USERNAME") or not os.environ.get("MAPAIRS_PASSWORD"):
-            errors.append("缺少数智大气凭证：Envclaw 尚未向本次任务运行环境注入 MAPAIRS_USERNAME 和 MAPAIRS_PASSWORD")
+        username, password = load_credentials()
+        if not username or not password:
+            errors.append("缺少数智大气凭证：Envclaw 尚未写入凭证文件，请在客户端重新登录平台")
 
     # 网络：解析基础 URL 主机
     if check_network:

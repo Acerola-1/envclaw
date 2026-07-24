@@ -631,13 +631,6 @@ export async function unlockIpHandler(ctx: Context) {
  * 登录成功后将前端额外传来的明文密码 AES 加密存入 envclaw_platform_accounts 供后续截图技能使用
  */
 import { saveMapairsCredentials } from '../services/envclaw/platforms'
-import { gatewayAutostartDisabledByEnv, restartGatewayForProfile } from '../services/hermes/gateway-autostart'
-import { normalizeGatewayAutoStartConfig, readAppConfig } from '../services/app-config'
-
-async function gatewayAutoRestartAllowed(): Promise<boolean> {
-  if (gatewayAutostartDisabledByEnv()) return false
-  return normalizeGatewayAutoStartConfig((await readAppConfig()).gatewayAutoStart).enabled !== false
-}
 
 export async function externalLogin(ctx: Context) {
   const { username, password, plainPassword } = ctx.request.body as {
@@ -701,21 +694,12 @@ export async function externalLogin(ctx: Context) {
     recordPasswordSuccess(ip)
     touchUserLogin(hermesUser.id)
 
-    // 4. 将前端传来的明文密码 AES 加密存储 Mapairs 凭证，供后续截图技能注入环境变量
+    // 4. 将前端传来的明文密码 AES 加密存储 Mapairs 凭证，并同步写入运行时凭证文件。
     // 仅当前端提供了明文密码时存储；凭证存储失败不影响登录成功。
+    // 截图技能在任务执行时直接读取凭证文件，无需重启 gateway。
     if (plainPassword) {
       try {
         saveMapairsCredentials(username, plainPassword)
-        // 重启 gateway，让新凭证通过环境变量注入到后续技能执行进程（尽力而为）
-        if (await gatewayAutoRestartAllowed()) {
-          const userProfiles = listUserProfiles(hermesUser.id)
-          const profile = userProfiles.find(p => p.is_default)?.profile_name
-            || userProfiles[0]?.profile_name
-            || 'default'
-          restartGatewayForProfile(profile).catch((err) => {
-            console.error('[external-login] gateway restart after credential save failed', err)
-          })
-        }
       } catch (e: any) {
         // 凭证存储失败不影响登录成功，只记录日志（不输出密码明文）
         console.error('[external-login] Failed to save Mapairs credentials', e?.message || e)

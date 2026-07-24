@@ -42,6 +42,6 @@ python3 "$SKILL_DIR/scripts/mapairs_ranking_capture.py" --config-file ranking-co
 
 脚本预检是强制执行的：检查 Python 版本、Python Playwright、Chromium 能否无头启动、数智大气主机是否可解析，以及 Envclaw 是否已注入凭证。任一项不满足时停止执行并报告明确错误；不要尝试安装依赖、不要自行操作网页作为替代方案。
 
-运行时凭证由 Envclaw 通过 `MAPAIRS_USERNAME` / `MAPAIRS_PASSWORD` 环境变量注入；不得在 Prompt、命令、日志或回复中输出凭证。基础地址可通过 `MAPAIRS_BASE_URL` 覆盖（默认内网）。
+运行时凭证由 Envclaw 在用户登录平台后写入运行时凭证文件，脚本自动读取；不得在 Prompt、命令、日志或回复中输出凭证。基础地址可通过 `MAPAIRS_BASE_URL` 覆盖（默认内网）。
 
 脚本会输出 `ARTIFACT:<绝对图片路径>` 和 `MEDIA:<绝对路径>`。成功后，你的最终回复必须原样包含该 `MEDIA:/绝对路径` 行，Hermes 会据此自动将截图作为原生媒体投递到任务配置的推送目标；不要自行调用推送工具，也不要用 delegate/派发子任务的方式去发送。失败时报告脚本错误，不要改用网页操作作为替代方案。
