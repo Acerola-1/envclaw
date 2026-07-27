@@ -63,6 +63,8 @@ def read_config(raw: str) -> dict[str, Any]:
         fail("mode 仅支持 monitoring 或 interpolation")
     if config["timeType"] not in TIME_TYPES:
         fail("timeType 仅支持 hourly、dt 或 daily")
+    if config["factor"] == "primaryPollutant":
+        fail("factor 不接受 primaryPollutant：请先通过 MCP 工具 mcp_city_common_get_air_quality_realtime_stat 解析出当前首要污染物（maxPollutionEn），再以具体因子（如 O3、PM2.5）传入")
     if not config.get("region"):
         fail("region（地图范围 regionKeyVO）为必填")
     return config

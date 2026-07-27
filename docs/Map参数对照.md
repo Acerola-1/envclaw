@@ -101,10 +101,11 @@ CreateTask 前端表单收集的"一张图"配置项，类型与默认值：
 
 ## 6. 污染因子（`factor`）对照
 
-`factor` 字段来源于 `mapFactorOptions`，由浓度排名页面因子列表组成（`primaryPollutant` 已被注释移除，不再可用）：
+`factor` 字段来源于 `mapFactorOptions`，由“首要污染物”选项 + 浓度排名页面因子列表组成：
 
 | URL 参数值 | 显示标签 | 说明 |
 |-----------|---------|------|
+| `primaryPollutant` | 首要污染物 | 仅为任务配置值，不直接进 URL；执行时由 agent 调用 MCP 工具 `mcp_city_common_get_air_quality_realtime_stat` 取 `maxPollutionEn` 解析为下表具体因子（`O3_8H`→`O3`；`"-"`/空→`AQI`） |
 | `PM2.5` | PM₂.₅ | 可吸入细颗粒物（默认值） |
 | `PM10` | PM₁₀ | 可吸入颗粒物 |
 | `SO2` | SO₂ | 二氧化硫 |

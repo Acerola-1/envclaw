@@ -31,6 +31,15 @@ description: 使用固定 Playwright 脚本按结构化参数生成数智大气"
 
 拼接后的 URL 形如：`/oneMap?theme=Light&factor=PM2.5&leftPanel=false&region=1309a14a1&windWaves=true&mode=monitoring&timeType=daily`。不要读取或复用其他成果的参数；只有当前成果明确声明 `dependsOn` 时，才读取声明的上游结果。
 
+## 首要污染物因子
+
+若 `config.factor` 为 `primaryPollutant`，脚本会直接报错拒绝执行。必须先解析出当前首要污染物再调用脚本：
+
+1. 调用 MCP 工具 `helper_getLatestTime2` 获取基准时间；
+2. 调用 MCP 工具 `mcp_city_common_get_air_quality_realtime_stat`（`region` 传行政区中文名；口径：timeType=hourly → type=hourly/sTime=airCityH，timeType=dt → type=daily_count/sTime=airCityDt，timeType=daily → type=daily/sTime=airCityD）；
+3. 取返回记录的 `maxPollutionEn` 作为 `factor`：多个时取第一个；`O3_8H` 改用 `O3`；`"-"` 或空（无首要污染物）改用 `AQI`；
+4. 把解析出的具体因子写入 `onemap-config.json` 的 `factor` 后再执行脚本。任务 prompt 中若有【首要污染物因子解析】规则，以其指定的判定行政区为准。
+
 ## 执行
 
 将该成果的 `config` JSON 原样写入当前运行目录的 `onemap-config.json`，先定位本 Skill 安装目录再执行：

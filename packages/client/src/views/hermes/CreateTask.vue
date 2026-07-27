@@ -477,10 +477,13 @@ const townshipOptions = [
 const monitoringPeriodOptions: Array<{ value: MonitoringDataOutputSnapshot['type']; label: string }> = [
   { value: 'hour_avg', label: '小时均值' }, { value: 'hour', label: '小时' }, { value: 'daily', label: '逐日累计' }, { value: 'daily_count', label: '日累计' }, { value: 'other', label: '自定义' },
 ]
-const mapFactorOptions =
-  rankingFactorOptions.filter(f =>
+/** 一张图因子：在浓度排名因子基础上增加“首要污染物”（执行时由 MCP 工具解析为具体因子） */
+const mapFactorOptions = [
+  { value: 'primaryPollutant', label: '首要污染物' },
+  ...rankingFactorOptions.filter(f =>
     RANKING_FACTORS_BY_PERIOD['map']?.includes(f.value)
-  )
+  ),
+]
 
 function setRankingPeriod(type: string) {
   rankingPeriod.value = type
@@ -1114,11 +1117,37 @@ const deliveryChecklist = computed(() => {
   return { lines, screenshotCount }
 })
 
+// 一张图“首要污染物”因子：截图脚本不接受 primaryPollutant，须在执行前用 MCP 工具解析为具体因子。
+// 时间口径映射：一张图 timeType → MCP 查询 type 与基准时间字段（helper_getLatestTime2 返回值）。
+const PRIMARY_POLLUTANT_TIME_RULES: Record<MapOutputSnapshot['timeType'], string> = {
+  hourly: '查询口径：type=hourly，sTime 取 airCityH（补全为 yyyy-MM-dd HH:00:00）',
+  dt: '查询口径：type=daily_count，sTime 取 airCityDt（补全为 yyyy-MM-dd HH:00:00）',
+  daily: '查询口径：type=daily，sTime 取 airCityD（格式 yyyy-MM-dd）',
+}
+const primaryPollutantRule = computed(() => {
+  const targets = dutyOutputs.value.filter(
+    (o): o is Extract<DutyOutputItem, { type: 'mapPackage' }> =>
+      o.type === 'mapPackage' && o.config.factor === 'primaryPollutant'
+  )
+  if (!targets.length) return ''
+  const accountRegion = (userStore.platformUserInfo?.region as RegionInfo | undefined)?.currentRegionName || '本账号所属城市'
+  const lines = targets.map(o => {
+    const regionLine = o.config.region === 'national'
+      ? `判定行政区：${accountRegion}（地图范围为全国，按账号所属地区判定首要污染物）`
+      : `判定行政区：${mapScopeLabelFor(o.config.region)}`
+    return `- 【${o.title}】${regionLine}；${PRIMARY_POLLUTANT_TIME_RULES[o.config.timeType]}`
+  })
+  return `【首要污染物因子解析｜强制】\n以下一张图成果的 factor 为 "primaryPollutant"，执行该成果前必须先解析出当前首要污染物，并把解析结果写入传给脚本的 config.factor（脚本不接受 primaryPollutant）：\n${lines.join('\n')}\n解析步骤：\n1. 调用 MCP 工具 helper_getLatestTime2 获取基准时间；\n2. 调用 MCP 工具 mcp_city_common_get_air_quality_realtime_stat，参数 region 传上表判定行政区的中文名称，type 与 sTime 按上表口径取值；\n3. 取返回数据中该行政区记录的 maxPollutionEn 字段作为因子：若含多个（逗号分隔）取第一个；若为 O3_8H 则改用 O3；若为 "-" 或空（空气质量优、无首要污染物），则改用 AQI。\n禁止跳过解析直接把 primaryPollutant 传给脚本；解析失败时如实报告错误，不得猜测因子替代。`
+})
+
 const finalPrompt = computed(() => {
   const parts: string[] = []
 
   parts.push(`【成果执行清单】\n${taskExecutionManifest.value}`)
   parts.push('【执行规则】\n按 outputs 数组顺序逐项执行。每项成果只能读取自身 config；禁止将一个成果的主题、时间、因子、截图范围带入其他成果。带 skill 的成果必须使用该 Skill 附带的固定脚本，不得自行使用 agent-browser 或网页操作替代。')
+
+  // 一张图勾选“首要污染物”时，强制在执行前经 MCP 工具解析为具体因子。
+  if (primaryPollutantRule.value) parts.push(primaryPollutantRule.value)
 
   // 【成果附带规则】无论用户任务说明如何，都强制追加；投递由 Hermes 系统按 deliver 配置自动完成，agent 不要自己推送或派发子任务。
   parts.push('【成果附带规则｜强制】\n所有成果生成后，你的最终回复中必须为每一个产出文件原样附上一行 `MEDIA:/绝对路径`（路径取脚本输出的 MEDIA:/ARTIFACT: 行）。Hermes 会据此自动将文件作为原生媒体投递到任务配置的推送目标。严禁自行调用任何推送工具、也不要用 delegate/派发子任务的方式去发送；只要把 MEDIA: 行写进最终回复即可。不允许只在本地生成而不在回复中用 MEDIA: 附上，不允许遗漏任何一项成果。')
