@@ -640,6 +640,10 @@ function hydrateFromPrompt(prompt: string) {
   const supMatch = prompt.match(/【补充说明】\n([\s\S]*?)(?=\n\n【|$)/)
   promptSupplement.value = supMatch ? supMatch[1].trim() : ''
 
+  // 提取【成果保存位置】的基础路径（格式：基础路径：<path>）
+  const savePathMatch = prompt.match(/【成果保存位置｜强制】[\s\S]*?基础路径：(.*)/)
+  savePath.value = savePathMatch ? savePathMatch[1].trim() : ''
+
   // 提取并解析【成果执行清单】JSON
   const manifestMatch = prompt.match(/【成果执行清单】\n([\s\S]*?)(?=\n\n【|$)/)
   if (!manifestMatch) return
@@ -1134,10 +1138,11 @@ const finalPrompt = computed(() => {
     parts.push(`\n【补充说明】\n${supplement}`)
   }
 
-  // 成果保存位置
+  // 成果保存位置（自动拼接任务名和每次执行的时间戳）
   const sp = savePath.value.trim()
   if (sp) {
-    parts.push(`【成果保存位置｜强制】\n所有截图、文件等成果必须额外保存到本地路径：${sp}。若该路径不存在则先创建，确保每个成果文件都保存一份到该目录。`)
+    const taskDir = taskName.value.trim() || '任务'
+    parts.push(`【成果保存位置｜强制】\n所有截图、文件等成果必须额外保存到以下路径（每次执行时自动创建时间子目录）：\n基础路径：${sp}\n规则：在 "${sp}" 下创建第一级文件夹 "${taskDir}"，再在该文件夹下创建第二级文件夹 "YYYY-MM-DD_HHmmss"（取当前执行时间），所有成果保存到该二级目录下。若路径不存在则先创建目录。`)
   }
 
   return parts.join('\n\n')
@@ -1836,8 +1841,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   浏览
                 </NButton>
               </div>
-              <div class="chip-config-hint">
-                <span class="hint-text">填写后，Agent 会将截图和文件保存到该路径。</span>
+              <div v-if="savePath.trim()" class="chip-config-hint">
+                <span class="hint-text">最终保存路径：<code>{{ savePath.trim() }}/{{ taskName.trim() || '任务名' }}/{执行时间}/</code></span>
               </div>
             </div>
 
@@ -1892,7 +1897,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="preview-line">
                 <strong>频率：</strong>{{ scheduleDescription }}
                 <span v-if="deliverDisplayName"> · <strong>推送至：</strong>{{ deliverDisplayName }}</span>
-                <span v-if="savePath.trim()"> · <strong>保存到：</strong>{{ savePath.trim() }}</span>
+                <span v-if="savePath.trim()"> · <strong>保存到：</strong>{{ savePath.trim() }}/{{ taskName.trim() || '任务' }}/{执行时间}</span>
               </div>
             </div>
 
