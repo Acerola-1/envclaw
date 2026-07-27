@@ -30,6 +30,18 @@ def credentials_file() -> Path:
     return _web_ui_home() / ".mapairs-credentials.json"
 
 
+def session_file() -> Path:
+    """返回会话持久化文件（storage_state）路径，可用 MAPAIRS_SESSION_FILE 覆盖。
+
+    与凭证文件同目录（Web UI 家目录），保存登录后的 cookie/localStorage，
+    供各截图技能跨进程复用同一登录会话。
+    """
+    override = os.environ.get("MAPAIRS_SESSION_FILE", "").strip()
+    if override:
+        return Path(override).expanduser()
+    return _web_ui_home() / ".mapairs-session.json"
+
+
 def load_credentials() -> Tuple[str, str]:
     """读取 Envclaw 写入的凭证文件，返回 (username, password)。
 

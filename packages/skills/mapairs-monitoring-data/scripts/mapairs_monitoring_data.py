@@ -24,10 +24,12 @@ if str(_COMMON_PATH) not in sys.path:
 
 from mapairs_common import (  # noqa: E402
     preflight_check,
-    login,
     save_screenshot,
     report_artifact,
     build_url,
+    gpu_launch_args,
+    new_context_with_session,
+    ensure_authenticated,
 )
 
 MONITORING_PATH = "/dataStatistics/cityMonitoringData"
@@ -105,12 +107,15 @@ def capture(config: dict[str, Any], output_dir: Path) -> Path:
 
     target_url = build_monitoring_url(config)
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
-        context = browser.new_context(viewport={"width": 1920, "height": 1080}, device_scale_factor=2)
+        browser = playwright.chromium.launch(headless=True, args=gpu_launch_args())
+        # 带上已保存会话（若有）打开上下文，实现跨技能会话复用。
+        context, had_session = new_context_with_session(
+            browser, viewport={"width": 1920, "height": 1080}, device_scale_factor=2
+        )
         page = context.new_page()
         try:
-            login(page)
-            page.goto(target_url, wait_until="domcontentloaded")
+            # 会话仍有效则直接停在目标页；否则全新登录后再访问目标页（内部处理）。
+            ensure_authenticated(context, page, had_session, target_url)
             # 等网络空闲确保数据加载完成，不再依赖特定 DOM 选择器
             try:
                 page.wait_for_load_state("networkidle", timeout=30_000)

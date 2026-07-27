@@ -1171,7 +1171,7 @@ const finalPrompt = computed(() => {
   const sp = savePath.value.trim()
   if (sp) {
     const taskDir = taskName.value.trim() || '任务'
-    parts.push(`【成果保存位置｜强制】\n所有截图、文件等成果必须额外保存到以下路径（每次执行时自动创建时间子目录）：\n基础路径：${sp}\n规则：在 "${sp}" 下创建第一级文件夹 "${taskDir}"，再在该文件夹下创建第二级文件夹 "YYYY-MM-DD_HHmmss"（取当前执行时间），所有成果保存到该二级目录下。若路径不存在则先创建目录。`)
+    parts.push(`【成果保存位置｜强制】\n所有截图、文件等成果必须额外保存到以下路径（每次执行时自动创建时间子目录）：\n基础路径：${sp}\n规则：在 "${sp}" 下创建第一级文件夹 "${taskDir}"，再在该文件夹下创建第二级文件夹 "YYYY-MM-DD_HH-mm"（取当前执行时间，精确到分钟，例如 2026-07-27_19-13），所有成果保存到该二级目录下。若路径不存在则先创建目录。`)
   }
 
   return parts.join('\n\n')
