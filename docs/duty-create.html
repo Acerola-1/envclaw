@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>envClaw · 创建值守任务</title>
+<link rel="stylesheet" href="duty-proto.css">
+</head>
+<body>
+<div class="app">
+  <!-- 左侧栏（1:1 复刻 ChatPanel: session-list + PageSidebarNav + JobTreeList） -->
+  <aside class="session-list">
+    <div class="page-sidebar-top">
+      <div class="page-sidebar-nav">
+        <div class="sidebar-brand">
+          <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 13 13 13 12"/></svg></div>
+          <div>
+            <div class="logo-text">envClaw</div>
+            <div class="logo-tag">数智环保 · envClaw</div>
+          </div>
+        </div>
+        <div class="mode-switch-tabs">
+          <button class="mode-tab" onclick="showToast('智能问数模块（原型未覆盖）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>智能问数</span></button>
+          <button class="mode-tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>自动化值守</span></button>
+        </div>
+      </div>
+      <div class="sidebar-action-bar">
+        <a class="sidebar-primary-btn" href="duty-create.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
+      </div>
+    </div>
+    <div class="session-sections-scroll">
+      <div class="session-section">
+        <div class="session-group-header">
+          <span class="session-group-label">历史对话</span>
+          <span class="session-group-count">(7)</span>
+          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <a class="session-item active"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务 · 07/28 运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多（2）</button>
+      </div>
+      <div class="session-section">
+        <div class="session-group-header">
+          <span class="session-group-label">定时任务</span>
+          <span class="session-group-count">(1)</span>
+          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="tree-job-group">
+          <div class="tree-job-row active">
+            <span class="tree-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+            <div class="tree-job-info">
+              <span class="tree-job-name">平顶山值守任务</span>
+              <span class="tree-job-status success">已调度</span>
+            </div>
+            <span class="tree-job-settings" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page-sidebar-bottom">
+      <button class="page-sidebar-menu-btn" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>设置</span></button>
+    </div>
+  </aside>
+
+  <!-- 内容区 -->
+  <div class="content">
+    <div class="create-page">
+      <a class="crt-back" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>返回值守任务</a>
+
+      <!-- 步骤条 -->
+      <div class="stepper">
+        <div class="step-item active" data-step="1" onclick="goStep(1)"><div class="step-num">1</div><div class="step-label">选择要做什么</div></div>
+        <div class="step-connector" id="conn1"></div>
+        <div class="step-item" data-step="2" onclick="goStep(2)"><div class="step-num">2</div><div class="step-label">设置推送方式</div></div>
+        <div class="step-connector" id="conn2"></div>
+        <div class="step-item" data-step="3" onclick="goStep(3)"><div class="step-num">3</div><div class="step-label">确认任务</div></div>
+      </div>
+
+      <!-- ===== 步骤1：选择要做什么 ===== -->
+      <div class="step-panel visible" id="panel1">
+        <div class="form-section">
+          <div class="task-identity">
+            <label>任务名称</label>
+            <input class="n-input" id="taskName" value="平顶山市空气质量值守">
+          </div>
+          <div class="capability-heading">
+            <div>
+              <span class="capability-kicker">01 · 组合任务成果</span>
+              <h2>这次任务需要交付什么？</h2>
+            </div>
+            <span class="bound-context">关联城市：<b>平顶山市</b></span>
+          </div>
+          <div class="output-list" id="outputList"></div>
+          <div class="output-add-bar">
+            <span>添加成果</span>
+            <button onclick="addOutput('mapPackage')"><b>＋</b> 一张图</button>
+            <button onclick="addOutput('concentrationRanking')"><b>＋</b> 浓度排名</button>
+            <button onclick="addOutput('hourlyBrief')"><b>＋</b> 小时播报</button>
+            <button onclick="addOutput('monitoringData')"><b>＋</b> 监测数据</button>
+          </div>
+
+          <!-- 浓度排名配置 -->
+          <section class="ranking-config cfg" id="cfg-concentrationRanking" style="display:none">
+            <div class="ranking-config-head">02 · 配置浓度排名</div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>生成成果：</span><label class="n-checkbox checked disabled"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>页面截图</label></div>
+              <div class="compact-field"><span>截图颜色：</span><div class="segmented"><button class="active" onclick="seg(this)">浅色</button><button onclick="seg(this)">深色</button></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>查询：</span><div class="segmented"><button class="active" onclick="seg(this)">城市</button><button onclick="seg(this)">站点</button></div></div>
+              <div class="compact-field region-field"><span>行政区：</span><input class="n-input" style="max-width:260px" value="平顶山市"></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>时间类型：</span><div class="segmented"><button class="active" onclick="seg(this)">实时</button><button onclick="seg(this)">日累计</button><button onclick="seg(this)">日</button><button onclick="seg(this)">月</button><button onclick="seg(this)">年</button><button onclick="seg(this)">自定义</button></div></div>
+              <span class="latest-hint">任务执行时自动使用官网最新可用时间</span>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>污染因子：</span><div class="factor-chips"><span class="factor-chip active" onclick="chip(this)">PM₂.₅</span><span class="factor-chip" onclick="chip(this)">PM₁₀</span><span class="factor-chip" onclick="chip(this)">SO₂</span><span class="factor-chip" onclick="chip(this)">NO₂</span><span class="factor-chip" onclick="chip(this)">CO</span><span class="factor-chip active" onclick="chip(this)">O₃</span><span class="factor-chip active" onclick="chip(this)">AQI</span></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>国标类型：</span><div class="segmented"><button onclick="seg(this)">新</button><button class="active" onclick="seg(this)">默认</button><button onclick="seg(this)">旧</button></div></div>
+            </div>
+            <div class="ranking-summary">本次成果：城市排名 · 平顶山市 · 实时 · 官网最新可用时间 · PM₂.₅、O₃、AQI · 页面截图 · 国标类型：默</div>
+          </section>
+
+          <!-- 一张图配置 -->
+          <section class="ranking-config cfg" id="cfg-mapPackage" style="display:none">
+            <div class="ranking-config-head">02 · 配置一张图</div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>生成成果：</span><label class="n-checkbox checked disabled"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>一张图截图</label></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>地图范围：</span><div class="segmented"><button class="active" onclick="seg(this)">全国</button><button onclick="seg(this)">河南省</button><button onclick="seg(this)">平顶山市</button></div></div>
+              <div class="compact-field"><span>时间类型：</span><div class="segmented"><button class="active" onclick="seg(this)">实时</button><button onclick="seg(this)">累计</button><button onclick="seg(this)">日</button></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>地图类型：</span><div class="segmented"><button class="active" onclick="seg(this)">监测图</button><button onclick="seg(this)">插值图</button></div></div>
+              <div class="compact-field"><span>因子：</span><select class="n-select" style="width:160px"><option>首要污染物</option><option>PM₂.₅</option><option>PM₁₀</option><option>SO₂</option><option>NO₂</option><option>CO</option><option>O₃</option><option>AQI</option></select></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>颜色：</span><div class="segmented"><button class="active" onclick="seg(this)">浅色</button><button onclick="seg(this)">深色</button></div></div>
+              <div class="map-switches"><label class="n-checkbox checked" onclick="ck(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>风/海浪</label><label class="n-checkbox checked" onclick="ck(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>左侧面板</label></div>
+            </div>
+            <div class="ranking-summary">本次一张图：全国 · 监测图 · 首要污染物 · 浅色 · 开启风/海浪 · 保留左侧面板</div>
+          </section>
+
+          <!-- 小时播报配置 -->
+          <section class="ranking-config cfg" id="cfg-hourlyBrief" style="display:none">
+            <div class="ranking-config-head">02 · 配置小时播报</div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>生成成果：</span><label class="n-checkbox checked disabled"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>页面截图</label></div>
+              <span class="latest-hint">任务执行时自动使用官网最新可用时点</span>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>截图颜色：</span><div class="segmented"><button class="active" onclick="seg(this)">浅色</button><button onclick="seg(this)">深色</button></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>查询：</span><div class="segmented"><button class="active" onclick="seg(this)">城市</button><button onclick="seg(this)">站点</button></div></div>
+              <div class="compact-field region-field"><span>行政区：</span><input class="n-input" style="max-width:220px" value="平顶山市"></div>
+              <div class="compact-field"><span>乡镇：</span><select class="n-select" style="width:140px"><option>全部乡镇</option><option>新华区</option><option>卫东区</option><option>湛河区</option></select></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>污染因子：</span><div class="factor-chips"><span class="factor-chip active" onclick="chip(this)">AQI</span><span class="factor-chip active" onclick="chip(this)">PM₂.₅</span><span class="factor-chip active" onclick="chip(this)">O₃</span><span class="factor-chip" onclick="chip(this)">PM₁₀</span><span class="factor-chip" onclick="chip(this)">SO₂</span><span class="factor-chip" onclick="chip(this)">NO₂</span><span class="factor-chip" onclick="chip(this)">CO</span></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>国标类型：</span><div class="segmented"><button onclick="seg(this)">新</button><button class="active" onclick="seg(this)">默认</button><button onclick="seg(this)">旧</button></div></div>
+            </div>
+            <div class="ranking-summary">本次成果：城市 · 平顶山市 · 全部乡镇 · 官网最新可用时点 · AQI、PM₂.₅、O₃ · 页面截图 · 国标类型：默</div>
+          </section>
+
+          <!-- 监测数据配置 -->
+          <section class="ranking-config cfg" id="cfg-monitoringData" style="display:none">
+            <div class="ranking-config-head">02 · 配置监测数据</div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>生成成果：</span><label class="n-checkbox checked disabled"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>页面截图</label></div>
+              <div class="compact-field"><span>截图颜色：</span><div class="segmented"><button class="active" onclick="seg(this)">浅色</button><button onclick="seg(this)">深色</button></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>查询：</span><div class="segmented"><button class="active" onclick="seg(this)">城市</button><button onclick="seg(this)">站点</button></div></div>
+              <div class="compact-field region-field"><span>行政区：</span><input class="n-input" style="max-width:220px" value="平顶山市"></div>
+              <div class="compact-field"><span>乡镇：</span><select class="n-select" style="width:140px"><option>全部乡镇</option><option>新华区</option><option>卫东区</option><option>湛河区</option></select></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>污染因子：</span><div class="factor-chips"><span class="factor-chip active" onclick="chip(this)">AQI</span><span class="factor-chip active" onclick="chip(this)">PM₂.₅</span><span class="factor-chip active" onclick="chip(this)">O₃</span><span class="factor-chip" onclick="chip(this)">PM₁₀</span><span class="factor-chip" onclick="chip(this)">SO₂</span><span class="factor-chip" onclick="chip(this)">NO₂</span><span class="factor-chip" onclick="chip(this)">CO</span></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>国标类型：</span><div class="segmented"><button onclick="seg(this)">新</button><button class="active" onclick="seg(this)">默认</button><button onclick="seg(this)">旧</button></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>时间：</span><div class="segmented"><button onclick="seg(this)">小时均值</button><button class="active" onclick="segMon(this,false)">小时</button><button onclick="seg(this)">逐日累计</button><button onclick="seg(this)">日累计</button><button onclick="segMon(this,true)">自定义</button></div></div>
+              <span class="latest-hint" id="monLatest">任务执行时自动使用官网最新可用时间</span>
+            </div>
+            <div class="ranking-toolbar" id="monCustomRow" style="display:none">
+              <div class="compact-field custom-range-field"><span>时间范围：</span><input class="n-input" placeholder="例如：2026-07-16 01:00 - 2026-07-16 14:00"></div>
+            </div>
+            <div class="ranking-summary">本次成果：城市 · 平顶山市 · 全部乡镇 · 官网最新小时数据 · AQI、PM₂.₅、O₃ · 页面截图 · 国标类型：默</div>
+          </section>
+        </div>
+        <div class="action-bar">
+          <span></span>
+          <div class="action-right">
+            <a class="btn btn-default" href="duty-tasks.html">取消</a>
+            <button class="btn btn-primary" onclick="goStep(2)">下一步 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 步骤2：设置推送方式 ===== -->
+      <div class="step-panel" id="panel2">
+        <div class="form-section">
+          <div class="delivery-intro"><span>03 · 设置交付</span><h2>什么时候运行，发送给谁？</h2></div>
+
+          <div class="form-group">
+            <label class="form-label">运行时间 <span class="required-mark">*</span></label>
+            <!-- SchedulePicker 复刻 -->
+            <div class="schedule-picker">
+              <div class="sched-cat-tabs">
+                <button class="sched-cat-btn" onclick="schedCat(this,'interval')">按间隔</button>
+                <button class="sched-cat-btn" onclick="schedCat(this,'hourly')">每小时</button>
+                <button class="sched-cat-btn active" onclick="schedCat(this,'daily')">每天</button>
+                <button class="sched-cat-btn" onclick="schedCat(this,'weekly')">每周</button>
+                <button class="sched-cat-btn" onclick="schedCat(this,'monthly')">每月</button>
+                <button class="sched-cat-btn" onclick="schedCat(this,'custom')">自定义</button>
+              </div>
+              <!-- 按间隔 -->
+              <div class="sched-cat-panel" data-cat="interval" style="display:none">
+                <div class="sched-sub-label">常用间隔</div>
+                <div class="preset-chip-grid">
+                  <button class="preset-chip active" onclick="seg(this)">5 分钟</button><button class="preset-chip" onclick="seg(this)">10 分钟</button><button class="preset-chip" onclick="seg(this)">15 分钟</button><button class="preset-chip" onclick="seg(this)">30 分钟</button><button class="preset-chip" onclick="seg(this)">1 小时</button><button class="preset-chip" onclick="seg(this)">2 小时</button><button class="preset-chip" onclick="seg(this)">3 小时</button><button class="preset-chip" onclick="seg(this)">6 小时</button><button class="preset-chip" onclick="seg(this)">12 小时</button><button class="preset-chip" onclick="seg(this)">24 小时</button>
+                </div>
+                <div class="sched-custom-row"><span class="sched-custom-label">自定义</span><div class="sched-custom-inputs"><span>每</span><input type="number" class="sched-num-input" value="5" min="1" max="60"><select class="sched-unit-select"><option>分钟</option><option>小时</option></select></div></div>
+              </div>
+              <!-- 每小时 -->
+              <div class="sched-cat-panel" data-cat="hourly" style="display:none">
+                <div class="sched-time-row"><span class="sched-time-label">执行分钟</span><div class="sched-time-inputs"><select class="sched-time-select"><option>00</option><option>05</option><option>10</option><option>15</option><option>30</option><option>45</option></select><span>分</span></div></div>
+              </div>
+              <!-- 每天 -->
+              <div class="sched-cat-panel" data-cat="daily">
+                <div class="sched-time-row"><span class="sched-time-label">执行时间</span><div class="sched-time-inputs"><select class="sched-time-select"><option>00</option><option>08</option><option selected>09</option><option>10</option><option>18</option></select><span>:</span><select class="sched-time-select"><option selected>00</option><option>15</option><option>30</option><option>45</option></select></div></div>
+              </div>
+              <!-- 每周 -->
+              <div class="sched-cat-panel" data-cat="weekly" style="display:none">
+                <div class="sched-sub-label">选择星期</div>
+                <div class="sched-day-chips"><button class="sched-day-chip active" onclick="dayChip(this)">周一</button><button class="sched-day-chip" onclick="dayChip(this)">周二</button><button class="sched-day-chip" onclick="dayChip(this)">周三</button><button class="sched-day-chip" onclick="dayChip(this)">周四</button><button class="sched-day-chip" onclick="dayChip(this)">周五</button><button class="sched-day-chip" onclick="dayChip(this)">周六</button><button class="sched-day-chip" onclick="dayChip(this)">周日</button></div>
+                <div class="sched-time-row" style="margin-top:12px"><span class="sched-time-label">执行时间</span><div class="sched-time-inputs"><select class="sched-time-select"><option selected>09</option><option>18</option></select><span>:</span><select class="sched-time-select"><option selected>00</option><option>30</option></select></div></div>
+              </div>
+              <!-- 每月 -->
+              <div class="sched-cat-panel" data-cat="monthly" style="display:none">
+                <div class="sched-monthly-row"><span class="sched-monthly-label">每月</span><select class="sched-dom-select"><option>1 号</option><option>15 号</option><option>28 号</option></select></div>
+                <div class="sched-time-row"><span class="sched-time-label">执行时间</span><div class="sched-time-inputs"><select class="sched-time-select"><option selected>09</option></select><span>:</span><select class="sched-time-select"><option selected>00</option></select></div></div>
+              </div>
+              <!-- 自定义 -->
+              <div class="sched-cat-panel" data-cat="custom" style="display:none">
+                <div class="sched-custom-row"><span class="sched-custom-label">Cron 表达式</span><input class="sched-cron-input" value="0 9 * * *"></div>
+                <div class="sched-cron-help"><div class="sched-cron-help-title">格式: 分 时 日 月 周</div><div class="sched-cron-help-examples"><div>每 5 分钟: <code>*/5 * * * *</code></div><div>每天 9 点: <code>0 9 * * *</code></div><div>每周一 9 点: <code>0 9 * * 1</code></div></div></div>
+              </div>
+              <div class="schedule-preview"><span>⏰</span><span id="schedPreview">每天 09:00 执行</span></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">成果发送到 <span class="required-mark">*</span></label>
+            <select class="n-select"><option>本地</option><option>企业微信 · 值守大群</option><option>钉钉 · 生产群</option><option>飞书 · 环保通报</option></select>
+            <div class="chip-config-hint"><span>需要更多接收渠道？</span><a class="hint-link" onclick="showToast('前往频道配置')">前往配置 →</a></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">成果保存位置（可选）</label>
+            <div class="save-path-row"><input class="n-input" placeholder="留空则不保存到本地文件夹"><button class="btn btn-default btn-sm">浏览</button></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">运行模型（可选）</label>
+            <div class="model-select-row"><select class="n-select"><option>默认（跟随全局设置）</option><option>OpenAI</option><option>Anthropic</option></select><select class="n-select"><option>默认模型</option></select></div>
+            <div class="chip-config-hint"><span>不选则使用全局默认模型。</span></div>
+          </div>
+
+          <div class="delivery-note"><b>本次任务将交付 <span id="dnCount">1</span> 项成果</b><div id="dnList"></div></div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-default" onclick="goStep(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>上一步</button>
+          <div class="action-right">
+            <a class="btn btn-default" href="duty-tasks.html">取消</a>
+            <button class="btn btn-primary" onclick="goStep(3)">下一步 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 步骤3：确认任务 ===== -->
+      <div class="step-panel" id="panel3">
+        <div class="preview-box">
+          <div class="confirm-hero"><span>✓</span><div><b>请确认这份值守安排</b></div></div>
+          <div class="preview-section"><div class="preview-label">任务名称</div><div class="preview-line"><strong id="cfName">平顶山市空气质量值守</strong></div></div>
+          <div class="preview-section"><div class="preview-label">成果清单（<span id="cfCount">1</span> 项）</div><div class="confirm-output-list" id="cfList"></div></div>
+          <div class="preview-section"><div class="preview-label">运行与发送</div><div class="preview-line"><strong>频率：</strong>每天 09:00 执行 · <strong>推送至：</strong>本地</div></div>
+          <div class="preview-section"><div class="preview-label">系统将自动完成</div><div class="simple-run-plan"><span>获取发布数据</span><i>→</i><span>依次生成 <span id="cfPlanCount">1</span> 项成果</span><i>→</i><span>统一发送给值守人员</span></div></div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-default" onclick="goStep(2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>上一步</button>
+          <div class="action-right">
+            <a class="btn btn-default" href="duty-tasks.html">取消</a>
+            <button class="btn btn-primary" onclick="submitCreate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>创建任务</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+const CAPS = {
+  mapPackage:          { mono:'◇', name:'一张图', def:'全国 · 监测图 · 首要污染物' },
+  concentrationRanking:{ mono:'≋', name:'浓度排名', def:'城市排名 · 平顶山市 · 实时 · PM₂.₅/O₃/AQI' },
+  hourlyBrief:         { mono:'◷', name:'小时播报', def:'城市 · 平顶山市 · 页面截图' },
+  monitoringData:      { mono:'▦', name:'监测数据', def:'城市 · 平顶山市 · 小时' },
+};
+let outputs = [], seq = 0, activeId = null;
+
+// 读取 URL：?caps=a,b  或  ?edit=id
+function initOutputs(){
+  const p = new URLSearchParams(location.search);
+  const caps = p.get('caps');
+  if (p.get('edit')) {
+    // 编辑态示例：预填一个组合任务
+    outputs = [{id:'o'+(++seq),type:'concentrationRanking'},{id:'o'+(++seq),type:'mapPackage'}];
+    document.getElementById('taskName').value = '平阴县每日城市排名分析任务';
+  } else if (caps) {
+    const keys = caps.split(',').filter(k=>CAPS[k]);
+    outputs = (keys.length?keys:['concentrationRanking']).map(k=>({id:'o'+(++seq),type:k}));
+  } else {
+    outputs = [{id:'o'+(++seq),type:'concentrationRanking'}];
+  }
+  activeId = outputs[0].id;
+}
+function renderOutputs(){
+  document.getElementById('outputList').innerHTML = outputs.map((o,i)=>{
+    const c=CAPS[o.type];
+    return `<article class="output-item ${activeId===o.id?'active':''}" onclick="selectOutput('${o.id}')">
+      <span class="output-index">${i+1}</span>
+      <span class="output-item-copy"><b>${c.name}</b><small>${c.def}</small></span>
+      ${activeId===o.id?'<span class="editing-badge">正在编辑</span>':''}
+      <button class="output-action" onclick="event.stopPropagation();dupOutput('${o.id}')">复制</button>
+      <button class="output-action danger" onclick="event.stopPropagation();delOutput('${o.id}')">删除</button>
+    </article>`;
+  }).join('');
+  // 显示当前选中成果的配置区
+  document.querySelectorAll('.cfg').forEach(el=>el.style.display='none');
+  const active = outputs.find(o=>o.id===activeId);
+  if (active) { const el=document.getElementById('cfg-'+active.type); if(el) el.style.display=''; }
+}
+function addOutput(type){ outputs.push({id:'o'+(++seq),type}); activeId=outputs[outputs.length-1].id; renderOutputs(); }
+function selectOutput(id){ activeId=id; renderOutputs(); }
+function dupOutput(id){ const o=outputs.find(x=>x.id===id); if(o){ outputs.push({id:'o'+(++seq),type:o.type}); renderOutputs(); } }
+function delOutput(id){ if(outputs.length<=1){ showToast('至少保留一个成果'); return; } outputs=outputs.filter(x=>x.id!==id); if(activeId===id) activeId=outputs[0].id; renderOutputs(); }
+
+// 通用交互
+function seg(btn){ const g=btn.parentElement; g.querySelectorAll('button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+function chip(el){ el.classList.toggle('active'); }
+function ck(el){ el.classList.toggle('checked'); }
+function dayChip(el){ el.classList.toggle('active'); }
+function segMon(btn,custom){ seg(btn); document.getElementById('monCustomRow').style.display=custom?'':'none'; document.getElementById('monLatest').style.display=custom?'none':''; }
+
+// SchedulePicker 类别切换
+const schedPreviewMap = { interval:'每 5 分钟 执行一次', hourly:'每小时第 00 分执行', daily:'每天 09:00 执行', weekly:'每周一 09:00 执行', monthly:'每月 1 号 09:00 执行', custom:'每天 09:00 执行（0 9 * * *）' };
+function schedCat(btn,cat){
+  document.querySelectorAll('.sched-cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+  document.querySelectorAll('.sched-cat-panel').forEach(p=>p.style.display = p.dataset.cat===cat?'':'none');
+  document.getElementById('schedPreview').textContent = schedPreviewMap[cat];
+}
+
+// 步骤导航
+let curStep=1;
+function goStep(s){
+  curStep=s;
+  for(let i=1;i<=3;i++) document.getElementById('panel'+i).classList.toggle('visible', i===s);
+  document.querySelectorAll('.step-item').forEach((el,idx)=>{ const st=idx+1; el.classList.toggle('active',st===s); el.classList.toggle('done',st<s); });
+  document.getElementById('conn1').classList.toggle('done',1<s);
+  document.getElementById('conn2').classList.toggle('done',2<s);
+  document.querySelector('.content').scrollTop=0;
+  if(s===2) syncStep2();
+  if(s===3) syncStep3();
+}
+function syncStep2(){
+  document.getElementById('dnCount').textContent=outputs.length;
+  document.getElementById('dnList').innerHTML=outputs.map((o,i)=>`<span>${i+1}. ${CAPS[o.type].name} · ${CAPS[o.type].def}</span>`).join('');
+}
+function syncStep3(){
+  document.getElementById('cfName').textContent=document.getElementById('taskName').value||'未命名任务';
+  document.getElementById('cfCount').textContent=outputs.length;
+  document.getElementById('cfPlanCount').textContent=outputs.length;
+  document.getElementById('cfList').innerHTML=outputs.map((o,i)=>`<div><span>${i+1}</span><strong>${CAPS[o.type].name} · ${CAPS[o.type].def}</strong></div>`).join('');
+}
+function submitCreate(){ showToast('任务创建成功（含 '+outputs.length+' 项成果）'); setTimeout(()=>{ window.location.href='duty-tasks.html'; },1100); }
+
+let tTimer=null;
+function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>t.classList.remove('show'),2000); }
+
+initOutputs(); renderOutputs();
+</script>
+</body>
+</html>

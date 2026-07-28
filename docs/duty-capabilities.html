@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>envClaw · 值守任务 / 能力库</title>
+<link rel="stylesheet" href="duty-proto.css">
+</head>
+<body>
+<div class="app">
+  <!-- 左侧栏（1:1 复刻 ChatPanel: session-list + PageSidebarNav + JobTreeList） -->
+  <aside class="session-list">
+    <div class="page-sidebar-top">
+      <div class="page-sidebar-nav">
+        <div class="sidebar-brand">
+          <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 13 13 13 12"/></svg></div>
+          <div>
+            <div class="logo-text">envClaw</div>
+            <div class="logo-tag">数智环保 · envClaw</div>
+          </div>
+        </div>
+        <div class="mode-switch-tabs">
+          <button class="mode-tab" onclick="showToast('智能问数模块（原型未覆盖）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>智能问数</span></button>
+          <button class="mode-tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>自动化值守</span></button>
+        </div>
+      </div>
+      <div class="sidebar-action-bar">
+        <a class="sidebar-primary-btn" href="duty-create.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
+      </div>
+    </div>
+    <div class="session-sections-scroll">
+      <div class="session-section">
+        <div class="session-group-header">
+          <span class="session-group-label">历史对话</span>
+          <span class="session-group-count">(7)</span>
+          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <a class="session-item active"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务 · 07/28 运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多（2）</button>
+      </div>
+      <div class="session-section">
+        <div class="session-group-header">
+          <span class="session-group-label">定时任务</span>
+          <span class="session-group-count">(1)</span>
+          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="tree-job-group">
+          <div class="tree-job-row" onclick="location.href='duty-tasks.html'">
+            <span class="tree-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+            <div class="tree-job-info">
+              <span class="tree-job-name">平顶山值守任务</span>
+              <span class="tree-job-status success">已调度</span>
+            </div>
+            <span class="tree-job-settings" onclick="event.stopPropagation();location.href='duty-create.html?edit=a'" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page-sidebar-bottom">
+      <button class="page-sidebar-menu-btn" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>设置</span></button>
+    </div>
+  </aside>
+
+  <!-- 内容区 -->
+  <div class="content">
+    <div class="page">
+      <div class="page-header">
+        <div>
+          <h1>值守任务</h1>
+          <div class="page-sub">浏览可值守的成果能力，快速创建或组合成一个复合任务</div>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-primary" href="duty-create.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>创建任务</a>
+        </div>
+      </div>
+
+      <!-- 顶部分段切换 -->
+      <div class="seg-switch">
+        <a class="seg-btn" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>我的任务 <span class="seg-count">4</span></a>
+        <a class="seg-btn active" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>能力库 <span class="seg-count">4</span></a>
+      </div>
+
+      <div class="cap-source">数智大气</div>
+
+      <div class="cap-grid" id="capGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 组合篮 -->
+<div class="combo-bar" id="comboBar">
+  <div class="combo-info"><span class="combo-num" id="comboNum">0</span> 已选成果</div>
+  <div class="combo-chips" id="comboChips"></div>
+  <button class="combo-clear" onclick="clearCombo()">清空</button>
+  <a class="combo-go" id="comboGo" href="duty-create.html">去组合配置 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+</div>
+
+<!-- 快速创建改为直接进入正式创建向导，轻量弹窗已移除 -->
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+// 真实四成果模型（源自 CreateTask.vue functions[] szdq + dutyOutputs）
+const CAPS = {
+  mapPackage:          { mono:'◇', name:'一张图', tags:['截图','地图'], desc:'生成数智大气一张图成果，设置地图范围、时间类型、监测图/插值图、因子、风场与图层。' },
+  concentrationRanking:{ mono:'≋', name:'浓度排名', tags:['截图','数据采集','数据分析'], desc:'城市/站点浓度排名查询，生成可视化排名截图并附数据文字总结后推送。' },
+  hourlyBrief:         { mono:'◷', name:'小时播报', tags:['截图','数据采集','数据分析'], desc:'定位小时播报页面，勾选行政区与污染因子，截取页面图片。' },
+  monitoringData:      { mono:'▦', name:'监测数据', tags:['截图','数据采集','数据分析'], desc:'提取各点位小时/分钟监测数据，覆盖 PM₂.₅、AQI、O₃ 等，按站点结构化输出。' },
+};
+const CAP_KEYS = ['mapPackage','concentrationRanking','hourlyBrief','monitoringData'];
+const svgCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>';
+
+let comboSet = new Set();
+function goCreate(k){ window.location.href='duty-create.html?caps='+encodeURIComponent(k); }
+
+function renderCaps(){
+  document.getElementById('capGrid').innerHTML = CAP_KEYS.map(k=>{
+    const c=CAPS[k]; const inC=comboSet.has(k);
+    return `<div class="cap-card ${inC?'in-combo':''}" onclick="toggleCombo('${k}')">
+      <div class="cap-top">
+        <div class="cap-name">${c.name}</div>
+        <div class="cap-combo-check" title="${inC?'移出组合':'加入组合'}" onclick="event.stopPropagation();toggleCombo('${k}')">${svgCheck}</div>
+      </div>
+      <div class="cap-desc">${c.desc}</div>
+      <div class="cap-tags">${c.tags.map(t=>`<span class="cap-tag">${t}</span>`).join('')}</div>
+      <div class="cap-foot">
+        <button class="act-btn act-primary" onclick="event.stopPropagation();goCreate('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>快速创建</button>
+        <button class="act-btn" onclick="event.stopPropagation();toggleCombo('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>${inC?'已加入组合':'加入组合'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleCombo(k){ comboSet.has(k)?comboSet.delete(k):comboSet.add(k); renderCaps(); renderCombo(); }
+function clearCombo(){ comboSet.clear(); renderCaps(); renderCombo(); }
+function renderCombo(){
+  document.getElementById('comboNum').textContent=comboSet.size;
+  document.getElementById('comboChips').innerHTML=[...comboSet].map(k=>`<span class="combo-chip">${CAPS[k].name}<button onclick="toggleCombo('${k}')">×</button></span>`).join('');
+  document.getElementById('comboBar').classList.toggle('show', comboSet.size>0);
+  document.getElementById('comboGo').href = 'duty-create.html?caps=' + encodeURIComponent([...comboSet].join(','));
+}
+let tTimer=null;
+function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>t.classList.remove('show'),2000); }
+renderCaps();
+</script>
+</body>
+</html>
