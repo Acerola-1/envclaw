@@ -44,6 +44,7 @@ import { useJobsStore } from "@/stores/hermes/jobs";
 // import { isStoredSuperAdmin } from "@/api/client";
 // import GuardPanel from "@/components/hermes/guard/GuardPanel.vue";
 import GuardJobCardList from "@/components/hermes/guard/JobCardList.vue";
+import CapabilityLibrary from "@/components/hermes/guard/CapabilityLibrary.vue";
 import JobCard from "@/components/hermes/guard/JobCard.vue";
 import CreateGuardTaskModal from "@/components/hermes/guard/CreateGuardTaskModal.vue";
 import CreateTask from "@/views/hermes/CreateTask.vue";
@@ -181,6 +182,8 @@ const showGuardPanel = ref(true)
 const selectedRobot = ref<GuardRobot | null>(null)
 const showCreateGuardModal = ref(false)
 const showCreateTaskPanel = ref(false)
+const guardTab = ref<'jobs' | 'capabilities'>('jobs')
+const createTaskPresets = ref<string[]>([])
 const selectedTaskJob = ref<any>(null)
 
 // Initialize synchronously from the media query so first paint is correct.
@@ -320,6 +323,8 @@ function handleAppModeChange(mode: 'smartQuery' | 'automation') {
     // 否则 rightPanelMode 会一直停在 create-task/edit-task，看不到任务列表。
     showCreateTaskPanel.value = false;
     editingJobId.value = null;
+    createTaskPresets.value = [];
+    guardTab.value = 'jobs';
     void jobsStore.fetchJobs();
   } else {
     currentMode.value = "chat";
@@ -332,6 +337,8 @@ function handleAppModeChange(mode: 'smartQuery' | 'automation') {
     selectedTaskJob.value = null;
     showCreateTaskPanel.value = false;
     editingJobId.value = null;
+    createTaskPresets.value = [];
+    guardTab.value = 'jobs';
   }
 }
 
@@ -463,9 +470,10 @@ function openCreateJobModal() {
   showCreateGuardModal.value = true;
 }
 
-function openCreateTaskPanel() {
+function openCreateTaskPanel(capabilities: string[] = []) {
   currentMode.value = 'jobs';
   showCreateTaskPanel.value = true;
+  createTaskPresets.value = capabilities;
   // 清除其他状态
   activeJobSessionId.value = null;
   activeRunSessionId.value = null;
@@ -1784,10 +1792,27 @@ async function handleSessionModelCustomSubmit() {
       </template>
       <template v-else-if="currentMode === 'jobs'">
         <div class="guard-content-area">
-          <!-- GuardPanel：未选中任何 Job 时展示 -->
-           <GuardJobCardList v-if="rightPanelMode === 'guard'" @select="handleSelectJobForInfo" @edit="handleEditJobFromTree" @create="openCreateTaskPanel" />
-
-          <!-- <GuardPanel v-if="rightPanelMode === 'guard'" @select="handleRobotSelect" @create-task="handleRobotSelect" /> -->
+          <!-- 值守工作台：我的任务 / 能力库 分段切换 -->
+          <div v-if="rightPanelMode === 'guard'" class="guard-workbench">
+            <div class="guard-workbench-header">
+              <div>
+                <h2 class="guard-workbench-title">值守任务</h2>
+                <div class="guard-workbench-sub">无人值守的定时任务，按计划自动运行并推送结果</div>
+              </div>
+              <button class="guard-create-btn" @click="openCreateTaskPanel()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                创建任务
+              </button>
+            </div>
+            <div class="guard-seg-switch">
+              <button class="guard-seg-btn" :class="{ active: guardTab === 'jobs' }" @click="guardTab = 'jobs'">我的任务</button>
+              <button class="guard-seg-btn" :class="{ active: guardTab === 'capabilities' }" @click="guardTab = 'capabilities'">能力库</button>
+            </div>
+            <div class="guard-workbench-view">
+              <GuardJobCardList v-if="guardTab === 'jobs'" :embedded="true" @select="handleSelectJobForInfo" @edit="handleEditJobFromTree" @create="openCreateTaskPanel()" />
+              <CapabilityLibrary v-else @quick-create="openCreateTaskPanel([$event])" @combine="openCreateTaskPanel($event)" />
+            </div>
+          </div>
 
           <!-- Job 对话：选中 Job 时展示 -->
           <div v-else-if="rightPanelMode === 'chat'" class="job-chat-panel">
@@ -1843,7 +1868,7 @@ async function handleSessionModelCustomSubmit() {
               <span class="create-task-title">创建任务</span>
             </div>
             <div class="create-task-body">
-              <CreateTask @created="handleCreateTaskCreated" @close="closeCreateTaskPanel" />
+              <CreateTask :preset-capabilities="createTaskPresets" @created="handleCreateTaskCreated" @close="closeCreateTaskPanel" />
             </div>
           </div>
 
@@ -3070,6 +3095,96 @@ async function handleSessionModelCustomSubmit() {
   flex: 1;
   overflow: hidden;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.guard-workbench {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.guard-workbench-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 24px 28px 0;
+  flex-shrink: 0;
+}
+
+.guard-workbench-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: $text-primary;
+  letter-spacing: 0.2px;
+}
+
+.guard-workbench-sub {
+  color: $text-secondary;
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.guard-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: $radius-md;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  white-space: nowrap;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--accent-hover);
+  }
+}
+
+.guard-seg-switch {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  margin: 16px 28px 0;
+  padding: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  flex-shrink: 0;
+}
+
+.guard-seg-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $text-secondary;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.15s;
+
+  &:hover {
+    color: $text-primary;
+  }
+
+  &.active {
+    background: var(--bg-card);
+    color: $text-primary;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.guard-workbench-view {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }

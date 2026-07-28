@@ -17,6 +17,11 @@ const emit = defineEmits<{
   create: []
 }>()
 
+// embedded=true 时隐藏内部页头（标题/创建任务由外层容器提供，用于能力库分段切换场景）
+withDefaults(defineProps<{
+  embedded?: boolean
+}>(), { embedded: false })
+
 const searchQuery = ref('')
 const activeFilter = ref<'all' | 'running' | 'paused' | 'error'>('all')
 const selectedJobId = ref<string | null>(null)
@@ -80,9 +85,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="jobs-page">
+  <div class="jobs-page" :class="{ embedded }">
     <!-- 页面标题 -->
-    <div class="page-header">
+    <div v-if="!embedded" class="page-header">
       <div>
         <h1>{{ t('envclaw.jobs.title') }}</h1>
         <div class="page-sub">{{ t('envclaw.jobs.description') }}</div>
@@ -166,6 +171,10 @@ onMounted(() => {
   flex-direction: column;
   padding: 24px 28px;
   overflow-y: auto;
+}
+
+.jobs-page.embedded {
+  padding: 16px 28px;
 }
 
 /* 页面标题 */

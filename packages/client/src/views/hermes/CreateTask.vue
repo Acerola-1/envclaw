@@ -16,6 +16,7 @@ import { useMessage } from 'naive-ui'
 // ==================== Props / Emits ====================
 const props = defineProps<{
   jobId?: string | null
+  presetCapabilities?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -741,7 +742,8 @@ function addMonitoringOutput() {
 
 function duplicateOutput(output: DutyOutputItem) {
   syncActiveOutput()
-  const clone = structuredClone(output) as DutyOutputItem
+  // output 是模板传入的响应式 Proxy，structuredClone 会抛 DataCloneError；config 为纯 JSON 数据，用 JSON 深拷贝
+  const clone = JSON.parse(JSON.stringify(output)) as DutyOutputItem
   clone.id = newOutputId()
   clone.title = `${output.title} 副本`
   dutyOutputs.value.push(clone)
@@ -1291,6 +1293,23 @@ function resetForm() {
   originalJob.value = null
 }
 
+// 能力库预选：按传入顺序复用现有添加函数重建成果清单
+function seedPresetCapabilities(caps: string[]) {
+  const adders: Record<string, () => void> = {
+    mapPackage: addMapOutput,
+    concentrationRanking: addRankingOutput,
+    hourlyBrief: addHourlyOutput,
+    monitoringData: addMonitoringOutput,
+  }
+  const valid = caps.filter(c => adders[c])
+  if (valid.length === 0) return
+  dutyOutputs.value = []
+  activeOutputId.value = ''
+  valid.forEach(c => adders[c]())
+  if (dutyOutputs.value.length > 0) loadOutput(dutyOutputs.value[0])
+  refreshSelectedFunctions()
+}
+
 // ==================== Lifecycle ====================
 onMounted(async () => {
   resetForm()
@@ -1316,6 +1335,11 @@ onMounted(async () => {
     mapScope.value = userRegion.currentShortCode
   } else if (userRegion?.provinceShortCode) {
     mapScope.value = userRegion.provinceShortCode
+  }
+
+  // 能力库预选成果（非编辑态）：按传入顺序重建成果清单
+  if (!props.jobId && props.presetCapabilities && props.presetCapabilities.length > 0) {
+    seedPresetCapabilities(props.presetCapabilities)
   }
 
   // 编辑模式：加载已有任务数据
@@ -1401,13 +1425,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <article v-for="(output, index) in dutyOutputs" :key="output.id" class="output-item"
                   :class="{ active: activeOutputId === output.id }" @click="selectDutyOutput(output)">
                   <span class="output-index">{{ index + 1 }}</span>
-                  <span class="capability-icon" :class="output.type">
-                    {{ ({
-                      concentrationRanking: '≋', mapPackage: '◇', hourlyBrief: '◷', monitoringData: '▦'
-                    }[output.type]) }}
-                  </span>
-                  <span class="output-item-copy"><b>{{ output.title }}</b><small>{{ outputDefinition(output)
-                      }}</small></span>
+                  <span class="output-item-copy"><b>{{ output.title }}</b></span>
                   <span v-if="activeOutputId === output.id" class="editing-badge">正在编辑</span>
                   <button class="output-action" title="复制成果" @click.stop="duplicateOutput(output)">复制</button>
                   <button class="output-action danger" title="删除成果" @click.stop="removeOutput(output)">删除</button>
@@ -2321,23 +2339,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   opacity: .58;
 }
 
-.capability-icon {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  flex: 0 0 auto;
-  color: #fff;
-  background: linear-gradient(135deg, #1c98eb, #176ac2);
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.capability-icon.muted {
-  background: #aebdca;
-}
-
 .capability-copy {
   min-width: 0;
   flex: 1;
@@ -2372,18 +2373,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
 .soon {
   color: $text-muted;
-}
-
-.capability-icon.mapPackage {
-  background: linear-gradient(135deg, #19a878, #087b64);
-}
-
-.capability-icon.hourlyBrief {
-  background: linear-gradient(135deg, #d69223, #ad6011);
-}
-
-.capability-icon.monitoringData {
-  background: linear-gradient(135deg, #6277dc, #3548a5);
 }
 
 .map-config {
@@ -2508,24 +2497,10 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   flex: 1;
 }
 
-.output-item-copy b,
-.output-item-copy small {
-  display: block;
-}
-
 .output-item-copy b {
+  display: block;
   color: $text-primary;
   font-size: 12px;
-}
-
-.output-item-copy small {
-  margin-top: 3px;
-  overflow: hidden;
-  color: $text-muted;
-  font-size: 10px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .editing-badge {
