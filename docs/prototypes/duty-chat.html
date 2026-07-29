@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>envClaw · 智能问数 / 对话创建值守任务</title>
+<link rel="stylesheet" href="duty-proto.css">
+<style>
+/* ===== 智能问数页专属样式（沿用黑白水墨令牌） ===== */
+.chat-shell { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; }
+.chat-header { height: 61px; flex-shrink: 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--bg-primary); }
+.chat-header-title { font-size: 14px; font-weight: 600; }
+.chat-header-model { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-card); font-size: 12px; color: var(--text-secondary); cursor: pointer; font-family: var(--font-code); }
+.chat-header-model:hover { border-color: var(--border-strong); }
+.chat-header-model svg { width: 13px; height: 13px; }
+
+.chat-body { flex: 1; min-height: 0; overflow-y: auto; }
+.chat-body::-webkit-scrollbar { width: 8px; }
+.chat-body::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+.chat-inner { max-width: 780px; margin: 0 auto; padding: 24px 24px 12px; }
+
+/* ===== 空态：欢迎 + 场景引导 + 能力 chips ===== */
+.hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 7vh; }
+.hero-logo { width: 64px; height: 64px; border-radius: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: grid; place-items: center; margin-bottom: 18px; }
+.hero-logo svg { width: 36px; height: 36px; color: var(--accent-primary); }
+.hero h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.hero-sub { color: var(--text-secondary); font-size: 13.5px; margin-top: 8px; }
+
+.scene-tabs { display: inline-flex; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 24px; padding: 4px; gap: 2px; margin-top: 26px; }
+.scene-tab { border: none; background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 500; padding: 8px 20px; border-radius: 20px; cursor: pointer; transition: .15s; font-family: var(--font-ui); }
+.scene-tab:hover { color: var(--text-primary); }
+.scene-tab.active { background: var(--accent-primary); color: var(--text-on-accent); font-weight: 600; }
+
+.cap-chip-zone { margin-top: 26px; width: 100%; }
+.cap-chip-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.cap-chip { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: 24px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; transition: .15s; font-family: var(--font-ui); }
+.cap-chip:hover { border-color: var(--accent-primary); background: rgba(var(--accent-primary-rgb), .06); }
+.cap-chip svg { width: 14px; height: 14px; color: var(--text-secondary); }
+.cap-chip.chip-duty { border-color: var(--accent-primary); background: rgba(var(--accent-primary-rgb), .08); }
+.cap-chip.chip-duty svg { color: var(--accent-primary); }
+
+.hero-example { margin-top: 22px; font-size: 12.5px; color: var(--text-muted); }
+.hero-example button { border: none; background: none; color: var(--accent-primary); font-size: 12.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-family: var(--font-ui); padding: 0; }
+.hero-example button:hover { color: var(--accent-hover); }
+
+/* ===== 消息流 ===== */
+.msg-row { display: flex; margin-bottom: 18px; }
+.msg-row.user { justify-content: flex-end; }
+.bubble { max-width: 82%; padding: 11px 15px; border-radius: var(--radius-lg); font-size: 13.5px; line-height: 1.65; white-space: pre-wrap; }
+.msg-row.user .bubble { background: var(--accent-primary); color: var(--text-on-accent); border-bottom-right-radius: 4px; }
+.msg-row.assistant .bubble { background: var(--bg-card); border: 1px solid var(--border-color); border-bottom-left-radius: 4px; }
+.typing { display: inline-flex; gap: 5px; padding: 4px 2px; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); animation: blink 1.2s infinite; }
+.typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%,60%,100% { opacity: .25; } 30% { opacity: 1; } }
+
+/* ===== 任务草稿卡（对话内结构化收口） ===== */
+.draft-card { max-width: 82%; background: var(--bg-card); border: 2px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
+.draft-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border-light); }
+.draft-title { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.draft-title svg { width: 15px; height: 15px; }
+.draft-state { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: rgba(var(--warning-rgb), .15); color: var(--warning); }
+.draft-state.created { background: rgba(var(--success-rgb), .12); color: var(--success); }
+.draft-body { padding: 6px 16px 12px; }
+.draft-line { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--border-light); font-size: 13px; }
+.draft-line:last-child { border-bottom: none; }
+.draft-key { width: 68px; flex-shrink: 0; color: var(--text-muted); font-size: 12.5px; padding-top: 1px; }
+.draft-val { flex: 1; color: var(--text-primary); line-height: 1.55; }
+.src-tag { display: inline-block; font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 4px; margin-left: 8px; vertical-align: 1px; }
+.src-tag.tpl { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+.src-tag.ext { background: rgba(var(--accent-primary-rgb), .10); color: var(--accent-primary); border: 1px solid rgba(var(--accent-primary-rgb), .25); }
+.draft-ext-note { margin: 4px 16px 12px; padding: 9px 12px; border-radius: var(--radius-sm); background: var(--bg-secondary); border: 1px solid var(--border-light); font-size: 12px; color: var(--text-secondary); line-height: 1.6; display: flex; gap: 8px; }
+.draft-ext-note svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: var(--text-muted); }
+.draft-actions { display: flex; gap: 8px; padding: 0 16px 14px; }
+.draft-created-link { padding: 0 16px 14px; font-size: 12.5px; }
+.draft-created-link a { color: var(--accent-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ===== 输入区 ===== */
+.composer-zone { flex-shrink: 0; padding: 8px 24px 18px; background: var(--bg-primary); }
+.composer { max-width: 780px; margin: 0 auto; position: relative; }
+.composer-box { background: var(--bg-input); border: 2px solid var(--border-color); border-radius: var(--radius-lg); transition: border-color .15s; }
+.composer-box:focus-within { border-color: var(--accent-primary); }
+.composer textarea { width: 100%; border: none; outline: none; resize: none; background: transparent; font-family: var(--font-ui); font-size: 13.5px; line-height: 1.6; padding: 13px 15px 4px; height: 76px; color: var(--text-primary); }
+.composer textarea::placeholder { color: var(--text-muted); }
+.composer-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px 9px 15px; }
+.composer-hint { font-size: 11.5px; color: var(--text-muted); }
+.composer-hint b { font-family: var(--font-code); font-weight: 600; color: var(--text-secondary); }
+.composer-tools { display: flex; align-items: center; gap: 8px; }
+.icon-btn { width: 30px; height: 30px; border: none; background: transparent; border-radius: var(--radius-sm); display: grid; place-items: center; color: var(--text-secondary); cursor: pointer; transition: .15s; }
+.icon-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.icon-btn svg { width: 16px; height: 16px; }
+.send-btn { width: 32px; height: 32px; border: none; border-radius: 50%; background: var(--accent-primary); color: var(--text-on-accent); display: grid; place-items: center; cursor: pointer; transition: .15s; }
+.send-btn:hover { background: var(--accent-hover); }
+.send-btn:disabled { opacity: .35; cursor: not-allowed; }
+.send-btn svg { width: 15px; height: 15px; }
+
+/* ===== 斜杠指令浮层 ===== */
+.slash-pop { position: absolute; left: 0; right: 0; bottom: calc(100% + 8px); background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: 0 8px 28px rgba(0,0,0,.10); padding: 6px; display: none; z-index: 30; }
+.slash-pop.open { display: block; }
+.slash-pop-label { font-size: 11px; color: var(--text-muted); padding: 5px 10px 4px; letter-spacing: .4px; }
+.slash-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; background: none; border-radius: var(--radius-sm); cursor: pointer; text-align: left; font-family: var(--font-ui); }
+.slash-item:hover, .slash-item.hl { background: rgba(var(--accent-primary-rgb), .07); }
+.slash-cmd { font-family: var(--font-code); font-size: 12.5px; font-weight: 600; color: var(--accent-primary); width: 92px; flex-shrink: 0; }
+.slash-desc { font-size: 12.5px; color: var(--text-secondary); }
+
+/* Toast */
+.toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--accent-primary); color: #fff; padding: 9px 18px; border-radius: var(--radius-md); font-size: 13px; z-index: 99; transition: transform .25s; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 左侧栏（同 duty-tasks，智能问数 tab 处于激活态） -->
+  <aside class="session-list">
+    <div class="page-sidebar-top">
+      <div class="page-sidebar-nav">
+        <div class="sidebar-brand">
+          <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 13 13 13 12"/></svg></div>
+          <div>
+            <div class="logo-text">envClaw</div>
+            <div class="logo-tag">数智环保 · envClaw</div>
+          </div>
+        </div>
+        <div class="mode-switch-tabs">
+          <button class="mode-tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>智能问数</span></button>
+          <button class="mode-tab" onclick="location.href='duty-tasks.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>自动化值守</span></button>
+        </div>
+      </div>
+      <div class="sidebar-action-bar">
+        <a class="sidebar-primary-btn" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建对话</span></a>
+      </div>
+    </div>
+    <div class="session-sections-scroll">
+      <div class="session-section">
+        <div class="session-group-header">
+          <span class="session-group-label">历史对话</span>
+          <span class="session-group-count">(7)</span>
+          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <a class="session-item active"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务 · 07/28 运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多（2）</button>
+      </div>
+      <div class="session-section">
+        <div class="session-group-header">
+          <span class="session-group-label">定时任务</span>
+          <span class="session-group-count" id="jobCount">(1)</span>
+          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="tree-job-group" id="jobTree">
+          <div class="tree-job-row" onclick="location.href='duty-tasks.html'">
+            <span class="tree-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+            <div class="tree-job-info">
+              <span class="tree-job-name">平顶山值守任务</span>
+              <span class="tree-job-status success">已调度</span>
+            </div>
+            <span class="tree-job-settings" onclick="event.stopPropagation();location.href='duty-create.html?edit=a'" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page-sidebar-bottom">
+      <button class="page-sidebar-menu-btn" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>设置</span></button>
+    </div>
+  </aside>
+
+  <!-- 对话区 -->
+  <div class="chat-shell">
+    <div class="chat-header">
+      <div class="chat-header-title">新对话</div>
+      <button class="chat-header-model" onclick="showToast('切换模型（原型示意）')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v4"/><path d="M12 19v4"/><path d="M1 12h4"/><path d="M19 12h4"/></svg>
+        claude-sonnet-4
+      </button>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+      <div class="chat-inner" id="chatInner">
+        <!-- 空态 -->
+        <div class="hero" id="hero">
+          <div class="hero-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 13 13 13 12"/></svg></div>
+          <h1>今天想查什么？</h1>
+          <div class="hero-sub">直接提问，或选一个能力开始 —— 也可以让我把它变成定时运行的值守任务</div>
+
+          <div class="scene-tabs">
+            <button class="scene-tab active" onclick="switchScene(this,'query')">查数据</button>
+            <button class="scene-tab" onclick="switchScene(this,'duty')">建值守</button>
+          </div>
+
+          <div class="cap-chip-zone">
+            <div class="cap-chip-row" id="chipRow"></div>
+          </div>
+
+          <div class="hero-example">
+            试试：<button onclick="fillInput(EXAMPLE_PROMPT)">每天早上 8 点把平顶山市的实时浓度排名发到我邮箱</button>
+          </div>
+        </div>
+        <!-- 消息流插入点 -->
+      </div>
+    </div>
+
+    <div class="composer-zone">
+      <div class="composer">
+        <div class="slash-pop" id="slashPop">
+          <div class="slash-pop-label">能力指令</div>
+          <button class="slash-item" onclick="pickSlash('map')"><span class="slash-cmd">/一张图</span><span class="slash-desc">生成数智大气一张图截图</span></button>
+          <button class="slash-item" onclick="pickSlash('rank')"><span class="slash-cmd">/浓度排名</span><span class="slash-desc">查询城市/站点浓度排名</span></button>
+          <button class="slash-item" onclick="pickSlash('hourly')"><span class="slash-cmd">/小时播报</span><span class="slash-desc">生成小时数据播报</span></button>
+          <button class="slash-item" onclick="pickSlash('monitor')"><span class="slash-cmd">/监测数据</span><span class="slash-desc">查询监测数据报表</span></button>
+          <button class="slash-item" onclick="pickSlash('duty')"><span class="slash-cmd">/值守任务</span><span class="slash-desc">把需求变成定时运行的值守任务</span></button>
+        </div>
+        <div class="composer-box">
+          <textarea id="input" placeholder="输入需求，/ 唤起能力，也可以直接描述一个值守任务…" oninput="onInput()" onkeydown="onKey(event)"></textarea>
+          <div class="composer-bar">
+            <div class="composer-hint">按 <b>Enter</b> 发送 · <b>/</b> 唤起能力指令</div>
+            <div class="composer-tools">
+              <button class="icon-btn" title="附件" onclick="showToast('添加附件（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="icon-btn" title="语音" onclick="showToast('语音输入（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+              <button class="send-btn" id="sendBtn" disabled onclick="send()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ 能力目录（与能力库/CreateTask 同源的四成果 + 值守入口） ============
+const TEMPLATES = {
+  map:     '帮我生成一张图截图：范围 平顶山市，实时监测图，因子 PM₂.₅，浅色主题',
+  rank:    '帮我查询 平顶山市 的实时浓度排名，附带截图',
+  hourly:  '帮我生成 平顶山市 的小时播报',
+  monitor: '帮我查询 平顶山市 今天的监测数据',
+  duty:    '帮我创建一个值守任务：每天早上 8 点，查询平顶山市的实时浓度排名，并通过邮件发送到 duty@example.com',
+}
+const EXAMPLE_PROMPT = TEMPLATES.duty
+const SCENES = {
+  query: [
+    { key: 'map', name: '一张图' }, { key: 'rank', name: '浓度排名' },
+    { key: 'hourly', name: '小时播报' }, { key: 'monitor', name: '监测数据' },
+    { key: 'duty', name: '创建值守任务', duty: true },
+  ],
+  duty: [
+    { key: 'duty', name: '创建值守任务', duty: true },
+    { key: 'rank', name: '定时浓度排名' }, { key: 'map', name: '定时一张图' },
+    { key: 'hourly', name: '定时小时播报' }, { key: 'monitor', name: '定时监测数据' },
+  ],
+}
+const CHIP_ICONS = {
+  map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>',
+  rank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+  hourly: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  monitor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+  duty: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+}
+
+function renderChips(scene) {
+  document.getElementById('chipRow').innerHTML = SCENES[scene].map(c =>
+    `<button class="cap-chip ${c.duty ? 'chip-duty' : ''}" onclick="fillInput(TEMPLATES['${c.key}'])">${CHIP_ICONS[c.key]}${c.name}</button>`
+  ).join('')
+}
+function switchScene(btn, scene) {
+  document.querySelectorAll('.scene-tab').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+  renderChips(scene)
+}
+renderChips('query')
+
+// ============ 输入 / 斜杠指令 ============
+const input = document.getElementById('input')
+const sendBtn = document.getElementById('sendBtn')
+const slashPop = document.getElementById('slashPop')
+
+function fillInput(text) {
+  input.value = text
+  onInput()
+  input.focus()
+}
+function onInput() {
+  sendBtn.disabled = !input.value.trim()
+  slashPop.classList.toggle('open', input.value.startsWith('/'))
+}
+function pickSlash(key) {
+  slashPop.classList.remove('open')
+  fillInput(TEMPLATES[key])
+}
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+  if (e.key === 'Escape') slashPop.classList.remove('open')
+}
+
+// ============ 对话流（脚本化演示） ============
+const chatInner = document.getElementById('chatInner')
+const chatBody = document.getElementById('chatBody')
+let draftSeq = 0
+
+function appendHTML(html) {
+  document.getElementById('hero')?.remove()
+  chatInner.insertAdjacentHTML('beforeend', html)
+  chatBody.scrollTop = chatBody.scrollHeight
+}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function send() {
+  const text = input.value.trim()
+  if (!text) return
+  slashPop.classList.remove('open')
+  input.value = ''
+  onInput()
+  appendHTML(`<div class="msg-row user"><div class="bubble">${esc(text)}</div></div>`)
+  const tid = `typing-${Date.now()}`
+  appendHTML(`<div class="msg-row assistant" id="${tid}"><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div></div>`)
+  setTimeout(() => {
+    document.getElementById(tid)?.remove()
+    respond(text)
+  }, 900)
+}
+
+// 意图识别（演示）：含 值守/每天/每小时/定时 → 走任务草稿流；否则即时查询演示
+function respond(text) {
+  const isDuty = /值守|每天|每小时|定时|调度/.test(text)
+  if (!isDuty) {
+    appendHTML(`<div class="msg-row assistant"><div class="bubble">好的，正在为你查询…（原型演示：真实环境此处返回查询结果，可点击下方按钮把这次查询变为定时任务）\n\n如需定期获取该结果，可以说「把这个变成每天 8 点的值守任务」。</div></div>`)
+    return
+  }
+  // 参数抽取（演示脚本化）
+  const wantsEmail = /邮件|邮箱|@/.test(text)
+  const schedule = /每小时/.test(text) ? '每小时（整点 +10 分）' : '每天 08:00'
+  const id = `draft-${++draftSeq}`
+  appendHTML(`
+  <div class="msg-row assistant"><div class="bubble">明白了。我按你的描述整理了任务草稿，其中${wantsEmail ? '「邮件发送」不在内置模板里，我会通过 Hermes 编写发送脚本来交付这部分。' : '所有交付项均在内置模板范围内。'}请确认：</div></div>
+  <div class="msg-row assistant"><div class="draft-card" id="${id}">
+    <div class="draft-head">
+      <div class="draft-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>值守任务草稿</div>
+      <span class="draft-state" id="${id}-state">待确认</span>
+    </div>
+    <div class="draft-body">
+      <div class="draft-line"><span class="draft-key">任务名称</span><span class="draft-val">平顶山浓度排名${wantsEmail ? '邮件' : ''}日报</span></div>
+      <div class="draft-line"><span class="draft-key">成果</span><span class="draft-val">浓度排名（范围 平顶山市 · 实时 · 六因子 · 含截图）<span class="src-tag tpl">模板</span></span></div>
+      <div class="draft-line"><span class="draft-key">运行时间</span><span class="draft-val">${schedule}<span class="src-tag tpl">模板</span></span></div>
+      <div class="draft-line"><span class="draft-key">推送</span><span class="draft-val">${wantsEmail ? '邮件 → duty@example.com<span class="src-tag ext">扩展 · Hermes 脚本</span>' : '发送到当前会话<span class="src-tag tpl">模板</span>'}</span></div>
+    </div>
+    ${wantsEmail ? `<div class="draft-ext-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>「邮件发送」超出内置模板，将由 Hermes 生成发送脚本并在每次运行结束后执行；SMTP 服务配置缺失时会在首次运行前提示你补全。</span></div>` : ''}
+    <div class="draft-actions">
+      <button class="btn btn-primary btn-sm" onclick="confirmDraft('${id}', ${wantsEmail})">确认创建</button>
+      <a class="btn btn-default btn-sm" href="duty-create.html?caps=concentrationRanking">进向导微调</a>
+      <button class="btn btn-default btn-sm" onclick="showToast('继续对话修改草稿即可，例如：改成每小时运行')">继续修改</button>
+    </div>
+  </div></div>`)
+}
+
+function confirmDraft(id, wantsEmail) {
+  const state = document.getElementById(`${id}-state`)
+  state.textContent = '已创建 · 已调度'
+  state.classList.add('created')
+  const card = document.getElementById(id)
+  card.querySelector('.draft-actions').outerHTML =
+    `<div class="draft-created-link">任务已创建并进入调度。<a href="duty-tasks.html">在值守任务中查看 →</a></div>`
+  // 侧边栏定时任务 +1
+  document.getElementById('jobCount').textContent = '(2)'
+  document.getElementById('jobTree').insertAdjacentHTML('beforeend', `
+    <div class="tree-job-row" onclick="location.href='duty-tasks.html'">
+      <span class="tree-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+      <div class="tree-job-info">
+        <span class="tree-job-name">平顶山浓度排名${wantsEmail ? '邮件' : ''}日报</span>
+        <span class="tree-job-status success">已调度</span>
+      </div>
+    </div>`)
+  appendHTML(`<div class="msg-row assistant"><div class="bubble">已创建「平顶山浓度排名${wantsEmail ? '邮件' : ''}日报」并加入调度。${wantsEmail ? '首次运行前我会校验邮件服务配置，缺失时会在这里提醒你。' : ''}后续想调整，直接在对话里告诉我，或到值守任务里编辑。</div></div>`)
+  showToast('任务已创建并调度')
+}
+
+// Toast
+let toastTimer
+function showToast(msg) {
+  const t = document.getElementById('toast')
+  t.textContent = msg
+  t.classList.add('show')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200)
+}
+</script>
+</body>
+</html>
