@@ -3697,8 +3697,8 @@ export const useChatStore = defineStore('chat', () => {
       })
       // 每条运行记录作为一条 assistant 消息
       runs.forEach((run, i) => {
-        const preview = run.content.length > 1500
-          ? run.content.slice(0, 1500) + '\n\n…（内容已截断，点击左侧子任务查看完整记录）'
+        const preview = run.content.length > 8000
+          ? run.content.slice(0, 8000) + '\n\n…（内容已截断，点击左侧子任务查看完整记录）'
           : run.content
         session.messages.push({
           id: uid(),
@@ -3771,9 +3771,10 @@ export const useChatStore = defineStore('chat', () => {
     session.messages.push({
       id: uid(),
       role: 'assistant' as const,
-      content: runContent.length > 3000
-        ? runContent.slice(0, 3000) + '\n\n…（内容已截断）'
-        : runContent,
+      content: runContent,
+      // content: runContent.length > 8000
+      //   ? runContent.slice(0, 8000) + '\n\n…（内容已截断）'
+      //   : runContent,
       timestamp: Date.now(),
     })
     // 保留 _pendingContext 用于后续发送消息时的上下文注入

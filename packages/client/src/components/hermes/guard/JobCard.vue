@@ -98,7 +98,7 @@ function formatSize(bytes: number): string {
 }
 
 // --- 运行历史 ---
-const recentRuns = computed(() => runs.value.slice(0, 5))
+const recentRuns = computed(() => runs.value)
 
 async function fetchRuns() {
   if (!props.job) return
@@ -298,8 +298,7 @@ watch(() => [props.job, props.profileKey], () => {
             <span class="info-label">上次执行</span>
             <span class="info-value">
               {{ formatTime(job.last_run_at) }}
-              <NTag v-if="job.last_status" :type="job.last_status === 'ok' ? 'success' : 'error'" size="tiny"
-                round>
+              <NTag v-if="job.last_status" :type="job.last_status === 'ok' ? 'success' : 'error'" size="tiny" round>
                 {{ job.last_status === 'ok' ? '成功' : '失败' }}
               </NTag>
             </span>
@@ -340,9 +339,9 @@ watch(() => [props.job, props.profileKey], () => {
             <span class="empty-text">暂无运行记录</span>
           </div>
           <div v-else class="runs-list">
-            <div v-for="run in recentRuns" :key="run.fileName" class="run-row" @click="handleRunClick(run)">
+            <div v-for="(run, i) in recentRuns" :key="run.fileName" class="run-row" @click="handleRunClick(run)">
               <div class="run-left">
-                <span class="run-time">{{ formatTime(run.runTime) }}</span>
+                <span class="run-time">{{ i + 1 }}. {{ formatTime(run.runTime) }}</span>
                 <span class="run-size">{{ formatSize(run.size) }}</span>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

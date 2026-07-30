@@ -30,6 +30,8 @@ import ConversationMonitorPane from "./ConversationMonitorPane.vue";
 import MessageList from "./MessageList.vue";
 import SessionListItem from "./SessionListItem.vue";
 import OutlinePanel from "./OutlinePanel.vue";
+import ArtifactsPanel from "./ArtifactsPanel.vue";
+import { useArtifacts } from "@/composables/useArtifacts";
 import FilesPanel from "./FilesPanel.vue";
 import TerminalPanel from "./TerminalPanel.vue";
 // import AgentPanel from "./AgentPanel.vue";
@@ -61,6 +63,7 @@ const { t } = useI18n();
 // const isSuperAdmin = computed(() => isStoredSuperAdmin());
 
 const showOutline = ref(false);
+const showArtifactsPanel = ref(false);
 const messageListRef = ref<InstanceType<typeof MessageList> | null>(null);
 const chatInputRef = ref<(InstanceType<typeof ChatInput> & { addFiles?: (files: File[]) => void; setInputText?: (text: string) => void }) | null>(null);
 const chatContentWrapperRef = ref<HTMLElement | null>(null);
@@ -217,6 +220,19 @@ function openSessionInNewTab(sessionId: string) {
 function handleOutlineNavigate(target: { messageId: string; anchorId: string }) {
   messageListRef.value?.scrollToAnchor(target.messageId, target.anchorId);
   if (isMobile.value) showOutline.value = false;
+}
+
+const { groups: artifactGroups } = useArtifacts(computed(() => chatStore.messages));
+const artifactCount = computed(() =>
+  artifactGroups.value.reduce((sum, g) => sum + g.artifacts.length, 0),
+);
+
+function handleArtifactScrollToMessage(messageId: string) {
+  const el = document.getElementById(`message-${messageId}`);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  if (isMobile.value) showArtifactsPanel.value = false;
 }
 
 function loadToolPanelWidth() {
@@ -423,7 +439,7 @@ async function handleSelectRunForChat(jobId: string, fileName: string, runTime: 
     })
     activeRunSessionId.value = sessionId
     activeRunContext.value = { jobId, fileName, runTime }
-    console.log(activeRunContext.value, detail.content);
+    console.log(activeRunContext.value, detail.content.length, detail.content);
 
   } catch (e: any) {
     message.error('加载运行记录失败: ' + (e.message || e))
@@ -1707,6 +1723,21 @@ async function handleSessionModelCustomSubmit() {
               </template>
               {{ t("chat.outlineTitle") }}
             </NTooltip>
+            <NTooltip v-if="artifactCount > 0" trigger="hover">
+              <template #trigger>
+                <NButton quaternary size="small" @click="showArtifactsPanel = !showArtifactsPanel" circle>
+                  <template #icon>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="1.5">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                      <line x1="12" y1="22.08" x2="12" y2="12" />
+                    </svg>
+                  </template>
+                </NButton>
+              </template>
+              查看产物 ({{ artifactCount }})
+            </NTooltip>
             <!-- <NTooltip trigger="hover">
               <template #trigger>
                 <NButton quaternary size="small" @click="copySessionId()" circle>
@@ -1764,6 +1795,18 @@ async function handleSessionModelCustomSubmit() {
           <template v-if="!showAgentMorePanel">
             <div ref="chatMainContentRef" class="chat-main-content">
               <MessageList ref="messageListRef" />
+              <div
+                v-if="artifactCount > 0 && !showArtifactsPanel"
+                class="artifact-entry-bar"
+                @click="showArtifactsPanel = true"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+                <span class="artifact-entry-label">查看产物 ({{ artifactCount }})</span>
+              </div>
               <ChatInput ref="chatInputRef" />
             </div>
             <OutlinePanel v-if="showOutline" :messages="chatStore.messages" @navigate="handleOutlineNavigate" />
@@ -1787,6 +1830,14 @@ async function handleSessionModelCustomSubmit() {
                 </div>
               </div>
             </aside>
+            <!-- /ArtifactsPanel -->
+            <ArtifactsPanel
+              v-if="showArtifactsPanel"
+              :visible="showArtifactsPanel"
+              :groups="artifactGroups"
+              @close="showArtifactsPanel = false"
+              @scroll-to-message="handleArtifactScrollToMessage"
+            />
           </template>
         </div>
       </template>
@@ -1825,9 +1876,30 @@ async function handleSessionModelCustomSubmit() {
                 返回
               </button>
             </div>
-            <div class="job-chat-body">
-              <MessageList ref="messageListRef" />
-              <ChatInput ref="chatInputRef" />
+            <div class="job-chat-content-row">
+              <div class="job-chat-body">
+                <MessageList ref="messageListRef" />
+                <div
+                  v-if="artifactCount > 0 && !showArtifactsPanel"
+                  class="artifact-entry-bar"
+                  @click="showArtifactsPanel = true"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                  </svg>
+                  <span class="artifact-entry-label">查看产物 ({{ artifactCount }})</span>
+                </div>
+                <ChatInput ref="chatInputRef" />
+              </div>
+              <ArtifactsPanel
+                v-if="showArtifactsPanel"
+                :visible="showArtifactsPanel"
+                :groups="artifactGroups"
+                @close="showArtifactsPanel = false"
+                @scroll-to-message="handleArtifactScrollToMessage"
+              />
             </div>
           </div>
 
@@ -1842,9 +1914,30 @@ async function handleSessionModelCustomSubmit() {
                 返回
               </button>
             </div>
-            <div class="job-chat-body">
-              <MessageList ref="messageListRef" />
-              <ChatInput ref="chatInputRef" />
+            <div class="job-chat-content-row">
+              <div class="job-chat-body">
+                <MessageList ref="messageListRef" />
+                <div
+                  v-if="artifactCount > 0 && !showArtifactsPanel"
+                  class="artifact-entry-bar"
+                  @click="showArtifactsPanel = true"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                  </svg>
+                  <span class="artifact-entry-label">查看产物 ({{ artifactCount }})</span>
+                </div>
+                <ChatInput ref="chatInputRef" />
+              </div>
+              <ArtifactsPanel
+                v-if="showArtifactsPanel"
+                :visible="showArtifactsPanel"
+                :groups="artifactGroups"
+                @close="showArtifactsPanel = false"
+                @scroll-to-message="handleArtifactScrollToMessage"
+              />
             </div>
           </div>
 
@@ -2794,6 +2887,32 @@ async function handleSessionModelCustomSubmit() {
   min-width: 0;
 }
 
+.artifact-entry-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 150px;
+  padding: 6px 12px;
+  margin: 0 12px 2px;
+  border-radius: $radius-sm;
+  background: rgba(var(--accent-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.12);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(var(--accent-primary-rgb), 0.1);
+  }
+}
+
+.artifact-entry-label {
+  font-size: 12px;
+  color: $accent-primary;
+  font-weight: 500;
+}
+
 .chat-header {
   display: flex;
   align-items: center;
@@ -3230,11 +3349,20 @@ async function handleSessionModelCustomSubmit() {
   }
 }
 
+.job-chat-content-row {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+}
+
 .job-chat-body {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 
 .task-info-panel {

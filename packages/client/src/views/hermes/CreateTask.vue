@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { NInput, NButton, NModal, NTreeSelect, NCheckbox, NCheckboxGroup, NSelect } from 'naive-ui'
+import { NInput,NInputNumber, NButton, NModal, NTreeSelect, NCheckbox, NCheckboxGroup, NSelect } from 'naive-ui'
 import SchedulePicker from '@/components/hermes/shared/SchedulePicker.vue'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import { useAppStore } from '@/stores/hermes/app'
@@ -136,6 +136,7 @@ const deliverOptions = computed(() => {
   }
   return options
 })
+const onlyAllowNumber = (value: string) => !value || /^\d+$/.test(value)
 
 // ==================== Model / Provider Selection (适配接入，主体不变) ====================
 const providerOptions = computed(() => {
@@ -267,15 +268,34 @@ const rankingFactors = ref<string[]>([]) // 初始化值由后续 period watcher
 const rankingIncludeScreenshot = ref(true)
 const rankingTheme = ref<'light' | 'dark'>('light')
 const rankingGbKey = ref<'2' | '0' | '1'>('0') // 国标类型，默认默
+// ==================== 一张图配置 ====================
+/** 地图模式：默认 / 星地模 */
+const mapCategory = ref<'initial' | 'starground'>('initial')
 const mapTheme = ref<'light' | 'dark'>('light')
-const mapMode = ref<'monitoring' | 'interpolation'>('monitoring')
-const mapZoom = ref(8)
-const mapFactor = ref('PM2.5')
 const mapWindWaves = ref(true)
+
+// --- 默认地图 ---
+const mapMode = ref<'monitoring' | 'interpolation'>('monitoring')
 // 地图范围：'national' 表示全国；其他值为用户区域 provinceShortCode / currentShortCode（动态）
 const mapScope = ref<string>('national')
+/** 监测图 - 点位值-污染因子 */
+const mapMonitorFactor = ref('PM2.5')
+/** 监测图 - 地图图层（环境要素单选） */
+const mapMonitorLayer = ref('')
+/** 插值图 - 地图图层（污染因子 + 环境要素单选） */
+const mapInterpolationLayer = ref('PM2.5')
+/** 缩放等级模式：站点层级 / 城市层级 / 自定义 */
+const mapZoomLevel = ref<'site' | 'city' | 'custom'>('city')
+const mapZoomCustom = ref(6)
+/** 左侧面板开关（true=显示） */
+const mapLeftPanel = ref(false)
+/** 左侧面板 展示区域（城市/站点/污染源，单选） */
+const mapLeftPanelZone = ref('city')
 const mapTimeType = ref<'hourly' | 'dt' | 'daily'>('hourly')
-const mapCloseLeftPanel = ref(true)
+
+// --- 星地模 ---
+const mapStarFactor = ref('PM2.5')
+const mapStarTimeType = ref<'hourly' | 'daily' | 'month'>('hourly')
 const hourlyRegion = ref(['1320a70ee'])
 const hourlyQueryTarget = ref<'city' | 'site'>('city')
 const hourlyStationType = ref<string>('S-100')
@@ -428,8 +448,8 @@ function findProvinceCodeForRegion(regionKey: string | string[]): string {
     if (!key) continue
     findNode(cityRegionTree.value as any[], key)
   }
-  console.log('provinceCodes-',Array.from(provinceCodes).join(','))
-  
+  console.log('provinceCodes-', Array.from(provinceCodes).join(','))
+
   rankingProvince.value = Array.from(provinceCodes).join(',')
   return Array.from(provinceCodes).join(',')
 }
@@ -450,7 +470,6 @@ const rankingFactorOptions = [
   { value: 'O3_8H', label: 'O₃-8h' },
   { value: 'AQI', label: 'AQI' },
 ]
-
 /** 各时间类型可勾选的污染因子（与 concentrationranking.vue 一致）
  *  实时：PM2.5、PM10、SO2、NO2、CO、O3、AQI
  *  日累计：PM2.5、PM10、SO2、NO2、CO、O3_8H、AQI
@@ -478,12 +497,43 @@ const townshipOptions = [
 const monitoringPeriodOptions: Array<{ value: MonitoringDataOutputSnapshot['type']; label: string }> = [
   { value: 'hour_avg', label: '小时均值' }, { value: 'hour', label: '小时' }, { value: 'daily', label: '逐日累计' }, { value: 'daily_count', label: '日累计' }, { value: 'other', label: '自定义' },
 ]
-/** 一张图因子：在浓度排名因子基础上增加“首要污染物”（执行时由 MCP 工具解析为具体因子） */
-const mapFactorOptions = [
+/** 一张图 - 污染因子选项（点位值/星地模共用，含首要污染物） */
+const mapPollutionFactorOptions = [
   { value: 'primaryPollutant', label: '首要污染物' },
-  ...rankingFactorOptions.filter(f =>
-    RANKING_FACTORS_BY_PERIOD['map']?.includes(f.value)
-  ),
+  { value: 'PM2.5', label: 'PM₂.₅' },
+  { value: 'PM10', label: 'PM₁₀' },
+  { value: 'SO2', label: 'SO₂' },
+  { value: 'NO2', label: 'NO₂' },
+  { value: 'CO', label: 'CO' },
+  { value: 'O3', label: 'O₃' },
+]
+/** 一张图 - 环境图层选项（风/温度/相对湿度/降雨/辐射/气压/能见度） */
+const mapEnvLayerOptions = [
+  { value: '', label: '默认' },
+  { value: 'wind', label: '风' },
+  { value: 'temperature', label: '温度' },
+  { value: 'humidity', label: '相对湿度' },
+  { value: 'rainfall', label: '降雨' },
+  { value: 'radiation', label: '辐射' },
+  { value: 'pressure', label: '气压' },
+  { value: 'visibility', label: '能见度' },
+]
+/** 一张图 - 插值图图层选项（污染因子 + 环境要素） */
+const mapInterpolationLayerOptions = [
+  ...mapPollutionFactorOptions.filter(f => f.value !== 'primaryPollutant'),
+  ...mapEnvLayerOptions,
+]
+/** 缩放等级选项 */
+const mapZoomLevelOptions = [
+  { value: 'site' as const, label: '站点层级' },
+  { value: 'city' as const, label: '城市层级' },
+  { value: 'custom' as const, label: '自定义' },
+]
+/** 左侧面板展示区域选项 */
+const mapLeftPanelZoneOptions = [
+  { value: 'city', label: '城市' },
+  { value: 'site', label: '站点' },
+  { value: 'pollutionSource', label: '污染源' },
 ]
 
 function setRankingPeriod(type: string) {
@@ -516,13 +566,22 @@ interface RegionInfo {
 
 interface MapOutputSnapshot {
   theme: 'light' | 'dark'
-  mode: 'monitoring' | 'interpolation'
-  zoom: number
-  factor: string
+  category: 'initial' | 'starground'
   windWaves: boolean
-  region: string  // 'national' 或用户的 provinceShortCode / currentShortCode
-  timeType: 'hourly' | 'dt' | 'daily'
-  leftPanel: boolean
+  //默认地图
+  mode?: 'monitoring' | 'interpolation'
+  region?: string  // 'national' 或用户的 provinceShortCode / currentShortCode
+  zoomLevel?: 'site' | 'city' | 'custom'
+  zoomCustom?: number
+  timeType?: 'hourly' | 'dt' | 'daily'
+  leftPanelOpen?: boolean
+  leftPanelZone?: string
+  monitorFactor?: string
+  monitorLayer?: string
+  interpolationLayer?: string
+  // 星地模
+  starFactor?: string
+  starTimeType?: 'hourly' | 'daily' | 'month'
 }
 
 interface HourlyBriefOutputSnapshot {
@@ -565,11 +624,29 @@ const captureRankingConfig = (): RankingOutputSnapshot => {
     includeScreenshot: rankingIncludeScreenshot.value, theme: rankingTheme.value,
   }
 }
-const captureMapConfig = (): MapOutputSnapshot => ({
-  theme: mapTheme.value, mode: mapMode.value, zoom: mapZoom.value, factor: mapFactor.value,
-  windWaves: mapWindWaves.value, region: mapScope.value,
-  timeType: mapTimeType.value, leftPanel: mapCloseLeftPanel.value,
-})
+const captureMapConfig = (): MapOutputSnapshot => {
+  const base: MapOutputSnapshot = {
+    theme: mapTheme.value,
+    category: mapCategory.value,
+    windWaves: mapWindWaves.value,
+  }
+  if (mapCategory.value === 'initial') {
+    base.mode = mapMode.value
+    base.region = mapScope.value
+    base.zoomLevel = mapZoomLevel.value
+    if (mapZoomLevel.value === 'custom') base.zoomCustom = mapZoomCustom.value
+    base.timeType = mapTimeType.value
+    base.leftPanelOpen = mapLeftPanel.value
+    base.leftPanelZone = mapLeftPanel.value ? mapLeftPanelZone.value : ''
+    base.monitorFactor = mapMonitorFactor.value
+    base.monitorLayer = mapMonitorLayer.value
+    base.interpolationLayer = mapInterpolationLayer.value
+  } else {
+    base.starFactor = mapStarFactor.value
+    base.starTimeType = mapStarTimeType.value
+  }
+  return base
+}
 const captureHourlyConfig = (): HourlyBriefOutputSnapshot => ({
   zone: hourlyQueryTarget.value, region: hourlyRegion.value.join(','), township: hourlyTownship.value, factors: hourlyFactors.value.join(','),
   gbKey: hourlyGbKey.value,
@@ -611,9 +688,26 @@ function loadOutput(output: DutyOutputItem) {
     rankingGbKey.value = c.gbKey || '0'
   } else if (output.type === 'mapPackage') {
     const c = output.config
-    mapTheme.value = c.theme; mapMode.value = c.mode; mapZoom.value = c.zoom; mapFactor.value = c.factor
-    mapWindWaves.value = c.windWaves; mapScope.value = c.region
-    mapTimeType.value = c.timeType; mapCloseLeftPanel.value = c.leftPanel ?? true
+    mapTheme.value = c.theme
+    mapWindWaves.value = c.windWaves
+    // 向后兼容：旧 config 无 category 字段，默认 initial
+    const category = c.category || 'initial'
+    mapCategory.value = category
+    if (category === 'initial') {
+      mapMode.value = c.mode || 'monitoring'
+      mapScope.value = c.region || 'national'
+      mapZoomLevel.value = c.zoomLevel || 'city'
+      mapZoomCustom.value = c.zoomCustom ?? 8
+      mapTimeType.value = c.timeType || 'hourly'
+      mapLeftPanel.value = c.leftPanelOpen ?? false
+      mapLeftPanelZone.value = c.leftPanelZone || 'city'
+      mapMonitorFactor.value = c.monitorFactor || (c as any).factor || 'PM2.5'
+      mapMonitorLayer.value = c.monitorLayer || ''
+      mapInterpolationLayer.value = c.interpolationLayer || ''
+    } else {
+      mapStarFactor.value = c.starFactor || (c as any).factor || 'PM2.5'
+      mapStarTimeType.value = c.starTimeType || 'hourly'
+    }
   } else if (output.type === 'hourlyBrief') {
     const c = output.config
     hourlyQueryTarget.value = c.zone; hourlyRegion.value = c.region ? c.region.split(',') : []; hourlyTownship.value = c.township; hourlyFactors.value = c.factors ? c.factors.split(',') : []
@@ -773,8 +867,10 @@ watch([
   rankingFactors, rankingIncludeScreenshot,
   rankingTheme, rankingProvince, rankingGbKey,
   rankingStationTypes, rankingSelectedStations,
-  mapTheme, mapMode, mapZoom, mapFactor, mapWindWaves,
-  mapScope, mapTimeType, mapCloseLeftPanel,
+  mapTheme, mapCategory, mapMode, mapScope, mapMonitorFactor,
+  mapMonitorLayer, mapInterpolationLayer, mapZoomLevel, mapZoomCustom,
+  mapLeftPanel, mapLeftPanelZone, mapTimeType, mapStarFactor,
+  mapStarTimeType, mapWindWaves,
   hourlyQueryTarget, hourlyRegion, hourlyTownship, hourlyFactors, hourlyIncludeScreenshot, hourlyTheme, hourlyGbKey,
   monitoringQueryTarget, monitoringRegion, monitoringTownship, monitoringPeriod, monitoringCustomRange, monitoringFactors,
   monitoringIncludeScreenshot, monitoringTheme, monitoringGbKey,
@@ -1012,14 +1108,21 @@ const mapScopeLabel = computed(() => {
   if (mapScope.value === 'national') return '全国'
   return mapScopeOptions.value.find(o => o.value === mapScope.value)?.label || mapScope.value
 })
-const mapModeLabel = computed(() => mapMode.value === 'monitoring' ? '监测图' : '插值图')
-const mapFactorLabel = computed(() => mapFactorOptions.find(item => item.value === mapFactor.value)?.label || '首要污染物')
+const mapModeLabel = computed(() => {
+  if (mapCategory.value === 'starground') return '星地模'
+  return mapMode.value === 'monitoring' ? '监测图' : '插值图'
+})
+const mapFactorLabel = computed(() => {
+  if (mapCategory.value === 'starground')
+    return mapPollutionFactorOptions.find(item => item.value === mapStarFactor.value)?.label || 'PM₂.₅'
+  return mapPollutionFactorOptions.find(item => item.value === mapMonitorFactor.value)?.label || 'PM₂.₅'
+})
 const regionLabelFor = (value: string) => getRegionLabel(value)
 const mapScopeLabelFor = (value: MapOutputSnapshot['region']) => {
   if (value === 'national') return '全国'
   return mapScopeOptions.value.find(o => o.value === value)?.label || value
 }
-const mapFactorLabelFor = (value: string) => mapFactorOptions.find(item => item.value === value)?.label || '首要污染物'
+const mapFactorLabelFor = (value: string) => mapPollutionFactorOptions.find(item => item.value === value)?.label || value
 const townshipLabelFor = (value: string) => townshipOptions.find(item => item.value === value)?.label || '全部乡镇'
 const monitoringPeriodLabelFor = (value: MonitoringDataOutputSnapshot['type']) => monitoringPeriodOptions.find(item => item.value === value)?.label || '小时'
 
@@ -1046,7 +1149,12 @@ function outputDefinition(output: DutyOutputItem): string {
   }
   if (output.type === 'mapPackage') {
     const c = output.config
-    return `${output.title}：范围：${mapScopeLabelFor(c.region)}；地图类型：${c.mode === 'monitoring' ? '监测图' : '插值图'}；因子：${mapFactorLabelFor(c.factor)}；时间类型：${({ hourly: '实时', dt: '累计', daily: '日' }[c.timeType])}；缩放等级：${c.zoom}；颜色：${c.theme === 'light' ? '浅色' : '深色'}；风/海浪：${c.windWaves ? '开启' : '关闭'}；左侧面板：${c.leftPanel ? '显示' : '关闭'}`
+    const timeTypeLabels: Record<string, string> = { hourly: '实时', dt: '累计', daily: '日', month: '月' }
+    const zoomLabels: Record<string, string> = { site: '站点层级', city: '城市层级', custom: `自定义(${c.zoomCustom ?? 8})` }
+    if (c.category === 'starground') {
+      return `${output.title}：地图模式：星地模；因子：${mapFactorLabelFor(c.starFactor || 'PM2.5')}；时间类型：${timeTypeLabels[c.starTimeType || 'hourly']}；颜色：${c.theme === 'light' ? '浅色' : '深色'}；风/海浪：${c.windWaves ? '开启' : '关闭'}`
+    }
+    return `${output.title}：范围：${mapScopeLabelFor(c.region || 'national')}；地图类型：${c.mode === 'monitoring' ? '监测图' : '插值图'}；因子：${mapFactorLabelFor(c.monitorFactor || 'PM2.5')}；时间类型：${timeTypeLabels[c.timeType || 'hourly']}；缩放等级：${zoomLabels[c.zoomLevel || 'city']}；颜色：${c.theme === 'light' ? '浅色' : '深色'}；风/海浪：${c.windWaves ? '开启' : '关闭'}；左侧面板：${c.leftPanelOpen ? '显示' : '关闭'}`
   }
   if (output.type === 'hourlyBrief') {
     const c = output.config
@@ -1121,23 +1229,31 @@ const deliveryChecklist = computed(() => {
 
 // 一张图“首要污染物”因子：截图脚本不接受 primaryPollutant，须在执行前用 MCP 工具解析为具体因子。
 // 时间口径映射：一张图 timeType → MCP 查询 type 与基准时间字段（helper_getLatestTime2 返回值）。
-const PRIMARY_POLLUTANT_TIME_RULES: Record<MapOutputSnapshot['timeType'], string> = {
+const PRIMARY_POLLUTANT_TIME_RULES: Record<string, string> = {
   hourly: '查询口径：type=hourly，sTime 取 airCityH（补全为 yyyy-MM-dd HH:00:00）',
   dt: '查询口径：type=daily_count，sTime 取 airCityDt（补全为 yyyy-MM-dd HH:00:00）',
   daily: '查询口径：type=daily，sTime 取 airCityD（格式 yyyy-MM-dd）',
+  month: '查询口径：type=month，sTime 取 airCityM（格式 yyyy-MM）',
 }
 const primaryPollutantRule = computed(() => {
   const targets = dutyOutputs.value.filter(
     (o): o is Extract<DutyOutputItem, { type: 'mapPackage' }> =>
-      o.type === 'mapPackage' && o.config.factor === 'primaryPollutant'
+      o.type === 'mapPackage' && (
+        (o.config.category === 'initial' && o.config.monitorFactor === 'primaryPollutant') ||
+        (o.config.category === 'starground' && o.config.starFactor === 'primaryPollutant') ||
+        (!o.config.category && (o.config as any).factor === 'primaryPollutant')
+      )
   )
   if (!targets.length) return ''
   const accountRegion = (userStore.platformUserInfo?.region as RegionInfo | undefined)?.currentRegionName || '本账号所属城市'
   const lines = targets.map(o => {
-    const regionLine = o.config.region === 'national'
+    const c = o.config
+    const timeType = c.category === 'starground' ? c.starTimeType : c.timeType
+    const regionVal = c.category === 'starground' ? undefined : c.region
+    const regionLine = regionVal === 'national' || !regionVal
       ? `判定行政区：${accountRegion}（地图范围为全国，按账号所属地区判定首要污染物）`
-      : `判定行政区：${mapScopeLabelFor(o.config.region)}`
-    return `- 【${o.title}】${regionLine}；${PRIMARY_POLLUTANT_TIME_RULES[o.config.timeType]}`
+      : `判定行政区：${mapScopeLabelFor(regionVal)}`
+    return `- 【${o.title}】${regionLine}；${PRIMARY_POLLUTANT_TIME_RULES[timeType || 'hourly']}`
   })
   return `【首要污染物因子解析｜强制】\n以下一张图成果的 factor 为 "primaryPollutant"，执行该成果前必须先解析出当前首要污染物，并把解析结果写入传给脚本的 config.factor（脚本不接受 primaryPollutant）：\n${lines.join('\n')}\n解析步骤：\n1. 调用 MCP 工具 helper_getLatestTime2 获取基准时间；\n2. 调用 MCP 工具 mcp_city_common_get_air_quality_realtime_stat，参数 region 传上表判定行政区的中文名称，type 与 sTime 按上表口径取值；\n3. 取返回数据中该行政区记录的 maxPollutionEn 字段作为因子：若含多个（逗号分隔）取第一个；若为 O3_8H 则改用 O3；若为 "-" 或空（空气质量优、无首要污染物），则改用 AQI。\n禁止跳过解析直接把 primaryPollutant 传给脚本；解析失败时如实报告错误，不得猜测因子替代。`
 })
@@ -1226,6 +1342,10 @@ async function handleSubmit() {
       })),
     }
 
+
+    console.log(payload, payload.prompt)
+
+    return
     if (isEdit.value && props.jobId) {
       await jobsStore.updateJob(props.jobId, payload)
       message.success('任务更新成功')
@@ -1314,7 +1434,7 @@ function seedPresetCapabilities(caps: string[]) {
 onMounted(async () => {
   resetForm()
   await Promise.all([loadPlatforms(), loadDeliveryTargets()])
-  appStore.loadModels().catch(() => {})
+  appStore.loadModels().catch(() => { })
   await loadCityRegionTree()
 
   // 设置用户默认绑定的城市（从 hermes_platform_user 中读取）
@@ -1419,7 +1539,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div><span class="capability-kicker">01 · 组合任务成果</span>
                   <h2>这次任务需要交付什么？</h2>
                 </div>
-                <span class="bound-context">关联城市：<b>{{ userStore.platformUserInfo?.region?.currentRegionName || '—' }}</b></span>
+                <span class="bound-context">关联城市：<b>{{ userStore.platformUserInfo?.region?.currentRegionName || '—'
+                    }}</b></span>
               </div>
               <div class="output-list">
                 <article v-for="(output, index) in dutyOutputs" :key="output.id" class="output-item"
@@ -1541,10 +1662,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>国标类型：</span>
                     <div class="segmented"><button :class="{ active: rankingGbKey === '2' }"
-                        @click="rankingGbKey = '2'">新</button><button
-                        :class="{ active: rankingGbKey === '0' }"
-                        @click="rankingGbKey = '0'">默认</button><button
-                        :class="{ active: rankingGbKey === '1' }"
+                        @click="rankingGbKey = '2'">新</button><button :class="{ active: rankingGbKey === '0' }"
+                        @click="rankingGbKey = '0'">默认</button><button :class="{ active: rankingGbKey === '1' }"
                         @click="rankingGbKey = '1'">旧</button></div>
                   </div>
                 </div>
@@ -1552,11 +1671,12 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="ranking-summary">本次成果：{{ rankingQueryTarget === 'city' ? '城市排名' : '站点排名' }} · {{
                 rankingRegionLabel }} · {{ rankingQueryTarget === 'site' && rankingStationTypeLabels.length ? '站点类型：'
                   +
-                rankingStationTypeLabels.join('、') : '' }}{{
+                  rankingStationTypeLabels.join('、') : '' }}{{
                   rankingQueryTarget === 'site' && rankingSelectedStationNames.length ? ' · 站点：' +
                     rankingSelectedStationNames.join('、') : '' }} · {{
                   rankingPeriodLabel }} · {{ rankingTimeLabel }} · {{ rankingFactors.map(factorLabelFor).join('、') }} · {{
-                  rankingIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[rankingGbKey] || '默' }}</div>
+                  rankingIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[rankingGbKey] ||
+                '默' }}</div>
               <figure v-if="rankingIncludeScreenshot" class="effect-preview">
                 <figcaption>
                   <span>效果预览</span>
@@ -1573,65 +1693,124 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div><span>02 · 配置一张图</span></div>
               </div>
               <div class="ranking-config-grid">
+              
+                <!-- 地图模式 -->
                 <div class="ranking-toolbar">
-                  <div class="compact-field"><span>生成成果：</span>
-                    <div class="output-checks">
-                      <NCheckbox :checked="true" disabled>一张图截图</NCheckbox>
+                  <div class="compact-field"><span>地图模式：</span>
+                    <div class="segmented"><button :class="{ active: mapCategory === 'initial' }"
+                        @click="mapCategory = 'initial'">默认</button><button
+                        :class="{ active: mapCategory === 'starground' }"
+                        @click="mapCategory = 'starground'">星地模</button>
                     </div>
                   </div>
                 </div>
-                <div class="ranking-toolbar">
-                  <div class="compact-field"><span>地图范围：</span>
-                    <div class="segmented"><button v-for="opt in mapScopeOptions" :key="opt.value"
-                        :class="{ active: mapScope === opt.value }" @click="mapScope = opt.value">{{ opt.label
-                        }}</button></div>
-                  </div>
-                  <div class="compact-field"><span>时间类型：</span>
-                    <div class="segmented"><button :class="{ active: mapTimeType === 'hourly' }"
-                        @click="mapTimeType = 'hourly'">实时</button><button :class="{ active: mapTimeType === 'dt' }"
-                        @click="mapTimeType = 'dt'">累计</button><button :class="{ active: mapTimeType === 'daily' }"
-                        @click="mapTimeType = 'daily'">日</button></div>
-                  </div>
-                </div>
-                <div class="ranking-toolbar">
-                  <div class="compact-field"><span>地图类型：</span>
-                    <div class="segmented"><button :class="{ active: mapMode === 'monitoring' }"
-                        @click="mapMode = 'monitoring'">监测图</button><button
-                        :class="{ active: mapMode === 'interpolation' }" @click="mapMode = 'interpolation'">插值图</button>
+                <!-- 默认地图配置 -->
+                <template v-if="mapCategory === 'initial'">
+                  <div class="ranking-toolbar">
+                    <div class="compact-field"><span>地图范围：</span>
+                      <div class="segmented"><button v-for="opt in mapScopeOptions" :key="opt.value"
+                          :class="{ active: mapScope === opt.value }" @click="mapScope = opt.value">{{ opt.label
+                          }}</button></div>
+                    </div>
+                    <div class="compact-field"><span>时间类型：</span>
+                      <div class="segmented"><button :class="{ active: mapTimeType === 'hourly' }"
+                          @click="mapTimeType = 'hourly'">实时</button><button :class="{ active: mapTimeType === 'dt' }"
+                          @click="mapTimeType = 'dt'">累计</button><button :class="{ active: mapTimeType === 'daily' }"
+                          @click="mapTimeType = 'daily'">日</button></div>
                     </div>
                   </div>
-                  <div class="compact-field map-factor"><span>因子：</span>
-                    <NSelect v-model:value="mapFactor" :options="mapFactorOptions" />
+                  <div class="ranking-toolbar">
+                    <div class="compact-field"><span>地图类型：</span>
+                      <div class="segmented"><button :class="{ active: mapMode === 'monitoring' }"
+                          @click="mapMode = 'monitoring'">监测图</button><button
+                          :class="{ active: mapMode === 'interpolation' }"
+                          @click="mapMode = 'interpolation'">插值图</button>
+                      </div>
+                    </div>
                   </div>
-                  <!-- <div class="compact-field map-zoom"><span>缩放等级：</span>
-                    <NInputNumber v-model:value="mapZoom" :min="3" :max="16" />
-                  </div> -->
-                </div>
+                  <!-- 监测图：点位值-污染因子 + 地图图层 -->
+                  <template v-if="mapMode === 'monitoring'">
+                    <div class="ranking-toolbar">
+                      <div class="compact-field map-factor"><span>点位值-污染因子：</span>
+                        <NSelect v-model:value="mapMonitorFactor" :options="mapPollutionFactorOptions" />
+                      </div>
+                    </div>
+                    <div class="ranking-toolbar">
+                      <div class="compact-field map-factor"><span>插值图层：</span>
+                        <NSelect v-model:value="mapMonitorLayer" :options="mapEnvLayerOptions" placeholder="选择图层"
+                          clearable />
+                      </div>
+                    </div>
+                  </template>
+                  <!-- 插值图：地图图层（污染因子 + 环境要素） -->
+                  <template v-if="mapMode === 'interpolation'">
+                    <div class="ranking-toolbar">
+                      <div class="compact-field map-factor"><span>插值图层：</span>
+                        <NSelect v-model:value="mapInterpolationLayer" :options="mapInterpolationLayerOptions"
+                          placeholder="选择图层" clearable />
+                      </div>
+                    </div>
+                  </template>
+                  <div class="ranking-toolbar">
+                    <div class="compact-field"><span>缩放等级：</span>
+                      <div class="segmented"><button v-for="opt in mapZoomLevelOptions" :key="opt.value"
+                          :class="{ active: mapZoomLevel === opt.value }" @click="mapZoomLevel = opt.value">{{ opt.label
+                          }}</button></div>
+                      <NInputNumber v-if="mapZoomLevel === 'custom'" v-model:value="mapZoomCustom" :min="3" :max="16"
+                        style="width:70px" />
+                    </div>
+                  </div>
+                  <div class="ranking-toolbar">
+                    <div class="compact-field"><span>左侧面板：</span>
+                      <div class="segmented"><button :class="{ active: mapLeftPanel }"
+                          @click="mapLeftPanel = true">开</button><button :class="{ active: !mapLeftPanel }"
+                          @click="mapLeftPanel = false">关</button></div>
+                    </div>
+                    <template v-if="mapLeftPanel">
+                      <div class="compact-field" style="margin-left:12px"><span>左侧面板区域：</span>
+                        <div class="segmented"><button v-for="opt in mapLeftPanelZoneOptions" :key="opt.value"
+                            :class="{ active: mapLeftPanelZone === opt.value }"
+                            @click="mapLeftPanelZone = opt.value">{{ opt.label }}</button></div>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+                <!-- 星地模配置 -->
+                <template v-if="mapCategory === 'starground'">
+                  <div class="ranking-toolbar">
+                    <div class="compact-field map-factor"><span>污染因子：</span>
+                      <NSelect v-model:value="mapStarFactor" :options="mapPollutionFactorOptions" />
+                    </div>
+                    <div class="compact-field"><span>时间类型：</span>
+                      <div class="segmented"><button :class="{ active: mapStarTimeType === 'hourly' }"
+                          @click="mapStarTimeType = 'hourly'">实时</button><button
+                          :class="{ active: mapStarTimeType === 'daily' }"
+                          @click="mapStarTimeType = 'daily'">日</button><button
+                          :class="{ active: mapStarTimeType === 'month' }" @click="mapStarTimeType = 'month'">月</button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                <!-- 共同配置 -->
                 <div class="ranking-toolbar">
-                  <div class="compact-field"><span>颜色：</span>
+                  <div class="compact-field"><span>主题色：</span>
                     <div class="segmented"><button :class="{ active: mapTheme === 'light' }"
                         @click="mapTheme = 'light'">浅色</button><button :class="{ active: mapTheme === 'dark' }"
                         @click="mapTheme = 'dark'">深色</button></div>
                   </div>
                   <div class="map-switches">
                     <NCheckbox v-model:checked="mapWindWaves">风/海浪</NCheckbox>
-                    <NCheckbox v-model:checked="mapCloseLeftPanel">左侧面板</NCheckbox>
                   </div>
                 </div>
-                <!-- <div class="ranking-toolbar">
-                  <div class="compact-field"><span>截图区域：</span>
-                    <div class="segmented"><button :class="{ active: mapScreenshotScope === 'mapOnly' }"
-                        @click="mapScreenshotScope = 'mapOnly'">仅地图</button><button
-                        :class="{ active: mapScreenshotScope === 'mapLegend' }"
-                        @click="mapScreenshotScope = 'mapLegend'">地图和图例</button><button
-                        :class="{ active: mapScreenshotScope === 'fullPage' }"
-                        @click="mapScreenshotScope = 'fullPage'">完整页面</button></div>
-                  </div>
-                </div> -->
               </div>
-              <div class="ranking-summary">本次一张图：{{ mapScopeLabel }} · {{ mapModeLabel }} · {{ mapFactorLabel }} · 缩放 {{
-                mapZoom }}
-                · {{ mapTheme === 'light' ? '浅色' : '深色' }} · {{ mapWindWaves ? '开启风/海浪' : '关闭风/海浪' }} · {{ mapCloseLeftPanel ? '保留左侧面板' : '关闭左侧面板' }} </div>
+              <div class="ranking-summary">本次一张图：<template v-if="mapCategory === 'starground'">星地模 · {{ mapFactorLabel
+                  }} · {{
+                    { hourly: '实时', daily: '日', month: '月' }[mapStarTimeType] }} · {{
+                    mapTheme === 'light' ? '浅色' : '深色' }} · {{ mapWindWaves ? '开启风/海浪' : '关闭风/海浪' }}</template><template
+                  v-else>{{ mapScopeLabel }} · {{ mapModeLabel }} · {{ mapFactorLabel }} · 缩放{{
+                    mapZoomLevel === 'custom' ? mapZoomCustom : (mapZoomLevel === 'site' ? '站点层级' : '城市层级') }}
+                  · {{ mapTheme === 'light' ? '浅色' : '深色' }} · {{ mapWindWaves ? '开启风/海浪' : '关闭风/海浪' }} ·
+                  {{ mapLeftPanel ? '显示左侧面板(' + (mapLeftPanelZoneOptions.find(o => o.value === mapLeftPanelZone)?.label || '城市') + ')' : '关闭左侧面板' }}</template></div>
             </section>
 
             <section v-if="selectedCapability === 'hourlyBrief'" class="ranking-config hourly-config">
@@ -1716,17 +1895,18 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>国标类型：</span>
                     <div class="segmented"><button :class="{ active: hourlyGbKey === '2' }"
-                        @click="hourlyGbKey = '2'">新</button><button
-                        :class="{ active: hourlyGbKey === '0' }"
-                        @click="hourlyGbKey = '0'">默认</button><button
-                        :class="{ active: hourlyGbKey === '1' }"
+                        @click="hourlyGbKey = '2'">新</button><button :class="{ active: hourlyGbKey === '0' }"
+                        @click="hourlyGbKey = '0'">默认</button><button :class="{ active: hourlyGbKey === '1' }"
                         @click="hourlyGbKey = '1'">旧</button></div>
                   </div>
                 </div>
               </div>
               <div class="ranking-summary">本次成果：{{ hourlyQueryTarget === 'city' ? '城市' : '站点' }} · {{
                 regionLabelFor(hourlyRegion.join(',')) }} · {{ townshipLabelFor(hourlyTownship) }} · 官网最新可用时点 · {{
-                  hourlyFactors.join('、') }} · {{ hourlyIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[hourlyGbKey] || '默' }}</div>
+                  hourlyFactors.join('、') }} · {{ hourlyIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ {
+                  '2': '新', '0': '默',
+                  '1': '旧'
+                }[hourlyGbKey] || '默' }}</div>
             </section>
 
             <section v-if="selectedCapability === 'monitoringData'" class="ranking-config monitoring-config">
@@ -1752,7 +1932,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                     <div class="segmented query-segment"><button :class="{ active: monitoringQueryTarget === 'city' }"
                         @click="monitoringQueryTarget = 'city'">城市</button><button
                         :class="{ active: monitoringQueryTarget === 'site' }"
-                        @click="monitoringQueryTarget = 'site'">站点</button></div>
+                        @click="monitoringQueryTarget = 'site'">站点</button>
+                    </div>
                   </div>
                   <div class="compact-field region-field"><span>行政区：</span>
                     <NTreeSelect v-model:value="monitoringRegion" :default-value="monitoringRegion"
@@ -1809,10 +1990,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <div class="ranking-toolbar">
                   <div class="compact-field"><span>国标类型：</span>
                     <div class="segmented"><button :class="{ active: monitoringGbKey === '2' }"
-                        @click="monitoringGbKey = '2'">新</button><button
-                        :class="{ active: monitoringGbKey === '0' }"
-                        @click="monitoringGbKey = '0'">默认</button><button
-                        :class="{ active: monitoringGbKey === '1' }"
+                        @click="monitoringGbKey = '2'">新</button><button :class="{ active: monitoringGbKey === '0' }"
+                        @click="monitoringGbKey = '0'">默认</button><button :class="{ active: monitoringGbKey === '1' }"
                         @click="monitoringGbKey = '1'">旧</button></div>
                   </div>
                 </div>
@@ -1833,10 +2012,14 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 </div>
               </div>
               <div class="ranking-summary">本次成果：{{ monitoringQueryTarget === 'city' ? '城市' : '站点' }} · {{
-                regionLabelFor(monitoringRegion.join(',')) }} · {{ townshipLabelFor(monitoringTownship) }} · {{ monitoringPeriod
-                  === 'other'
-                  ? (monitoringCustomRange || '自定义时间范围') : `官网最新${monitoringPeriodLabelFor(monitoringPeriod)}数据` }} · {{
-                  monitoringFactors.join('、') }} · {{ monitoringIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[monitoringGbKey] || '默' }}</div>
+                regionLabelFor(monitoringRegion.join(',')) }} · {{ townshipLabelFor(monitoringTownship) }} · {{
+                  monitoringPeriod
+                    === 'other'
+                    ? (monitoringCustomRange || '自定义时间范围') : `官网最新${monitoringPeriodLabelFor(monitoringPeriod)}数据` }} · {{
+                  monitoringFactors.join('、') }} · {{ monitoringIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ {
+                  '2': '新',
+                  '0': '默',
+                  '1': '旧' }[monitoringGbKey] || '默' }}</div>
             </section>
           </div>
         </div>
@@ -1854,13 +2037,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
             <div class="form-group">
               <label class="form-label">成果发送到 <span class="required-mark">*</span></label>
-              <NSelect
-                v-model:value="selectedDeliver"
-                :options="deliverOptions"
-                :loading="deliveryTargetsLoading"
-                filterable
-                placeholder="选择推送目标"
-              />
+              <NSelect v-model:value="selectedDeliver" :options="deliverOptions" :loading="deliveryTargetsLoading"
+                filterable placeholder="选择推送目标" />
               <div v-if="deliveryTargets.length === 0 && !deliveryTargetsLoading" class="chip-config-hint">
                 <span class="hint-text">尚未发现可用推送目标，请先在对应平台发起一次对话，</span>
                 <a class="hint-link" @click="goToChannels">前往配置 →</a>
@@ -1874,14 +2052,11 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
             <div class="form-group">
               <label class="form-label">成果保存位置（可选）</label>
               <div class="save-path-row">
-                <NInput
-                  v-model:value="savePath"
-                  placeholder="留空则不保存到本地文件夹"
-                  clearable
-                />
+                <NInput v-model:value="savePath" placeholder="留空则不保存到本地文件夹" clearable />
                 <NButton size="small" @click="browseSavePath">
                   <template #icon>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="1.6">
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
                   </template>
@@ -1889,26 +2064,18 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 </NButton>
               </div>
               <div v-if="savePath.trim()" class="chip-config-hint">
-                <span class="hint-text">最终保存路径：<code>{{ savePath.trim() }}/{{ taskName.trim() || '任务名' }}/{执行时间}/</code></span>
+                <span
+                  class="hint-text">最终保存路径：<code>{{ savePath.trim() }}/{{ taskName.trim() || '任务名' }}/{执行时间}/</code></span>
               </div>
             </div>
 
             <div class="form-group">
               <label class="form-label">运行模型（可选）</label>
               <div class="model-select-row">
-                <NSelect
-                  :value="selectedProvider"
-                  :options="providerOptions"
-                  placeholder="Provider（默认跟随全局）"
-                  @update:value="handleProviderChange"
-                />
-                <NSelect
-                  v-model:value="selectedModel"
-                  :options="modelOptions"
-                  filterable
-                  placeholder="模型（默认）"
-                  :disabled="!selectedProvider"
-                />
+                <NSelect :value="selectedProvider" :options="providerOptions" placeholder="Provider（默认跟随全局）"
+                  @update:value="handleProviderChange" />
+                <NSelect v-model:value="selectedModel" :options="modelOptions" filterable placeholder="模型（默认）"
+                  :disabled="!selectedProvider" />
               </div>
               <div class="chip-config-hint">
                 <span class="hint-text">不选则使用全局默认模型。</span>
@@ -1935,7 +2102,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="preview-label">成果清单（{{ dutyOutputs.length }} 项）</div>
               <div class="confirm-output-list">
                 <div v-for="(label, index) in allOutputLabels" :key="index"><span>{{ index + 1 }}</span><strong>{{ label
-                    }}</strong></div>
+                }}</strong></div>
               </div>
             </div>
 
@@ -1944,7 +2111,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
               <div class="preview-line">
                 <strong>频率：</strong>{{ scheduleDescription }}
                 <span v-if="deliverDisplayName"> · <strong>推送至：</strong>{{ deliverDisplayName }}</span>
-                <span v-if="savePath.trim()"> · <strong>保存到：</strong>{{ savePath.trim() }}/{{ taskName.trim() || '任务' }}/{执行时间}</span>
+                <span v-if="savePath.trim()"> · <strong>保存到：</strong>{{ savePath.trim() }}/{{ taskName.trim() || '任务'
+                  }}/{执行时间}</span>
               </div>
             </div>
 
@@ -2146,7 +2314,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   display: flex;
   gap: 8px;
 
-  > * {
+  >* {
     flex: 1;
   }
 }
@@ -2156,7 +2324,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   gap: 8px;
   align-items: center;
 
-  > .n-input {
+  >.n-input {
     flex: 1;
   }
 }
@@ -2419,7 +2587,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 }
 
 .map-factor :deep(.n-select) {
-  width: 180px;
+  width: 140px;
 }
 
 .map-zoom :deep(.n-input-number) {
@@ -2639,7 +2807,8 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
 .ranking-config-grid {
   display: flex;
-  flex-direction: column;
+  // flex-direction: column;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 14px 16px;
 }
@@ -4066,155 +4235,155 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 // NOTE: must use the flat `.dark .create-task-page` pattern, NOT `:global(.dark) &`
 // nesting — the latter miscompiles under Vue scoped CSS (targets get stripped to bare `.dark`).
 .dark .create-task-page {
-    --duty-surface: #202b34;
-    --duty-surface-raised: #26343e;
-    --duty-surface-muted: #182128;
-    --duty-border: #3a5363;
-    --duty-border-soft: #314653;
-    --duty-blue: #68b8ed;
-    --duty-blue-soft: #173b52;
-    --duty-blue-muted: #284d64;
-    --duty-green-soft: #183d35;
-    --duty-green-border: #356e5e;
-    --duty-green-text: #83d5b8;
-    color: $text-primary;
+  --duty-surface: #202b34;
+  --duty-surface-raised: #26343e;
+  --duty-surface-muted: #182128;
+  --duty-border: #3a5363;
+  --duty-border-soft: #314653;
+  --duty-blue: #68b8ed;
+  --duty-blue-soft: #173b52;
+  --duty-blue-muted: #284d64;
+  --duty-green-soft: #183d35;
+  --duty-green-border: #356e5e;
+  --duty-green-text: #83d5b8;
+  color: $text-primary;
 
-    .duty-preset,
-    .capability-section,
-    .ranking-config,
-    .effect-preview,
-    .delivery-note,
-    .map-marker-row {
-      border-color: var(--duty-border);
-      background: var(--duty-surface);
-    }
-
-    .duty-preset {
-      background: linear-gradient(110deg, #1a2d3b, #202b34);
-    }
-
-    .duty-preset.active,
-    .capability-card.active,
-    .output-item.active {
-      border-color: var(--duty-blue);
-      background: var(--duty-blue-soft);
-      box-shadow: 0 0 0 2px rgba(104, 184, 237, 0.16);
-    }
-
-    .duty-preset-title span,
-    .editing-badge,
-    .segmented button.active {
-      color: #9dd8fb;
-      background: var(--duty-blue-soft);
-    }
-
-    .duty-preset-tags i,
-    .capability-card,
-    .output-item,
-    .bound-context,
-    .segmented,
-    .segmented button,
-    .effect-preview,
-    .output-add-bar button {
-      border-color: var(--duty-border-soft);
-      background: var(--duty-surface-raised);
-      color: $text-secondary;
-    }
-
-    .capability-section {
-      background: linear-gradient(135deg, #1c2931, #17262f);
-    }
-
-    .capability-kicker,
-    .delivery-intro span,
-    .chosen,
-    .output-add-bar button,
-    .ranking-config-head span,
-    .ranking-summary,
-    .delivery-note b {
-      color: var(--duty-blue);
-    }
-
-    .ranking-config-head,
-    .effect-preview figcaption {
-      border-color: var(--duty-border-soft);
-      background: var(--duty-surface-raised);
-    }
-
-    .ranking-config-head small,
-    .latest-hint,
-    .ranking-time-range,
-    .bound-context,
-    .map-marker-row,
-    .delivery-note,
-    .simple-run-plan {
-      color: $text-secondary;
-    }
-
-    .map-config {
-      border-color: var(--duty-green-border);
-    }
-
-    .map-config .ranking-config-head,
-    .map-marker-row {
-      border-color: var(--duty-green-border);
-      background: var(--duty-green-soft);
-    }
-
-    .map-config .ranking-config-head span,
-    .map-marker-row {
-      color: var(--duty-green-text);
-    }
-
-    .ranking-summary {
-      border-left-color: var(--duty-blue);
-      background: var(--duty-blue-soft);
-    }
-
-    .effect-preview-image {
-      background: var(--duty-surface-muted);
-    }
-
-    .effect-preview figcaption em,
-    .output-index {
-      color: $text-secondary;
-      background: var(--duty-surface-muted);
-    }
-
-    .output-action:hover {
-      background: var(--duty-surface-muted);
-    }
-
-    .output-add-bar {
-      border-color: var(--duty-border-soft);
-    }
-
-    .confirm-output-list>div,
-    .simple-run-plan span {
-      border-color: var(--duty-border-soft);
-      background: var(--duty-surface-raised);
-    }
-
-    .confirm-hero {
-      border-color: var(--duty-green-border);
-      background: var(--duty-green-soft);
-      color: #a2dfc5;
-    }
-
-    .confirm-hero small {
-      color: $text-secondary;
-    }
-
-    :deep(.n-base-selection .n-base-selection-label),
-    :deep(.n-input .n-input-wrapper),
-    :deep(.n-input-number .n-input-wrapper) {
-      background-color: var(--duty-surface-raised);
-    }
-
-    :deep(.n-base-selection .n-base-selection-input),
-    :deep(.n-input .n-input__input-el),
-    :deep(.n-input-number .n-input__input-el) {
-      color: $text-primary;
-    }
+  .duty-preset,
+  .capability-section,
+  .ranking-config,
+  .effect-preview,
+  .delivery-note,
+  .map-marker-row {
+    border-color: var(--duty-border);
+    background: var(--duty-surface);
   }
+
+  .duty-preset {
+    background: linear-gradient(110deg, #1a2d3b, #202b34);
+  }
+
+  .duty-preset.active,
+  .capability-card.active,
+  .output-item.active {
+    border-color: var(--duty-blue);
+    background: var(--duty-blue-soft);
+    box-shadow: 0 0 0 2px rgba(104, 184, 237, 0.16);
+  }
+
+  .duty-preset-title span,
+  .editing-badge,
+  .segmented button.active {
+    color: #9dd8fb;
+    background: var(--duty-blue-soft);
+  }
+
+  .duty-preset-tags i,
+  .capability-card,
+  .output-item,
+  .bound-context,
+  .segmented,
+  .segmented button,
+  .effect-preview,
+  .output-add-bar button {
+    border-color: var(--duty-border-soft);
+    background: var(--duty-surface-raised);
+    color: $text-secondary;
+  }
+
+  .capability-section {
+    background: linear-gradient(135deg, #1c2931, #17262f);
+  }
+
+  .capability-kicker,
+  .delivery-intro span,
+  .chosen,
+  .output-add-bar button,
+  .ranking-config-head span,
+  .ranking-summary,
+  .delivery-note b {
+    color: var(--duty-blue);
+  }
+
+  .ranking-config-head,
+  .effect-preview figcaption {
+    border-color: var(--duty-border-soft);
+    background: var(--duty-surface-raised);
+  }
+
+  .ranking-config-head small,
+  .latest-hint,
+  .ranking-time-range,
+  .bound-context,
+  .map-marker-row,
+  .delivery-note,
+  .simple-run-plan {
+    color: $text-secondary;
+  }
+
+  .map-config {
+    border-color: var(--duty-green-border);
+  }
+
+  .map-config .ranking-config-head,
+  .map-marker-row {
+    border-color: var(--duty-green-border);
+    background: var(--duty-green-soft);
+  }
+
+  .map-config .ranking-config-head span,
+  .map-marker-row {
+    color: var(--duty-green-text);
+  }
+
+  .ranking-summary {
+    border-left-color: var(--duty-blue);
+    background: var(--duty-blue-soft);
+  }
+
+  .effect-preview-image {
+    background: var(--duty-surface-muted);
+  }
+
+  .effect-preview figcaption em,
+  .output-index {
+    color: $text-secondary;
+    background: var(--duty-surface-muted);
+  }
+
+  .output-action:hover {
+    background: var(--duty-surface-muted);
+  }
+
+  .output-add-bar {
+    border-color: var(--duty-border-soft);
+  }
+
+  .confirm-output-list>div,
+  .simple-run-plan span {
+    border-color: var(--duty-border-soft);
+    background: var(--duty-surface-raised);
+  }
+
+  .confirm-hero {
+    border-color: var(--duty-green-border);
+    background: var(--duty-green-soft);
+    color: #a2dfc5;
+  }
+
+  .confirm-hero small {
+    color: $text-secondary;
+  }
+
+  :deep(.n-base-selection .n-base-selection-label),
+  :deep(.n-input .n-input-wrapper),
+  :deep(.n-input-number .n-input-wrapper) {
+    background-color: var(--duty-surface-raised);
+  }
+
+  :deep(.n-base-selection .n-base-selection-input),
+  :deep(.n-input .n-input__input-el),
+  :deep(.n-input-number .n-input__input-el) {
+    color: $text-primary;
+  }
+}
 </style>
