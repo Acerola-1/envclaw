@@ -967,23 +967,6 @@ const activeFunctions = computed(() =>
   functions.filter((f: any) => selectedFunctions.value.has(f.id))
 )
 
-const rankingPeriodLabel = computed(() => rankingPeriods.find(item => item.value === rankingPeriod.value)?.label || '日累计')
-const rankingTimeLabel = '官网最新可用时间'
-const rankingRegionLabel = computed(() =>
-  rankingRegion.value.length === 0
-    ? ''
-    : rankingRegion.value.map(k => getRegionLabel(k)).join('、')
-)
-// 站点类型名称列表（用于本次成果展示）
-const rankingStationTypeLabels = computed(() =>
-  rankingStationTypes.value.map(t => STATION_TYPE_OPTIONS.find(o => o.value === t)?.label || t)
-)
-// 已选站点名称列表（用于本次成果展示）
-const rankingSelectedStationNames = computed(() =>
-  rankingSelectedStations.value.map(
-    code => rankingStationList.value.find(s => s.shortCode === code)?.name || code
-  )
-)
 // 地图范围选项（根据账号层级 currentRegionLevel 动态生成）
 // level 2（区县账号）→ 省份 / 城市 / 区县；level 1（城市账号）或 undefined → 全国 / 省份 / 城市
 const mapScopeOptions = computed(() => {
@@ -1007,13 +990,6 @@ const mapScopeOptions = computed(() => {
   }
   return opts
 })
-// 当前 region 的显示标签
-const mapScopeLabel = computed(() => {
-  if (mapScope.value === 'national') return '全国'
-  return mapScopeOptions.value.find(o => o.value === mapScope.value)?.label || mapScope.value
-})
-const mapModeLabel = computed(() => mapMode.value === 'monitoring' ? '监测图' : '插值图')
-const mapFactorLabel = computed(() => mapFactorOptions.find(item => item.value === mapFactor.value)?.label || '首要污染物')
 const regionLabelFor = (value: string) => getRegionLabel(value)
 const mapScopeLabelFor = (value: MapOutputSnapshot['region']) => {
   if (value === 'national') return '全国'
@@ -1549,14 +1525,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   </div>
                 </div>
               </div>
-              <div class="ranking-summary">本次成果：{{ rankingQueryTarget === 'city' ? '城市排名' : '站点排名' }} · {{
-                rankingRegionLabel }} · {{ rankingQueryTarget === 'site' && rankingStationTypeLabels.length ? '站点类型：'
-                  +
-                rankingStationTypeLabels.join('、') : '' }}{{
-                  rankingQueryTarget === 'site' && rankingSelectedStationNames.length ? ' · 站点：' +
-                    rankingSelectedStationNames.join('、') : '' }} · {{
-                  rankingPeriodLabel }} · {{ rankingTimeLabel }} · {{ rankingFactors.map(factorLabelFor).join('、') }} · {{
-                  rankingIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[rankingGbKey] || '默' }}</div>
               <figure v-if="rankingIncludeScreenshot" class="effect-preview">
                 <figcaption>
                   <span>效果预览</span>
@@ -1629,9 +1597,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   </div>
                 </div> -->
               </div>
-              <div class="ranking-summary">本次一张图：{{ mapScopeLabel }} · {{ mapModeLabel }} · {{ mapFactorLabel }} · 缩放 {{
-                mapZoom }}
-                · {{ mapTheme === 'light' ? '浅色' : '深色' }} · {{ mapWindWaves ? '开启风/海浪' : '关闭风/海浪' }} · {{ mapCloseLeftPanel ? '保留左侧面板' : '关闭左侧面板' }} </div>
             </section>
 
             <section v-if="selectedCapability === 'hourlyBrief'" class="ranking-config hourly-config">
@@ -1724,9 +1689,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   </div>
                 </div>
               </div>
-              <div class="ranking-summary">本次成果：{{ hourlyQueryTarget === 'city' ? '城市' : '站点' }} · {{
-                regionLabelFor(hourlyRegion.join(',')) }} · {{ townshipLabelFor(hourlyTownship) }} · 官网最新可用时点 · {{
-                  hourlyFactors.join('、') }} · {{ hourlyIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[hourlyGbKey] || '默' }}</div>
             </section>
 
             <section v-if="selectedCapability === 'monitoringData'" class="ranking-config monitoring-config">
@@ -1832,11 +1794,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                   </div>
                 </div>
               </div>
-              <div class="ranking-summary">本次成果：{{ monitoringQueryTarget === 'city' ? '城市' : '站点' }} · {{
-                regionLabelFor(monitoringRegion.join(',')) }} · {{ townshipLabelFor(monitoringTownship) }} · {{ monitoringPeriod
-                  === 'other'
-                  ? (monitoringCustomRange || '自定义时间范围') : `官网最新${monitoringPeriodLabelFor(monitoringPeriod)}数据` }} · {{
-                  monitoringFactors.join('、') }} · {{ monitoringIncludeScreenshot ? '页面截图' : '' }} · 国标类型：{{ { '2': '新', '0': '默', '1': '旧' }[monitoringGbKey] || '默' }}</div>
             </section>
           </div>
         </div>
@@ -2820,16 +2777,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
 .screenshot-options .segmented button {
   min-width: auto;
-}
-
-.ranking-summary {
-  margin: 0 16px 16px;
-  padding: 10px 12px;
-  color: #356b90;
-  background: #edf7ff;
-  border-left: 3px solid #2496e8;
-  font-size: 12px;
-  line-height: 1.55;
 }
 
 .effect-preview {
@@ -4130,7 +4077,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
     .chosen,
     .output-add-bar button,
     .ranking-config-head span,
-    .ranking-summary,
     .delivery-note b {
       color: var(--duty-blue);
     }
@@ -4164,11 +4110,6 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
     .map-config .ranking-config-head span,
     .map-marker-row {
       color: var(--duty-green-text);
-    }
-
-    .ranking-summary {
-      border-left-color: var(--duty-blue);
-      background: var(--duty-blue-soft);
     }
 
     .effect-preview-image {
