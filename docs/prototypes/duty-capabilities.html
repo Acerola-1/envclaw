@@ -169,9 +169,6 @@
           <div class="plat-stat"><div class="plat-stat-label">技能总数</div><div class="plat-stat-value"><span class="plat-stat-num">7</span></div></div>
           <div class="plat-stat connected"><div class="plat-stat-label"><span class="pill-dot" style="background:var(--success)"></span>已启用</div><div class="plat-stat-value" style="color:var(--success)"><span class="plat-stat-num">6</span></div></div>
           <div class="plat-stat disconnected"><div class="plat-stat-label"><span class="pill-dot" style="background:var(--text-muted)"></span>已禁用</div><div class="plat-stat-value" style="color:var(--text-muted)"><span class="plat-stat-num">1</span></div></div>
-          <div class="plat-stats-right">
-            <button class="btn btn-default btn-sm" onclick="showToast('导入技能包（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>导入技能</button>
-          </div>
         </div>
 
         <div class="cap-tabs">
@@ -201,9 +198,6 @@
           <div class="plat-stat connected"><div class="plat-stat-label"><span class="pill-dot" style="background:var(--success)"></span>已连接</div><div class="plat-stat-value" style="color:var(--success)"><span class="plat-stat-num">4</span></div></div>
           <div class="plat-stat disconnected"><div class="plat-stat-label"><span class="pill-dot" style="background:var(--warning)"></span>未连接</div><div class="plat-stat-value" style="color:var(--warning)"><span class="plat-stat-num">1</span></div></div>
           <div class="plat-stat"><div class="plat-stat-label">工具总数</div><div class="plat-stat-value"><span class="plat-stat-num">40</span></div></div>
-          <div class="plat-stats-right">
-            <button class="btn btn-primary btn-sm" onclick="showToast('添加 MCP 服务（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加连接器</button>
-          </div>
         </div>
 
         <div class="platforms" id="mcpList"></div>
@@ -582,7 +576,7 @@ function setCapTab(tab, btnEl){
     } else if (tab === 'capabilities') {
       act.innerHTML = '';
     } else if (tab === 'skills') {
-      act.innerHTML = `<button class="btn btn-default" onclick="showToast('导入技能包（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON.import}</svg>导入技能</button>`;
+      act.innerHTML = `<button class="btn btn-primary" onclick="showToast('导入技能包（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON.import}</svg>导入技能</button>`;
     } else if (tab === 'mcps') {
       act.innerHTML = `<button class="btn btn-primary" onclick="showToast('添加 MCP 服务（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON.plus}</svg>添加连接器</button>`;
     }
@@ -717,12 +711,8 @@ function platCardSquare(p){
   const statusClass = p.connected ? 'connected' : 'disconnected';
   const statusText  = p.connected ? '已连接' : '未连接';
   const capCount = CAPS.filter(c=>c.platformId===p.id).length;
-  const primaryLabel = p.builtin ? '查看能力' : (p.connected ? '查看能力' : '配置接入');
-  const primaryHref = p.builtin
-    ? `onclick="jumpToPlatformCaps('${p.id}')"`
-    : (p.connected
-        ? `onclick="jumpToPlatformCaps('${p.id}')"`
-        : `href="platform-onboarding.html?plat=${p.id}"`);
+  const primaryLabel = '查看能力';
+  const primaryHref = `onclick="jumpToPlatformCaps('${p.id}')"`;
   const editBtn = p.builtin ? '' :
     `<button class="icon-btn" title="编辑" onclick="event.stopPropagation();showToast('编辑: ${p.name}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14">${ICON_PLAT.edit}</svg></button>`;
   const testBtn = p.builtin ? '' :
@@ -747,10 +737,7 @@ function platCardSquare(p){
         <span class="pc-caps">${capCount||p.fields.caps} 项能力</span>
       </div>
       <div class="pc-primary" onclick="event.stopPropagation && event.stopPropagation()">
-        ${/^onclick=/.test(primaryHref)
-          ? `<button class="btn btn-primary btn-sm" ${primaryHref}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>${primaryLabel}</button>`
-          : `<a class="btn btn-primary btn-sm" ${primaryHref}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON_PLAT.plug}</svg>${primaryLabel}</a>`
-        }
+        <button class="btn btn-primary btn-sm" ${primaryHref}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>${primaryLabel}</button>
       </div>
     </${/^a /.test(wrapTag)?'a':'div'}>`;
 }
