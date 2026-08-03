@@ -52,7 +52,12 @@ extraResources:
       - "!node_modules/node-pty/prebuilds/!(${platform}-${arch})/**"
       - "!node_modules/node-pty/build/**"
       - "!packages/desktop/**"
-      - "!**/{.git,.github,docs,tests,playwright.config.ts,README*,scripts,*.map}"
+      # NOTE: exclusions below must NOT use a bare `scripts` inside the `**/`
+      # brace group — that would also strip dist/skills/*/scripts (skill
+      # payload scripts), shipping broken skills. Exclude the repo-root
+      # build-scripts dir explicitly instead.
+      - "!scripts/**"
+      - "!**/{.git,.github,docs,tests,playwright.config.ts,README*,*.map}"
       - "!node_modules/**/*.md"
 
 asarUnpack:

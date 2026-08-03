@@ -455,6 +455,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     builtin: true,
     base_url: 'https://opencode.ai/zen/go/v1',
     models: [
+      'minimax-m3',
       'glm-5.1',
       'glm-5',
       'kimi-k2.5',

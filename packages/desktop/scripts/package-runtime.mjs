@@ -98,7 +98,14 @@ try {
 
   const assetPath = resolve(OUT_DIR, assetName)
   rmSync(assetPath, { force: true })
-  run('tar', ['-czf', assetPath, '-C', stage, '.'])
+  // COPYFILE_DISABLE stops macOS bsdtar from emitting AppleDouble `._*`
+  // companion entries for extended attributes. Non-bsdtar extractors (the
+  // desktop app uses the Node tar library) would otherwise write them out as
+  // regular files, and stray `._*.py` files crash hermes-agent tool discovery
+  // with UnicodeDecodeError. No-op on Linux/Windows tar.
+  run('tar', ['-czf', assetPath, '-C', stage, '.'], {
+    env: { ...process.env, COPYFILE_DISABLE: '1' },
+  })
 
   const sha256 = await sha256File(assetPath)
   writeFileSync(`${assetPath}.sha256`, `${sha256}  ${assetName}\n`)

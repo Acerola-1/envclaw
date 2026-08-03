@@ -230,9 +230,11 @@ interface FuncDef {
 const functions: FuncDef[] = [
   // 数智大气
   { id: 'szdq-map', platformId: 'szdq', name: '一张图', tags: ['截图', '地图'], prompt: '按任务定义生成数智大气一张图成果，设置地图类型、范围、因子、缩放等级、图层和地区标记。' },
-  { id: 'szdq-trace', platformId: 'szdq', name: '小时播报', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到小时播报页面，勾选行政区、污染因子，截取页面图片' },
+  // 【暂时屏蔽】小时播报（如需恢复，取消下行注释即可）
+  // { id: 'szdq-trace', platformId: 'szdq', name: '小时播报', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到小时播报页面，勾选行政区、污染因子，截取页面图片' },
   { id: 'szdq-rank', platformId: 'szdq', name: '浓度排名', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到浓度排名页面，查询平顶山市的数据,实现推送,附带对数据的文字总结' },
-  { id: 'szdq-review', platformId: 'szdq', name: '监测数据', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
+  // 【暂时屏蔽】监测数据（如需恢复，取消下行注释即可）
+  // { id: 'szdq-review', platformId: 'szdq', name: '监测数据', tags: ['截图', '数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
   // { id: 'szdq-trend', platformId: 'szdq', name: '站点单指标趋势对比', tags: ['数据采集', '数据分析'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
   // 中大平台
   { id: 'zd-realtime', platformId: 'zd', name: '实时监测点位分钟数据流读取', tags: ['数据采集'], prompt: '定位到实时监测页面，提取各点位分钟级PM2.5、AQI、O3数据流，按站点结构化输出…' },
@@ -1411,8 +1413,9 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <span>添加成果</span>
                 <button @click="addMapOutput"><b>＋</b> 一张图</button>
                 <button @click="addRankingOutput"><b>＋</b> 浓度排名</button>
-                <button @click="addHourlyOutput"><b>＋</b> 小时播报</button>
-                <button @click="addMonitoringOutput"><b>＋</b> 监测数据</button>
+                <!-- 【暂时屏蔽】小时播报、监测数据：用 v-if="false" 隐藏按钮（保留处理函数引用，避免未使用告警；如需恢复改回 v-if="true" 即可） -->
+                <button v-if="false" @click="addHourlyOutput"><b>＋</b> 小时播报</button>
+                <button v-if="false" @click="addMonitoringOutput"><b>＋</b> 监测数据</button>
               </div>
             </section>
 

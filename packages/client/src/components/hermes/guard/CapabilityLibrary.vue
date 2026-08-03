@@ -31,18 +31,19 @@ const capabilities: CapabilityDef[] = [
     desc: '城市/站点浓度排名查询，生成可视化排名截图并附数据文字总结后推送。',
     tags: ['截图', '数据采集', '数据分析'],
   },
-  {
-    type: 'hourlyBrief',
-    name: '小时播报',
-    desc: '定位小时播报页面，勾选行政区与污染因子，截取页面图片。',
-    tags: ['截图', '数据采集', '数据分析'],
-  },
-  {
-    type: 'monitoringData',
-    name: '监测数据',
-    desc: '提取各点位小时/分钟监测数据，覆盖 PM₂.₅、AQI、O₃ 等，按站点结构化输出。',
-    tags: ['截图', '数据采集', '数据分析'],
-  },
+  // 【暂时屏蔽】小时播报、监测数据（如需恢复，取消下方注释即可）
+  // {
+  //   type: 'hourlyBrief',
+  //   name: '小时播报',
+  //   desc: '定位小时播报页面，勾选行政区与污染因子，截取页面图片。',
+  //   tags: ['截图', '数据采集', '数据分析'],
+  // },
+  // {
+  //   type: 'monitoringData',
+  //   name: '监测数据',
+  //   desc: '提取各点位小时/分钟监测数据，覆盖 PM₂.₅、AQI、O₃ 等，按站点结构化输出。',
+  //   tags: ['截图', '数据采集', '数据分析'],
+  // },
 ]
 
 const nameByType = Object.fromEntries(capabilities.map(c => [c.type, c.name])) as Record<CapabilityType, string>

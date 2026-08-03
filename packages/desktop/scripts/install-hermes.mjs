@@ -371,6 +371,18 @@ function installBrowserRuntime() {
     process.exit(1)
   }
   console.log(`✓ bundled Chrome executable available at ${browserExecutable}`)
+
+  // The Mapairs screenshot skills drive the *bundled Python* Playwright, which
+  // pins its own Chromium revision — different from the build that agent-browser
+  // ships above. Without installing it here, that revision is absent from the
+  // runtime tarball, so every fresh install silently re-downloads it from the
+  // Playwright CDN on the first task (failing preflight during the download
+  // window, and failing outright on locked-down networks). Install it into the
+  // same PLAYWRIGHT_BROWSERS_PATH so the matching build ships inside the tarball.
+  // Uses the bundled interpreter's own Playwright, so the revision auto-matches
+  // (no hard-coded version); `install chromium` also pulls chromium-headless-shell.
+  console.log(`→ Installing Playwright Chromium for bundled python at ${PLAYWRIGHT_BROWSERS_PATH}`)
+  run(pyBin, ['-m', 'playwright', 'install', 'chromium'], { env: browserRuntimeEnv() })
 }
 
 installPythonPackages([HERMES_PACKAGE], 'hermes-agent')
@@ -475,6 +487,24 @@ if (!SKIP_BROWSER_RUNTIME) {
       'from tools.browser_tool import _chromium_installed',
       'assert shutil.which("agent-browser") is not None',
       'assert _chromium_installed()',
+    ].join('; '),
+  ], { env: browserRuntimeEnv() })
+
+  // Also verify the *bundled Python* Playwright's own Chromium build is present
+  // and launchable — that is the one the Mapairs screenshot skills use. Fail the
+  // build loudly if it is missing so a version-mismatched runtime (Chromium for
+  // agent-browser bundled, but the skill's revision absent) can never ship again.
+  run(pyBin, [
+    '-c',
+    [
+      'import os',
+      `os.environ["PLAYWRIGHT_BROWSERS_PATH"] = ${JSON.stringify(PLAYWRIGHT_BROWSERS_PATH)}`,
+      'from playwright.sync_api import sync_playwright',
+      'p = sync_playwright().start()',
+      'exe = p.chromium.executable_path',
+      'assert exe and os.path.isfile(exe), "python playwright chromium missing: %s" % exe',
+      'b = p.chromium.launch(headless=True); b.close(); p.stop()',
+      'print("OK python playwright chromium ready:", exe)',
     ].join('; '),
   ], { env: browserRuntimeEnv() })
 }

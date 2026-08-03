@@ -23,6 +23,7 @@ import { getAgentBridgeManager, startAgentBridgeManager } from './services/herme
 import { HermesSkillInjector } from './services/hermes/skill-injector'
 import { HermesSoulInjector } from './services/hermes/soul-injector'
 import { injectBundledMcpServer, injectBundledHttpMcpServers } from './services/hermes/studio-mcp-autoinject'
+import { seedDefaultProvider } from './services/hermes/default-provider-seed'
 import { ensureProfileGatewaysRunning } from './services/hermes/gateway-autostart'
 import { refreshConfiguredProviderModelCatalogsInBackground } from './services/hermes/model-catalog-cache'
 import { scanLanDevices, startLanDiscoveryResponder } from './services/lan-discovery'
@@ -297,6 +298,13 @@ export async function bootstrap() {
   } catch (err) {
     logger.warn(err, '[bootstrap] failed to inject bundled HTTP MCP servers')
     console.warn('[bootstrap] failed to inject bundled HTTP MCP servers:', err instanceof Error ? err.message : err)
+  }
+
+  try {
+    await seedDefaultProvider()
+  } catch (err) {
+    logger.warn(err, '[bootstrap] failed to seed default provider')
+    console.warn('[bootstrap] failed to seed default provider:', err instanceof Error ? err.message : err)
   }
 
   if (!isDesktopRuntime()) {

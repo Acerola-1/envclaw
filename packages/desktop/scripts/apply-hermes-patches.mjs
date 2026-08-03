@@ -204,8 +204,8 @@ if (existsSync(browserToolPath)) {
     browserSrc,
     'browser-stdout-decode-fallback',
     '# patch:browser-stdout-decode-fallback',
-    `from hermes_cli.config import cfg_get\n`,
-    `from hermes_cli.config import cfg_get
+    `from pathlib import Path\n`,
+    `from pathlib import Path
 
 # patch:browser-stdout-decode-fallback
 def _hermes_read_browser_output(path: str) -> str:
@@ -249,6 +249,47 @@ def _hermes_read_browser_output(path: str) -> str:
 
   if (browserSrc !== browserBefore) {
     writeFileSync(browserToolPath, browserSrc)
+  }
+}
+
+// ── tools/registry.py — tolerate stray non-UTF-8 files in tools/ ─────────
+// macOS AppleDouble `._*.py` companions (written out by non-bsdtar
+// extractors) are binary, so the strict-UTF-8 read in tool discovery raised
+// UnicodeDecodeError and broke EVERY agent run (`from run_agent import
+// AIAgent` fails at import time). Skip `._*` files outright and treat
+// undecodable modules as non-registering instead of crashing.
+const registryPath = join(sitePkgs, 'tools', 'registry.py')
+if (existsSync(registryPath)) {
+  console.log(`Patching ${registryPath}`)
+  let registrySrc = readFileSync(registryPath, 'utf-8')
+  const registryBefore = registrySrc
+
+  registrySrc = patchText(
+    registrySrc,
+    'registry-skip-undecodable-module',
+    '# patch:registry-skip-undecodable-module',
+    `    except (OSError, SyntaxError):
+        return False`,
+    `    except (OSError, SyntaxError, ValueError):
+        # patch:registry-skip-undecodable-module — UnicodeDecodeError is a
+        # ValueError; stray binary files (e.g. AppleDouble ._*.py) must not
+        # break tool discovery.
+        return False`,
+  )
+
+  registrySrc = patchText(
+    registrySrc,
+    'registry-skip-appledouble-files',
+    '# patch:registry-skip-appledouble-files',
+    `        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
+        and _module_registers_tools(path)`,
+    `        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
+        and not path.name.startswith("._")  # patch:registry-skip-appledouble-files
+        and _module_registers_tools(path)`,
+  )
+
+  if (registrySrc !== registryBefore) {
+    writeFileSync(registryPath, registrySrc)
   }
 }
 
