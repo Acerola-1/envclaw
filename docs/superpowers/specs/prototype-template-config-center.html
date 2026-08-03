@@ -1,0 +1,2515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>任务模板配置中心 · 交互原型</title>
+<style>
+:root{
+  --bg:#161514; --panel:#1d1c1a; --card:#242321; --card2:#2a2926;
+  --hover:#302e2a; --border:#3a3834; --border2:#4c4943;
+  --text1:#eae7e2; --text2:#aaa49b; --text3:#77736b;
+  --green:#3fae7a; --green2:#5cc792; --green-soft:rgba(63,174,122,.14);
+  --amber:#d3a15d; --amber-soft:rgba(211,161,93,.14);
+  --red:#db6b5c; --red-soft:rgba(219,107,92,.13);
+  --blue:#7da6cc; --blue-soft:rgba(125,166,204,.14);
+  --bar:#1a8a5a;
+  --radius:10px; --radius-sm:7px;
+  --shadow:0 1px 3px rgba(0,0,0,.32);
+  --font:'Inter',system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text1);height:100vh;overflow:hidden;font-size:14px;-webkit-font-smoothing:antialiased}
+svg{stroke-width:1.7}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit}
+.hidden{display:none !important}
+
+/* 顶栏 */
+.topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:650;font-size:14px}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#2f8f62,#1a8a5a);display:flex;align-items:center;justify-content:center;color:#eef6f1}
+.brand-mark svg{width:15px;height:15px}
+.brand .ver{font-size:11px;color:var(--text3);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 7px}
+.tb-right{display:flex;align-items:center;gap:6px}
+.icon-btn{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text3);cursor:pointer;transition:.15s;border:none;background:none}
+.icon-btn:hover{background:var(--card);color:var(--text1)}
+.icon-btn svg{width:16px;height:16px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--card2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text1);cursor:pointer}
+
+.body{flex:1;display:flex;min-height:0}
+
+/* 侧边栏 */
+.sidebar{width:240px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;min-height:0}
+.quick{padding:12px 10px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.new-chat-btn{width:100%;display:flex;align-items:center;gap:8px;justify-content:center;padding:9px;border-radius:8px;background:#ece9e3;color:#1d1c1a;font-weight:600;font-size:13px;border:none;cursor:pointer;transition:.15s}
+.new-chat-btn:hover{background:#f7f4ee}
+.new-chat-btn svg{width:16px;height:16px}
+.quick-nav{margin-top:8px;display:flex;flex-direction:column;gap:2px}
+.nav-item{position:relative;display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;color:var(--text2);font-size:13px;cursor:pointer;border:none;background:transparent;width:100%;text-align:left;transition:.15s}
+.nav-item:hover{background:var(--card);color:var(--text1)}
+.nav-item.active{background:var(--card2);color:var(--text1);box-shadow:inset 4px 0 0 var(--bar);font-weight:500}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.nav-item .count{margin-left:auto;font-size:11px;color:var(--text3);background:var(--card);border:1px solid var(--border);padding:0 7px;border-radius:9px}
+.side-groups{flex:1;overflow-y:auto;padding:4px 0 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.side-group{border-top:1px solid var(--border);padding:4px 0}
+.side-group-head{display:flex;align-items:center;gap:7px;width:100%;padding:9px 10px 7px;border:none;background:none;color:var(--text3);font-size:11px;font-weight:600;letter-spacing:.7px;cursor:pointer;transition:.15s}
+.side-group-head:hover{color:var(--text2)}
+.side-group-head .chev{transition:transform .15s;flex-shrink:0}
+.side-group-head.open .chev{transform:rotate(90deg)}
+.side-group-head .count{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:0 6px;font-size:10px}
+.side-item{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 27px;color:var(--text2);font-size:12.5px;cursor:pointer;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:.12s}
+.side-item:hover{background:var(--card);color:var(--text1)}
+.side-item svg{width:14px;height:14px;color:var(--text3);flex-shrink:0}
+.side-item .time{margin-left:auto;font-size:10.5px;color:var(--text3);flex-shrink:0}
+.status-head{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px 5px 18px;background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;border-radius:7px;transition:.12s}
+.status-head:hover{background:var(--card)}
+.status-head .chev{transition:transform .15s;color:var(--text3);flex-shrink:0}
+.status-head.open .chev{transform:rotate(90deg)}
+.status-head .count{margin-left:auto;font-size:10.5px;color:var(--text3)}
+.mini-job{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 34px;font-size:12px;color:var(--text3);cursor:pointer;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-job:hover{color:var(--text2);background:rgba(255,255,255,.03)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.running{background:var(--green2);animation:breathe 2s ease-in-out infinite}
+.dot.paused{background:#8d877d}
+.dot.ended{background:var(--green2);opacity:.7}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(92,199,146,.45);opacity:1}50%{box-shadow:0 0 0 5px rgba(92,199,146,0);opacity:.7}}
+.side-foot{border-top:1px solid var(--border);padding:10px 10px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.side-foot .nav-item{padding:7px 10px;font-size:12.5px}
+
+/* 主内容 */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.view{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.view.hidden{display:none}
+.view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:22px 28px 14px;flex-shrink:0;flex-wrap:wrap}
+.view-head h1{font-size:19px;font-weight:650;display:flex;align-items:center;gap:10px}
+.view-head .sub{font-size:12.5px;color:var(--text3);margin-top:4px}
+.head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.view-body{flex:1;overflow-y:auto;padding:6px 28px 36px;max-width:1180px;width:100%;margin:0 auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+/* 搜索与按钮 */
+.search-box{display:flex;align-items:center;gap:8px;width:230px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text3);transition:.15s}
+.search-box:focus-within{border-color:var(--border2);color:var(--text2)}
+.search-box svg{width:15px;height:15px;flex-shrink:0}
+.search-box input{flex:1;background:none;border:none;color:var(--text1);font-size:13px;outline:none;min-width:0}
+.search-box input::placeholder{color:var(--text3)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:8px;font-size:12.5px;font-weight:500;border:1px solid transparent;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn svg{width:15px;height:15px}
+.btn-primary{background:var(--green);color:#0d1712}
+.btn-primary:hover{background:var(--green2)}
+.btn-ghost{background:var(--card);border-color:var(--border);color:var(--text2)}
+.btn-ghost:hover{background:var(--hover);color:var(--text1);border-color:var(--border2)}
+.btn-danger{background:var(--red-soft);color:var(--red)}
+.btn-danger:hover{background:rgba(219,107,92,.22)}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:7px}
+.btn-sm svg{width:14px;height:14px}
+.icon-btn-sm{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;color:var(--text3);background:none;border:none;cursor:pointer;transition:.12s}
+.icon-btn-sm:hover{background:var(--hover);color:var(--text1)}
+.icon-btn-sm svg{width:15px;height:15px}
+.icon-btn-sm.danger:hover{background:var(--red-soft);color:var(--red)}
+
+/* 分组 */
+.group{margin-bottom:6px}
+.group-head{display:flex;align-items:center;gap:8px;padding:12px 2px 9px;cursor:pointer;color:var(--text2);user-select:none}
+.group-head:hover{color:var(--text1)}
+.group-head .chev{transition:transform .15s;color:var(--text3);flex-shrink:0}
+.group.open .group-head .chev{transform:rotate(90deg)}
+.group-head .gl{font-size:12px;font-weight:650;letter-spacing:.5px}
+.count-badge{font-size:11px;color:var(--text3);background:var(--card);border:1px solid var(--border);padding:0 8px;border-radius:10px;line-height:17px}
+.group-body{display:block}
+.group.closed .group-body{display:none}
+
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;white-space:nowrap}
+.pill svg{width:12px;height:12px}
+.pill-green{background:var(--green-soft);color:var(--green2)}
+.pill-amber{background:var(--amber-soft);color:var(--amber)}
+.pill-gray{background:rgba(255,255,255,.06);color:var(--text2)}
+.pill-blue{background:var(--blue-soft);color:var(--blue)}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500;background:var(--card2);border:1px solid var(--border);color:var(--text3);white-space:nowrap}
+.tag svg{width:12px;height:12px}
+
+/* 值守任务 */
+.job-card{position:relative;display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;margin-bottom:8px;cursor:pointer;transition:.15s}
+.job-card:hover{border-color:var(--border2);background:var(--card2)}
+.job-status-icon{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.job-status-icon.running{background:var(--green-soft);color:var(--green2)}
+.job-status-icon.paused{background:var(--amber-soft);color:var(--amber)}
+.job-status-icon.ended{background:rgba(255,255,255,.06);color:var(--text3)}
+.job-status-icon svg{width:15px;height:15px}
+.job-main{flex:1;min-width:0}
+.job-name{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--text1)}
+.job-meta{display:flex;flex-wrap:wrap;gap:5px 16px;margin-top:5px;font-size:12px;color:var(--text3)}
+.job-meta b{color:var(--text2);font-weight:500}
+.job-meta .sep{opacity:.45}
+.job-actions{display:flex;align-items:center;gap:3px;opacity:.6;transition:.15s;flex-shrink:0}
+.job-card:hover .job-actions{opacity:1}
+.pop-menu{position:absolute;right:14px;top:44px;z-index:12;min-width:132px;background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:5px;box-shadow:0 12px 32px rgba(0,0,0,.42)}
+.pop-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:none;background:none;color:var(--text2);font-size:12.5px;border-radius:6px;cursor:pointer;text-align:left}
+.pop-menu button:hover{background:var(--hover);color:var(--text1)}
+.pop-menu button.danger:hover{background:var(--red-soft);color:var(--red)}
+.pop-menu svg{width:14px;height:14px}
+
+/* 模板 */
+.tabs{display:inline-flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:3px}
+.tabs button{padding:7px 14px;border:none;background:none;border-radius:7px;color:var(--text2);font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:.12s}
+.tabs button svg{width:14px;height:14px}
+.tabs button.active{background:var(--card2);color:var(--text1);box-shadow:inset 0 0 0 1px var(--border2);font-weight:550}
+.tabs .tab-count{font-size:10.5px;color:var(--text3);background:var(--card);border-radius:8px;padding:0 6px;line-height:15px}
+.template-card{display:flex;align-items:flex-start;gap:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;margin-bottom:10px;transition:.15s}
+.template-card.system{background:var(--card2);border-color:#34322e}
+.template-card.user:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.28)}
+.t-icon{width:36px;height:36px;border-radius:9px;background:var(--green-soft);color:var(--green2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.t-icon svg{width:17px;height:17px}
+.t-main{flex:1;min-width:0}
+.t-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.t-name{font-size:13.5px;font-weight:600;color:var(--text1)}
+.t-desc{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.55}
+.t-meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:9px;font-size:12px;color:var(--text3)}
+.t-meta b{color:var(--text2);font-weight:500}
+.t-stats{display:flex;align-items:center;gap:8px;margin-top:9px}
+.t-stats .stat{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text3)}
+.t-stats .stat svg{width:13px;height:13px;color:var(--text3)}
+.t-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.system-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600;color:#0d1712;background:linear-gradient(120deg,#4fc393,#2f9a68)}
+.system-badge svg{width:11px;height:11px}
+.clone-note{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)}
+.clone-note svg{width:12px;height:12px}
+
+/* 能力库 */
+.cap-group{margin-bottom:14px}
+.cap-platform-head{display:flex;align-items:center;gap:10px;padding:12px 2px 9px;cursor:pointer;user-select:none}
+.cap-platform-head .pf-ico{width:28px;height:28px;border-radius:8px;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0}
+.cap-platform-head .pf-ico svg{width:14px;height:14px}
+.cap-platform-head .pf-name{font-size:13px;font-weight:600;color:var(--text1)}
+.cap-platform-head .pf-count{font-size:11px;color:var(--text3)}
+.cap-platform-head .chev{margin-left:auto;color:var(--text3);transition:transform .15s}
+.cap-group.open .cap-platform-head .chev{transform:rotate(90deg)}
+.cap-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cap-card{position:relative;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 15px;transition:.15s}
+.cap-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.26)}
+.cap-card .cap-ico{width:32px;height:32px;border-radius:9px;background:var(--green-soft);color:var(--green2);display:flex;align-items:center;justify-content:center}
+.cap-card .cap-ico svg{width:16px;height:16px}
+.cap-card .cap-name{font-size:13.5px;font-weight:600;margin-top:10px}
+.cap-card .cap-desc{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.55}
+.cap-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.cap-tags span{font-size:11px;color:var(--text3);background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:2px 8px}
+.cap-actions{display:flex;align-items:center;gap:6px;margin-top:13px}
+.cap-more{margin-top:13px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);line-height:1.7}
+.cap-more .cfg-row{display:flex;gap:8px;margin-top:5px}
+.cap-more .cfg-row span{width:88px;color:var(--text2);flex-shrink:0}
+.cap-empty{padding:26px 16px;border:1px dashed var(--border2);border-radius:var(--radius);text-align:center;color:var(--text3);font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.cap-empty svg{width:28px;height:28px;opacity:.6}
+
+/* 数据平台 */
+.platform-notice{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:var(--amber-soft);border:1px solid rgba(211,161,93,.3);border-radius:var(--radius);margin-bottom:14px;font-size:12.5px;line-height:1.6;color:var(--text1)}
+.platform-notice svg{flex-shrink:0;margin-top:2px;color:var(--amber);width:16px;height:16px}
+.summary-bar{display:flex;align-items:center;gap:18px;padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;font-size:12.5px;flex-wrap:wrap}
+.summary-item{display:flex;align-items:center;gap:7px}
+.summary-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.summary-dot.green{background:var(--green2);box-shadow:0 0 0 3px var(--green-soft)}
+.summary-dot.amber{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft)}
+.summary-sep{width:1px;height:16px;background:var(--border)}
+.summary-encrypt{display:flex;align-items:center;gap:6px;color:var(--text3);font-size:12px;margin-left:auto}
+.summary-encrypt svg{width:14px;height:14px;color:var(--green2)}
+.platform-list{display:flex;flex-direction:column;gap:14px}
+.platform-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;transition:.15s;position:relative;box-shadow:var(--shadow)}
+.platform-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.28)}
+.platform-card.border-accent{border-left:4px solid var(--green2)}
+.platform-card.border-neutral{border-left:4px solid var(--border2)}
+.platform-card.border-warn{border-left:4px solid var(--amber)}
+.platform-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.platform-card-title{display:flex;align-items:center;gap:10px}
+.platform-card-title h3{font-size:15px;font-weight:650}
+.badge-builtin{font-size:10px;padding:2px 8px;border-radius:9px;background:var(--green-soft);color:var(--green2);font-weight:650;white-space:nowrap}
+.badge-external{font-size:10px;padding:2px 8px;border-radius:9px;background:var(--blue-soft);color:var(--blue);font-weight:650;white-space:nowrap}
+.platform-status{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:550}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.status-dot.green{background:var(--green2);box-shadow:0 0 0 3px var(--green-soft);animation:breathe 2s ease-in-out infinite}
+.status-dot.amber{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft)}
+.status-online{color:var(--green2)}
+.status-warn{color:var(--amber)}
+.platform-card-body{display:grid;grid-template-columns:1fr 1fr;gap:9px 24px;margin-bottom:16px}
+.platform-field{display:flex;align-items:center;gap:6px;font-size:12.5px;min-width:0}
+.platform-field-label{color:var(--text3);min-width:64px;flex-shrink:0}
+.platform-field-value{color:var(--text1);min-width:0}
+.platform-field-value.mono{font-family:'JetBrains Mono',Consolas,monospace;font-size:12px}
+.platform-error-hint{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--amber);margin-bottom:12px;padding:6px 10px;background:var(--amber-soft);border-radius:var(--radius-sm)}
+.platform-error-hint svg{width:14px;height:14px}
+.platform-card-actions{display:flex;align-items:center;gap:8px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap}
+.action-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:550;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text1);transition:.15s;white-space:nowrap}
+.action-btn:hover{background:var(--hover);border-color:var(--border2)}
+.action-btn.primary{background:var(--green-soft);color:var(--green2);border-color:transparent}
+.action-btn.primary:hover{background:rgba(63,174,122,.22)}
+.action-btn.test{background:transparent;color:var(--text2);border-style:dashed}
+.action-btn.test:hover{color:var(--green2);border-color:var(--green2)}
+.action-btn.disabled{background:rgba(255,255,255,.05);color:var(--text3);cursor:not-allowed;border-color:transparent;pointer-events:none;opacity:.7}
+.action-btn.danger{color:var(--red);border-color:rgba(219,107,92,.35)}
+.action-btn.danger:hover{background:var(--red-soft);border-color:var(--red)}
+
+/* 平台配置抽屉 */
+.platform-drawer{width:560px;max-width:96vw}
+.pd-section{margin-bottom:20px}
+.pd-section-title{font-size:12.5px;font-weight:650;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.pd-section-title svg{width:14px;height:14px;color:var(--green2)}
+.pd-field{margin-bottom:12px}
+.pd-field label{font-size:12px;color:var(--text2);display:block;margin-bottom:6px}
+.pd-input,.pd-textarea,.pd-select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit;color:var(--text1);background:var(--card);outline:none;transition:.15s}
+.pd-input:focus,.pd-textarea:focus,.pd-select:focus{border-color:var(--green2)}
+.pd-textarea{min-height:72px;resize:vertical;line-height:1.6;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px}
+.pd-radio-group{display:flex;gap:14px;flex-wrap:wrap}
+.pd-radio-item{display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;user-select:none}
+.pd-radio-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;transition:.15s}
+.pd-radio-item.checked .pd-radio-dot{border-color:var(--green2)}
+.pd-radio-dot-inner{width:7px;height:7px;border-radius:50%;background:var(--green2);display:none}
+.pd-radio-item.checked .pd-radio-dot-inner{display:block}
+.account-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.account-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;font-size:12px;flex-wrap:wrap}
+.account-row .acc-input{flex:1;min-width:110px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text1);outline:none}
+.account-row .acc-input:focus{border-color:var(--green2)}
+.account-name{font-weight:550;font-family:'JetBrains Mono',Consolas,monospace}
+.account-mask{color:var(--text3);font-family:'JetBrains Mono',Consolas,monospace}
+.account-status{display:flex;align-items:center;gap:4px;font-size:11px;margin-left:auto;color:var(--green2)}
+.account-status .status-dot{width:6px;height:6px}
+.account-actions{display:flex;gap:4px}
+.account-action-btn{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);border:none;background:none;transition:.15s}
+.account-action-btn:hover{background:var(--hover);color:var(--text1)}
+.account-action-btn.danger:hover{color:var(--red);background:var(--red-soft)}
+.account-action-btn svg{width:13px;height:13px}
+.multi-select{position:relative}
+.ms-trigger{display:flex;align-items:center;min-height:38px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;transition:.15s;gap:6px}
+.ms-trigger:hover{border-color:var(--border2)}
+.ms-trigger.open{border-color:var(--green2);box-shadow:0 0 0 3px var(--green-soft)}
+.ms-tags{display:flex;flex-wrap:wrap;gap:4px;flex:1;align-items:center}
+.ms-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-size:11.5px;background:var(--green-soft);color:var(--green2);border:1px solid rgba(63,174,122,.35)}
+.ms-tag-close{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;line-height:1;transition:.15s}
+.ms-tag-close:hover{background:var(--green2);color:#0d1712}
+.ms-placeholder{color:var(--text3);font-size:12.5px;padding:2px 4px}
+.ms-arrow{width:15px;height:15px;color:var(--text3);flex-shrink:0;transition:.2s}
+.ms-trigger.open .ms-arrow{transform:rotate(180deg)}
+.ms-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:30;max-height:300px;overflow:hidden}
+.ms-dropdown.show{display:flex;flex-direction:column}
+.ms-search-wrap{padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ms-search{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit;outline:none;background:var(--card);color:var(--text1)}
+.ms-search:focus{border-color:var(--green2)}
+.ms-list{flex:1;overflow-y:auto;padding:4px 0}
+.ms-group-label{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;padding:10px 14px 4px}
+.ms-option{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:12.5px;transition:.1s;user-select:none}
+.ms-option:hover{background:var(--hover)}
+.ms-option.hidden{display:none}
+.ms-checkbox{width:16px;height:16px;border-radius:4px;border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s}
+.ms-option.selected .ms-checkbox{background:var(--green2);border-color:var(--green2)}
+.ms-option.selected .ms-checkbox::after{content:'';width:4px;height:8px;border:solid #0d1712;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,0)}
+.ms-option-name{flex:1}
+.ms-option-desc{font-size:11px;color:var(--text3)}
+.ms-no-result{padding:20px 14px;text-align:center;color:var(--text3);font-size:12px}
+.func-card{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:8px}
+.func-card-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.func-card-name{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.func-card-name svg{width:13px;height:13px;color:var(--green2);flex-shrink:0}
+.func-card-actions{display:flex;gap:4px;flex-shrink:0}
+.func-tags-row{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--text3);flex-wrap:wrap}
+.func-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text2);transition:.15s;user-select:none}
+.func-tag:hover{border-color:var(--border2)}
+.func-tag.selected{background:var(--green-soft);color:var(--green2);border-color:var(--green2)}
+.func-tag .tag-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.func-tag.selected .tag-dot{background:var(--green2)}
+.task-ref-list{display:flex;flex-direction:column;gap:6px}
+.task-ref-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--border);border-radius:8px;font-size:12px}
+.task-ref-status{width:6px;height:6px;border-radius:50%;background:var(--green2);flex-shrink:0}
+.task-ref-name{font-weight:550}
+.task-ref-schedule{color:var(--text3);margin-left:auto}
+
+/* 删除依赖检测弹窗 */
+.delete-modal{width:520px;max-width:92vw;background:var(--panel);border:1px solid var(--border2);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);overflow:hidden;display:flex;flex-direction:column}
+.delete-modal-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)}
+.delete-modal-head h3{font-size:15px;font-weight:650;color:var(--red);display:flex;align-items:center;gap:8px}
+.delete-modal-head svg{width:17px;height:17px}
+.delete-modal-body{padding:18px 20px;overflow-y:auto}
+.modal-detect-result{padding:11px 13px;background:var(--red-soft);border:1px solid rgba(219,107,92,.25);border-radius:9px;font-size:12.5px;color:var(--text1);margin-bottom:14px;line-height:1.6}
+.modal-detect-result strong{color:var(--red)}
+.modal-deps{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.modal-dep-item{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--card2);border:1px solid var(--border);border-radius:8px;font-size:12.5px}
+.modal-dep-num{width:22px;height:22px;border-radius:50%;background:var(--red-soft);color:var(--red);font-size:11px;font-weight:650;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.modal-dep-name{font-weight:550}
+.modal-dep-relation{color:var(--text3);font-size:11.5px;margin-left:auto}
+.modal-warning{display:flex;align-items:flex-start;gap:8px;padding:11px 13px;background:var(--amber-soft);border:1px solid rgba(211,161,93,.35);border-radius:9px;font-size:12.5px;color:var(--text1);margin-bottom:16px;line-height:1.6}
+.modal-warning svg{color:var(--amber);flex-shrink:0;margin-top:2px;width:15px;height:15px}
+.modal-options{display:flex;flex-direction:column;gap:10px}
+.modal-option{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:var(--card2);border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:.15s}
+.modal-option:hover{border-color:var(--border2)}
+.modal-option.selected{border-color:var(--green2);background:var(--green-soft)}
+.modal-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.modal-option.selected .modal-radio{border-color:var(--green2)}
+.modal-radio-inner{width:8px;height:8px;border-radius:50%;background:var(--green2);display:none}
+.modal-option.selected .modal-radio-inner{display:block}
+.modal-option-text{font-size:12.5px;line-height:1.5}
+.modal-option-text strong{font-weight:650}
+.modal-option-desc{font-size:11.5px;color:var(--text3);margin-top:2px}
+.delete-modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border)}
+
+/* 对话 */
+.chat-body{flex:1;overflow-y:auto;padding:26px 28px 18px;display:flex;flex-direction:column;align-items:center;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.chat-col{width:100%;max-width:740px;display:flex;flex-direction:column;gap:14px}
+.chat-title{text-align:center;padding:6px 0 10px}
+.chat-title h2{font-size:17px;font-weight:650;display:flex;align-items:center;justify-content:center;gap:9px}
+.chat-title h2 svg{width:18px;height:18px;color:var(--green2)}
+.chat-title p{font-size:12px;color:var(--text3);margin-top:5px}
+.welcome-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;line-height:1.85;font-size:13.5px;color:var(--text2)}
+.welcome-card .w-title{font-size:14px;font-weight:600;color:var(--text1);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.welcome-card .w-title svg{width:16px;height:16px;color:var(--green2)}
+.welcome-card ul{list-style:none;margin-top:8px}
+.welcome-card li{display:flex;align-items:center;gap:8px;padding:4px 0}
+.welcome-card li svg{width:13px;height:13px;color:var(--green2);flex-shrink:0}
+.welcome-card .example{margin-top:12px;padding:10px 12px;background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--text2);font-size:12.5px}
+.msg-user{align-self:flex-end;max-width:78%;background:var(--green);color:#0d1712;border-radius:12px 12px 3px 12px;padding:10px 14px;font-size:13.5px;line-height:1.65}
+.msg-ai{align-self:flex-start;max-width:100%;background:var(--card);border:1px solid var(--border);border-radius:3px 12px 12px 12px;padding:11px 14px;font-size:13.5px;line-height:1.75;color:var(--text2)}
+.msg-ai .ai-name{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text1);margin-bottom:6px}
+.msg-ai .ai-name svg{width:14px;height:14px;color:var(--green2)}
+.typing{display:inline-flex;gap:5px;padding:6px 2px}
+.typing i{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:blink 1.1s infinite}
+.typing i:nth-child(2){animation-delay:.18s}
+.typing i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,100%{opacity:.35}50%{opacity:1}}
+.summary-card{margin:6px 0 2px;border:1px solid rgba(63,174,122,.32);border-left:4px solid var(--green2);background:rgba(63,174,122,.07);border-radius:8px;padding:13px 15px}
+.summary-card .sc-head{display:flex;align-items:center;gap:8px}
+.summary-card .sc-head svg{width:15px;height:15px;color:var(--green2)}
+.summary-card .sc-head b{font-size:13px;color:var(--text1);font-weight:600}
+.summary-card .sc-head .close{margin-left:auto}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;margin-top:11px}
+.summary-grid .field{display:flex;flex-direction:column;gap:3px}
+.summary-grid .field .k{font-size:11px;color:var(--text3)}
+.summary-grid .field .v{font-size:12.5px;color:var(--text1)}
+.sc-foot{display:flex;align-items:center;gap:8px;margin-top:13px;justify-content:flex-end}
+.summary-card.done{border-color:rgba(63,174,122,.5);background:rgba(63,174,122,.1)}
+.done-line{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text1);font-weight:550}
+.done-line svg{width:18px;height:18px;color:var(--green2)}
+.done-sub{font-size:12px;color:var(--text3);margin-top:5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.chat-input-wrap{flex-shrink:0;border-top:1px solid var(--border);background:var(--panel);padding:12px 28px 16px;display:flex;flex-direction:column;align-items:center}
+.chat-hint{font-size:11px;color:var(--text3);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.chat-hint svg{width:12px;height:12px}
+.chat-input{width:100%;max-width:740px;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:10px 10px 10px 13px;display:flex;gap:10px;align-items:flex-end;transition:.15s}
+.chat-input:focus-within{border-color:var(--green)}
+.chat-input textarea{flex:1;background:none;border:none;resize:none;color:var(--text1);font-size:13.5px;outline:none;line-height:1.55;max-height:120px;min-height:24px}
+.chat-input textarea::placeholder{color:var(--text3)}
+.send-btn{width:32px;height:32px;border-radius:9px;background:var(--green);color:#0d1712;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;flex-shrink:0}
+.send-btn:hover{background:var(--green2)}
+.send-btn svg{width:16px;height:16px}
+
+/* 弹窗 */
+.modal-mask{position:fixed;inset:0;background:rgba(10,9,8,.6);display:flex;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(2px)}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);width:500px;max-width:calc(100vw - 32px);max-height:calc(100vh - 48px);display:flex;flex-direction:column;overflow:hidden}
+.modal.wide{width:840px}
+.modal-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-head h3{font-size:15px;font-weight:600;flex:1;display:flex;align-items:center;gap:9px}
+.modal-head h3 svg{width:16px;height:16px;color:var(--green2)}
+.modal-body{flex:1;overflow-y:auto;padding:16px 18px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border);flex-shrink:0}
+.choice-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.choice-card{display:flex;align-items:center;gap:13px;padding:14px 15px;background:var(--card);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:.15s}
+.choice-card:hover{border-color:var(--green);background:var(--card2);transform:translateY(-1px)}
+.choice-card .cc-icon{width:38px;height:38px;border-radius:10px;background:var(--green-soft);color:var(--green2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.choice-card .cc-icon svg{width:18px;height:18px}
+.choice-card .cc-main{flex:1;min-width:0}
+.choice-card .cc-main b{font-size:13.5px;font-weight:600;display:block}
+.choice-card .cc-main span{font-size:12px;color:var(--text3);display:block;margin-top:3px;line-height:1.5}
+.choice-card .cc-main em{font-size:11px;color:var(--text2);font-style:normal;display:block;margin-top:5px;background:var(--card2);border-radius:6px;padding:2px 8px;width:fit-content}
+.choice-card .cc-arrow{color:var(--text3);flex-shrink:0}
+.divider{display:flex;align-items:center;gap:12px;margin:18px 0 12px;color:var(--text3);font-size:11px;letter-spacing:.4px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
+.choice-row{display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text2);font-size:12.5px;cursor:pointer;margin-bottom:8px;transition:.12s}
+.choice-row:hover{border-color:var(--green);color:var(--text1)}
+.choice-row.muted{opacity:.72}
+.choice-row svg:first-child{width:15px;height:15px;color:var(--green2);flex-shrink:0}
+.choice-row svg:last-child{margin-left:auto;color:var(--text3);flex-shrink:0}
+.nt-list{margin-top:12px}
+.nt-label{font-size:11px;color:var(--text3);letter-spacing:.4px;margin-bottom:7px}
+.nt-tpl{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:.12s}
+.nt-tpl:hover{border-color:var(--green);background:var(--card2)}
+.nt-tpl .nt-name{flex:1;font-size:12.5px;color:var(--text1)}
+.nt-tpl .nt-src{font-size:11px;color:var(--text3)}
+
+/* 模板编辑器 */
+.ed-section{margin-bottom:22px}
+.ed-section-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ed-step{width:20px;height:20px;border-radius:6px;background:var(--green-soft);color:var(--green2);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ed-section-head h4{font-size:13px;font-weight:600}
+.ed-section-head .count-chip{font-size:11px;color:var(--text3)}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px}
+.input,.select,.textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text1);font-size:13px;outline:none;transition:.12s}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--green)}
+.input::placeholder,.textarea::placeholder{color:var(--text3)}
+.textarea{min-height:68px;resize:vertical;line-height:1.6}
+.field-row{display:flex;gap:12px;flex-wrap:wrap}
+.field-row .field{flex:1;min-width:170px}
+.seg{display:inline-flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:3px}
+.seg button{padding:6px 13px;border:none;background:none;border-radius:6px;color:var(--text2);font-size:12.5px;cursor:pointer;transition:.12s}
+.seg button.active{background:var(--green);color:#0d1712;font-weight:600}
+.seg button:hover:not(.active){color:var(--text1)}
+.time-input{width:104px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text1);font-size:12.5px;outline:none}
+.time-input:focus{border-color:var(--green)}
+.chip-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text2);font-size:12.5px;cursor:pointer;transition:.12s;user-select:none}
+.chip-toggle:hover{color:var(--text1)}
+.chip-toggle.active{border-color:rgba(63,174,122,.6);background:var(--green-soft);color:var(--green2)}
+.chip-toggle svg{width:14px;height:14px}
+.chip-row{display:flex;gap:7px;flex-wrap:wrap}
+.ed-cap{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:8px}
+.ed-cap .cap-icon{width:30px;height:30px;border-radius:8px;background:var(--green-soft);color:var(--green2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ed-cap .cap-icon svg{width:15px;height:15px}
+.ed-cap .cap-info{flex:1;min-width:0}
+.ed-cap .cap-name{font-size:13px;font-weight:600}
+.ed-cap .cap-sum{font-size:11.5px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap-picker{background:var(--card);border:1px dashed var(--border2);border-radius:9px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.cap-opt{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:12.5px;color:var(--text2);transition:.12s}
+.cap-opt svg{width:15px;height:15px;color:var(--green2)}
+.cap-opt:hover{border-color:var(--green);color:var(--text1);background:var(--green-soft)}
+
+/* 抽屉 */
+.drawer-mask{position:fixed;inset:0;background:rgba(10,9,8,.38);z-index:40}
+.drawer{position:absolute;right:0;top:0;bottom:0;width:460px;max-width:94vw;background:var(--panel);border-left:1px solid var(--border2);box-shadow:-14px 0 44px rgba(0,0,0,.4);display:flex;flex-direction:column}
+.drawer-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.drawer-head h3{font-size:15px;font-weight:600;flex:1;display:flex;align-items:center;gap:9px;min-width:0}
+.drawer-head h3 svg{width:16px;height:16px;color:var(--green2);flex-shrink:0}
+.drawer-body{flex:1;overflow-y:auto;padding:16px 18px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.drawer-foot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.d-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-bottom:12px}
+.d-card h4{font-size:12.5px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.d-card h4 svg{width:14px;height:14px;color:var(--green2)}
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px}
+.d-grid .field{display:flex;flex-direction:column;gap:3px}
+.d-grid .k{font-size:11px;color:var(--text3)}
+.d-grid .v{font-size:12.5px;color:var(--text1)}
+.record-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px}
+.record-row:last-child{border-bottom:none}
+.record-row .time{width:86px;color:var(--text3);flex-shrink:0}
+.record-row .state{width:52px;display:flex;align-items:center;gap:5px;color:var(--green2);flex-shrink:0}
+.record-row .state svg{width:12px;height:12px}
+.record-row .out{color:var(--text2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.art-chart{display:flex;flex-direction:column;gap:6px;padding:12px 8px 6px}
+.art-bars{display:flex;align-items:flex-end;gap:12px;height:130px;padding:0 6px;border-bottom:1px solid var(--border)}
+.art-bar{flex:1;min-width:0;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--green2),rgba(63,174,122,.35));position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:10px;color:var(--text3);padding-bottom:5px}
+.art-axis{display:flex;gap:12px;padding:0 6px}
+.art-axis span{flex:1;text-align:center;font-size:10px;color:var(--text3)}
+.art-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.art-table th{text-align:left;color:var(--text3);font-weight:500;font-size:11px;padding:6px 8px;border-bottom:1px solid var(--border)}
+.art-table td{color:var(--text2);padding:7px 8px;border-bottom:1px solid var(--border)}
+.art-table tr:last-child td{border-bottom:none}
+.art-note{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text3);margin-top:12px}
+.art-note svg{width:13px;height:13px}
+
+/* 主题切换 */
+:root[data-theme="light"]{
+  --bg:#f5f4f1; --panel:#ffffff; --card:#ffffff; --card2:#f1efeb;
+  --hover:#e9e7e2; --border:#e3e0da; --border2:#cbc6bd;
+  --text1:#1d1c1a; --text2:#5e5a54; --text3:#97918a;
+  --green:#1a8a5a; --green2:#208f5e; --green-soft:rgba(26,138,90,.1);
+  --amber:#a87b33; --amber-soft:rgba(168,123,51,.12);
+  --red:#bc4b3d; --red-soft:rgba(188,75,61,.1);
+  --blue:#3c6f9e; --blue-soft:rgba(60,111,158,.1);
+  --bar:#1a8a5a;
+  --shadow:0 1px 3px rgba(35,32,28,.06);
+}
+:root[data-theme="light"] .new-chat-btn{background:#201e1b;color:#f5f2ed}
+:root[data-theme="light"] .new-chat-btn:hover{background:#383530}
+:root[data-theme="light"] .system-badge{background:linear-gradient(120deg,#33a877,#1a8a5a);color:#fff}
+:root[data-theme="light"] .btn-primary,:root[data-theme="light"] .send-btn,:root[data-theme="light"] .seg button.active{color:#fff}
+:root[data-theme="light"] .toast{background:#201e1b;color:#f5f2ed}
+:root[data-theme="light"] .toast svg{color:#3ecf8e}
+:root[data-theme="light"] .pop-menu{background:#fff}
+:root[data-theme="light"] .job-card:hover{background:#f8f7f4}
+:root[data-theme="light"] .template-card.user:hover{background:#fdfcfb}
+:root[data-theme="light"] .cap-opt:hover,:root[data-theme="light"] .choice-card:hover{background:#f8f7f4}
+:root[data-theme="light"] .art-bar{background:linear-gradient(180deg,#3ecf8e,rgba(26,138,90,.35))}
+:root[data-theme="light"] .brand-mark{color:#fff}
+
+/* 任务主从布局 */
+.jobs-layout{flex:1;display:flex;min-height:0}
+.jobs-list{width:430px;flex-shrink:0;overflow-y:auto;padding:4px 16px 30px 28px;border-right:1px solid var(--border);scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.job-detail{flex:1;overflow-y:auto;padding:6px 30px 36px;min-width:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.job-detail-empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text3);font-size:13px;text-align:center}
+.job-detail-empty svg{width:42px;height:42px;opacity:.45}
+.job-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 0 16px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap}
+.job-detail-title{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:650;flex-wrap:wrap}
+.job-detail-actions{display:flex;gap:6px;flex-wrap:wrap}
+.job-detail-section{margin-bottom:18px}
+.job-detail-section h3{font-size:13px;font-weight:650;display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.job-detail-section h3 svg{width:14px;height:14px;color:var(--green2)}
+.record-art{display:none}
+.record-row.open .record-art{display:block;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border)}
+.record-art-toggle{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--green2);cursor:pointer;background:none;border:none;padding:2px 6px;border-radius:6px}
+.record-art-toggle:hover{background:var(--green-soft)}
+.record-file{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;background:var(--card2);border:1px solid var(--border);font-size:11.5px;color:var(--text2)}
+.record-file svg{width:13px;height:13px;color:var(--green2)}
+
+/* 任务详情独立页 */
+.job-detail-page{max-width:1000px}
+.job-detail-page .job-detail-head{padding-top:14px}
+
+/* 模板编辑全页 */
+.editor-back{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text2);cursor:pointer;margin-bottom:10px;transition:.12s}
+.editor-back:hover{color:var(--text1)}
+.editor-back svg{width:15px;height:15px}
+.editor-body{max-width:880px}
+.editor-foot{display:flex;justify-content:flex-end;gap:8px;padding:16px 0 6px;border-top:1px solid var(--border);margin-top:8px}
+.editor-foot .btn{min-width:110px;justify-content:center}
+
+/* 能力配置表单 */
+.cap-cfg{border-top:1px solid var(--border);margin-top:10px;padding-top:11px;width:100%}
+.cap-cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px 18px}
+.cfg-field{display:flex;flex-direction:column;gap:6px}
+.cfg-field label{font-size:11.5px;color:var(--text3)}
+.cfg-field .seg button{padding:5px 10px;font-size:12px}
+.factor-chips{display:flex;flex-wrap:wrap;gap:5px}
+.factor-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:14px;border:1px solid var(--border);background:var(--card2);font-size:11.5px;color:var(--text2);cursor:pointer;user-select:none;transition:.12s}
+.factor-chip.active{border-color:rgba(63,174,122,.55);background:var(--green-soft);color:var(--green2)}
+.cap-cfg-summary{margin-top:11px;padding:8px 11px;border-radius:7px;background:var(--card2);border:1px solid var(--border);font-size:11.5px;color:var(--text2);line-height:1.6}
+.cap-config-open{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-size:11.5px;cursor:pointer}
+.cap-config-open.active{border-color:rgba(63,174,122,.55);background:var(--green-soft);color:var(--green2)}
+
+@media (max-width:1120px){ .jobs-list{width:360px} }
+@media (max-width:900px){
+  .jobs-layout{flex-direction:column}
+  .jobs-list{width:100%;max-height:42%;border-right:none;border-bottom:1px solid var(--border);padding:4px 20px 16px}
+  .job-detail{padding:4px 20px 30px}
+}
+/* Toast */
+.toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,8px);background:#f3f0ea;color:#201d19;font-size:12.5px;font-weight:500;padding:9px 16px;border-radius:9px;box-shadow:0 10px 28px rgba(0,0,0,.4);z-index:90;display:flex;align-items:center;gap:8px;opacity:0;pointer-events:none;transition:.22s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast svg{width:15px;height:15px;color:#2f8f62}
+
+@media (max-width: 980px){
+  .sidebar{width:208px}
+  .cap-grid{grid-template-columns:1fr}
+  .view-head{padding:18px 20px 12px}
+  .view-body{padding:4px 20px 28px}
+  .chat-body{padding:18px 20px}
+}
+</style>
+</head>
+<body>
+<div class="app" style="display:flex;flex-direction:column;height:100vh">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"><i data-lucide="wind"></i></span>
+      数智大气 · 环保管家
+      <span class="ver">v0.6 原型</span>
+    </div>
+    <div class="tb-right">
+      <button class="icon-btn" title="帮助"><i data-lucide="circle-help"></i></button>
+      <button class="icon-btn" title="切换主题" onclick="toggleTheme()"><i data-lucide="moon" id="theme-icon"></i></button>
+      <button class="icon-btn" title="设置"><i data-lucide="settings"></i></button>
+      <div class="avatar">环</div>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="sidebar">
+      <div class="quick">
+        <button class="new-chat-btn" onclick="switchView('chat')">
+          <i data-lucide="message-circle-plus"></i>新建对话
+        </button>
+        <nav class="quick-nav">
+          <button class="nav-item" data-nav="jobs" onclick="switchView('jobs')">
+            <i data-lucide="clock"></i>值守任务<span class="count" id="nav-jobs-count">3</span>
+          </button>
+          <button class="nav-item" data-nav="templates" onclick="switchView('templates')">
+            <i data-lucide="file-text"></i>任务模板
+          </button>
+          <button class="nav-item" data-nav="capabilities" onclick="switchView('capabilities')">
+            <i data-lucide="puzzle"></i>能力库
+          </button>
+          <button class="nav-item" data-nav="platforms" onclick="switchView('platforms')">
+            <i data-lucide="database"></i>数据平台
+          </button>
+        </nav>
+      </div>
+
+      <div class="side-groups">
+        <div class="side-group">
+          <button class="side-group-head open" onclick="toggleSideGroup(this)">
+            <i data-lucide="chevron-right" class="chev" style="width:13px;height:13px"></i>
+            历史对话
+            <span class="count">3</span>
+          </button>
+          <div class="side-group-body">
+            <div class="side-item" onclick="switchView('chat');toast('已恢复历史会话')">
+              <i data-lucide="message-square"></i>平顶山 PM2.5 分析<span class="time">今天</span>
+            </div>
+            <div class="side-item" onclick="switchView('chat');toast('已恢复历史会话')">
+              <i data-lucide="message-square"></i>上周趋势对比<span class="time">昨天</span>
+            </div>
+            <div class="side-item" onclick="switchView('chat');toast('已恢复历史会话')">
+              <i data-lucide="message-square"></i>创建日报任务<span class="time">7-30</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-group">
+          <button class="side-group-head open" onclick="toggleSideGroup(this)">
+            <i data-lucide="chevron-right" class="chev" style="width:13px;height:13px"></i>
+            任务空间
+            <span class="count" id="side-jobs-total">6</span>
+          </button>
+          <div class="side-group-body" id="side-jobs"></div>
+        </div>
+      </div>
+
+      <div class="side-foot">
+        <button class="nav-item" onclick="toast('客户端设置入口')">
+          <i data-lucide="settings"></i>设置
+        </button>
+        <button class="nav-item" style="margin-left:auto;flex:0" onclick="toast('在线帮助')">
+          <i data-lucide="circle-help"></i>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- 新建对话 -->
+      <section class="view" id="view-chat">
+        <div class="chat-body">
+          <div class="chat-col" id="chat-messages"></div>
+        </div>
+        <div class="chat-input-wrap">
+          <div class="chat-hint">
+            <i data-lucide="sparkles"></i>
+            输入创建任务相关需求，系统将自动提取并生成值守任务
+          </div>
+          <div class="chat-input">
+            <textarea id="chat-input" rows="1" placeholder="例如：帮我每天早上 8 点推送平顶山 PM2.5 数据到企业微信"></textarea>
+            <button class="send-btn" title="发送" onclick="sendChat()"><i data-lucide="send"></i></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 值守任务 -->
+      <section class="view hidden" id="view-jobs">
+        <div class="view-head">
+          <div>
+            <h1><i data-lucide="clock"></i>值守任务</h1>
+            <p class="sub">按状态分组的自动化值守任务，点击卡片查看执行详情</p>
+          </div>
+          <div class="head-actions">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input placeholder="搜索任务名称" oninput="state.search.jobs=this.value;renderJobs()">
+            </div>
+            <button class="btn btn-primary" onclick="openNewTask()"><i data-lucide="plus"></i>新建任务</button>
+          </div>
+        </div>
+        <div class="view-body" id="jobs-content"></div>
+      </section>
+
+      <!-- 任务详情（独立页面） -->
+      <section class="view hidden" id="view-job-detail">
+        <div class="view-body job-detail-page" id="job-detail"></div>
+      </section>
+
+      <!-- 任务模板 -->
+      <section class="view hidden" id="view-templates">
+        <div class="view-head">
+          <div>
+            <h1><i data-lucide="file-text"></i>任务模板</h1>
+            <p class="sub">系统预置标杆模板，可克隆到我的模板后编辑复用</p>
+          </div>
+          <div class="head-actions">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input placeholder="搜索模板" oninput="state.search.templates=this.value;renderTemplates()">
+            </div>
+            <div class="tabs" id="template-tabs">
+              <button data-tab="all" class="active" onclick="switchTemplateTab('all')">
+                <i data-lucide="layers"></i>全部<span class="tab-count" id="tab-count-all">5</span>
+              </button>
+              <button data-tab="system" onclick="switchTemplateTab('system')">
+                <i data-lucide="lock"></i>系统模板<span class="tab-count" id="tab-count-system">3</span>
+              </button>
+              <button data-tab="user" onclick="switchTemplateTab('user')">
+                <i data-lucide="folder-pen"></i>我的模板<span class="tab-count" id="tab-count-user">2</span>
+              </button>
+            </div>
+            <button class="btn btn-primary" onclick="newTemplate()"><i data-lucide="plus"></i>新建</button>
+          </div>
+        </div>
+        <div class="view-body" id="templates-content"></div>
+      </section>
+
+<!-- 模板 / 任务编辑器（全页） -->
+<section class="view hidden" id="view-template-editor">
+  <div class="view-head">
+    <div>
+      <div class="editor-back" onclick="closeEditor()"><i data-lucide="arrow-left"></i><span id="editor-back-label">返回任务模板</span></div>
+      <h1 id="editor-title"><i data-lucide="file-text"></i><span id="editor-title-text">新建模板</span></h1>
+      <p class="sub" id="editor-sub">配置模板信息、能力清单与交付设置</p>
+    </div>
+  </div>
+  <div class="view-body editor-body">
+      <div class="ed-section">
+        <div class="ed-section-head">
+          <span class="ed-step">1</span><h4 id="ed-info-title">模板信息</h4>
+        </div>
+        <div class="field">
+          <label id="ed-name-label">模板名称</label>
+          <input id="ed-name" class="input" placeholder="例如：平顶山日报推送">
+        </div>
+        <div class="field">
+          <label>描述</label>
+          <input id="ed-desc" class="input" placeholder="一句话说明模板用途">
+        </div>
+      </div>
+
+      <div class="ed-section">
+        <div class="ed-section-head">
+          <span class="ed-step">2</span><h4>能力清单</h4>
+          <span class="count-chip" id="ed-cap-count">0 项能力</span>
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="toggleCapPicker()">
+            <i data-lucide="circle-plus"></i>添加能力
+          </button>
+        </div>
+        <div id="ed-caps"></div>
+        <div class="cap-picker hidden" id="ed-cap-picker">
+          <div class="cap-opt" onclick="addEditorCap('浓度排名','bar-chart-3','城市范围 · PM2.5 / O3 / AQI · 实时')"><i data-lucide="bar-chart-3"></i>浓度排名</div>
+          <div class="cap-opt" onclick="addEditorCap('一张图','map','市级范围 · AQI 图层 · 浅色')"><i data-lucide="map"></i>一张图</div>
+          <div class="cap-opt" onclick="addEditorCap('小时播报','volume-2','08:00-18:00 · 首要污染物')"><i data-lucide="volume-2"></i>小时播报</div>
+          <div class="cap-opt" onclick="addEditorCap('监测数据','activity','城区站点 · 逐小时数据表')"><i data-lucide="activity"></i>监测数据</div>
+        </div>
+      </div>
+
+      <div class="ed-section">
+        <div class="ed-section-head"><span class="ed-step">3</span><h4>交付设置</h4></div>
+        <div class="field">
+          <label>执行频率</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="seg" id="ed-freq">
+              <button data-freq="每天" onclick="setFreq(this)">每天</button>
+              <button data-freq="每周" onclick="setFreq(this)">每周</button>
+              <button data-freq="每月" onclick="setFreq(this)">每月</button>
+            </div>
+            <input type="time" class="time-input" id="ed-time" value="09:00">
+          </div>
+        </div>
+        <div class="field">
+          <label>推送渠道</label>
+          <div class="chip-row" id="ed-channels">
+            <button class="chip-toggle" data-channel="企业微信" onclick="toggleChannel(this)"><i data-lucide="message-square"></i>企业微信</button>
+            <button class="chip-toggle" data-channel="钉钉" onclick="toggleChannel(this)"><i data-lucide="bell"></i>钉钉</button>
+            <button class="chip-toggle" data-channel="飞书" onclick="toggleChannel(this)"><i data-lucide="send"></i>飞书</button>
+            <button class="chip-toggle" data-channel="本地" onclick="toggleChannel(this)"><i data-lucide="download"></i>本地</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>保存位置</label>
+            <input id="ed-location" class="input" placeholder="~/envclaw/reports/">
+          </div>
+          <div class="field">
+            <label>执行模型</label>
+            <select id="ed-model" class="select">
+              <option>默认模型</option>
+              <option>专业分析模型</option>
+              <option>轻量快速模型</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="ed-section">
+        <div class="ed-section-head"><span class="ed-step">4</span><h4>高级</h4></div>
+        <div class="field">
+          <label>角色基底提示词</label>
+          <textarea id="ed-role" class="textarea" placeholder="你是环保日报助手……"></textarea>
+        </div>
+        <div class="field">
+          <label>补充说明</label>
+          <input id="ed-supplement" class="input" placeholder="例如：仅推送工作日">
+        </div>
+      </div>
+    </div>
+    <div class="editor-foot" id="ed-foot"></div>
+</section>
+
+      <!-- 模板详情 -->
+      <section class="view hidden" id="view-template-detail">
+        <div class="view-head">
+          <div>
+            <div class="editor-back" onclick="closeTemplateDetail()"><i data-lucide="arrow-left"></i><span id="detail-back-label">返回任务模板</span></div>
+            <h1 id="detail-title"><i data-lucide="file-text"></i><span>模板详情</span></h1>
+            <p class="sub" id="detail-sub">模板配置与派生任务概览</p>
+          </div>
+          <div class="head-actions" id="detail-actions"></div>
+        </div>
+        <div class="view-body editor-body" id="template-detail-body"></div>
+      </section>
+      <!-- 能力库 -->
+      <section class="view hidden" id="view-capabilities">
+        <div class="view-head">
+          <div>
+            <h1><i data-lucide="puzzle"></i>能力库</h1>
+            <p class="sub">按平台分组展示能力清单，可单独测试并预览产出</p>
+          </div>
+          <div class="head-actions">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input placeholder="搜索能力" oninput="state.search.caps=this.value;renderCapabilities()">
+            </div>
+            <button class="btn btn-ghost" onclick="testCap('c1')"><i data-lucide="test-tube"></i>测试能力</button>
+          </div>
+        </div>
+        <div class="view-body" id="caps-content"></div>
+      </section>
+
+      <!-- 数据平台 -->
+      <section class="view hidden" id="view-platforms">
+        <div class="view-head">
+          <div>
+            <h1><i data-lucide="database"></i>数据平台</h1>
+            <p class="sub">管理平台账号连接与能力挂接，内置平台受保护</p>
+          </div>
+          <div class="head-actions">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input placeholder="搜索平台" oninput="state.search.platforms=this.value;renderPlatforms()">
+            </div>
+            <button class="btn btn-primary" onclick="openPlatformDrawer(null)"><i data-lucide="database-plus"></i>添加平台</button>
+          </div>
+        </div>
+        <div class="view-body">
+          <div class="platform-notice">
+            <i data-lucide="lightbulb"></i>
+            <span>数智大气平台为系统默认内置核心底座，对应系统账号及内置接口功能禁止人工修改、禁用与删除</span>
+          </div>
+          <div class="summary-bar" id="platform-summary"></div>
+          <div id="platforms-content"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- 新建任务选择器 -->
+<div class="modal-mask hidden" id="modal-newtask" onclick="if(event.target===this)closeModal('modal-newtask')">
+  <div class="modal">
+    <div class="modal-head">
+      <h3><i data-lucide="plus"></i>新建任务</h3>
+      <button class="icon-btn-sm" onclick="closeModal('modal-newtask')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="choice-grid">
+        <div class="choice-card" onclick="toggleNewTaskList()">
+          <div class="cc-icon"><i data-lucide="file-text"></i></div>
+          <div class="cc-main">
+            <b>从模板创建</b>
+            <span>基于已有模板快速创建任务，配置自动预填</span>
+            <em>当前可选：系统模板 3 个 · 我的模板 2 个</em>
+          </div>
+          <i data-lucide="chevron-right" class="cc-arrow"></i>
+        </div>
+        <div class="choice-card" onclick="startBlankTask()">
+          <div class="cc-icon"><i data-lucide="pencil"></i></div>
+          <div class="cc-main">
+            <b>从零新建</b>
+            <span>手动选择能力、配置参数，设置交付方式</span>
+          </div>
+          <i data-lucide="chevron-right" class="cc-arrow"></i>
+        </div>
+        <div class="choice-card" onclick="startChatTask()">
+          <div class="cc-icon"><i data-lucide="messages-square"></i></div>
+          <div class="cc-main">
+            <b>对话创建</b>
+            <span>用一句话描述需求，AI 提取字段并生成任务</span>
+          </div>
+          <i data-lucide="chevron-right" class="cc-arrow"></i>
+        </div>
+      </div>
+      <div class="nt-list hidden" id="nt-list">
+        <div class="nt-label">选择模板</div>
+        <div id="nt-templates"></div>
+      </div>
+      <div class="divider"><span>或，创建以下模板</span></div>
+      <div class="choice-row" onclick="newTemplate()">
+        <i data-lucide="file-plus"></i>
+        <span>新建模板（从空白开始，创建可复用的任务配方）</span>
+        <i data-lucide="chevron-right"></i>
+      </div>
+      <div class="choice-row muted" onclick="toast('请先在值守任务中选择一个运行良好的任务')">
+        <i data-lucide="copy"></i>
+        <span>新建模板（从已有任务复制，将当前配置保存为模板）</span>
+        <i data-lucide="chevron-right"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- 平台配置抽屉 -->
+<div class="drawer-mask hidden" id="drawer-platform" onclick="if(event.target===this)closePlatformDrawer()">
+  <div class="drawer platform-drawer">
+    <div class="drawer-head">
+      <h3><i data-lucide="settings"></i><span id="platform-drawer-title">平台配置</span></h3>
+      <button class="icon-btn-sm" onclick="closePlatformDrawer()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="pd-section" id="pd-name-section">
+        <div class="pd-section-title">基本信息</div>
+        <div class="pd-field">
+          <label>平台名称</label>
+          <input id="pd-name" class="pd-input" placeholder="例如：国控站">
+        </div>
+        <div class="pd-field">
+          <label>平台类型</label>
+          <select id="pd-type" class="pd-select">
+            <option>系统自有产品 (SaaS 同步)</option>
+            <option>外部平台</option>
+            <option>自定义平台</option>
+            <option>国家级官网 (政务内网)</option>
+            <option>市级局域网平台</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pd-section">
+        <div class="pd-section-title"><i data-lucide="link"></i>连接配置</div>
+        <div class="pd-field">
+          <label>接口地址</label>
+          <input id="pd-url" class="pd-input" placeholder="https://api.example.com">
+        </div>
+        <div class="pd-field">
+          <label>操作提示词</label>
+          <textarea id="pd-prompt" class="pd-textarea" placeholder="描述登录后如何访问目标页面并完成数据采集"></textarea>
+        </div>
+        <div class="pd-field">
+          <label>访问方式</label>
+          <div class="pd-radio-group" id="pd-access">
+            <div class="pd-radio-item checked" onclick="togglePdRadio(this)"><span class="pd-radio-dot"><span class="pd-radio-dot-inner"></span></span>Web 浏览器</div>
+            <div class="pd-radio-item" onclick="togglePdRadio(this)"><span class="pd-radio-dot"><span class="pd-radio-dot-inner"></span></span>API 直连</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-section">
+        <div class="pd-section-title"><i data-lucide="puzzle"></i>技能库</div>
+        <div class="pd-field">
+          <div class="multi-select">
+            <div class="ms-trigger" onclick="toggleSkillDropdown(event)">
+              <div class="ms-tags" id="pd-ms-tags"><span class="ms-placeholder">请选择技能...</span></div>
+              <i data-lucide="chevron-down" class="ms-arrow"></i>
+            </div>
+            <div class="ms-dropdown" id="pd-ms-dropdown">
+              <div class="ms-search-wrap"><input class="ms-search" id="pd-ms-search" placeholder="搜索技能" oninput="filterPlatformSkills(this.value)"></div>
+              <div class="ms-list" id="pd-ms-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-section" id="pd-accounts-section">
+        <div class="pd-section-title"><i data-lucide="key-round"></i>账号列表</div>
+        <div class="account-list" id="pd-account-list"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addAccountRow()"><i data-lucide="plus"></i>添加账号</button>
+      </div>
+
+      <div class="pd-section" id="pd-functions-section">
+        <div class="pd-section-title"><i data-lucide="play"></i>专属功能</div>
+        <div id="pd-function-list"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addFunctionCard()"><i data-lucide="plus"></i>添加功能</button>
+      </div>
+
+      <div class="pd-section" id="pd-tasks-section">
+        <div class="pd-section-title"><i data-lucide="clock"></i>引用任务</div>
+        <div class="task-ref-list" id="pd-task-list"></div>
+      </div>
+    </div>
+    <div class="drawer-foot" id="platform-drawer-foot"></div>
+  </div>
+</div>
+
+<!-- 平台删除依赖检测 -->
+<div class="modal-mask hidden" id="modal-platform-delete" onclick="if(event.target===this)hideDeletePlatform()">
+  <div class="modal delete-modal">
+    <div class="delete-modal-head">
+      <h3><i data-lucide="alert-triangle"></i><span id="delete-platform-title">删除平台</span></h3>
+    </div>
+    <div class="delete-modal-body" id="delete-platform-body"></div>
+    <div class="delete-modal-foot">
+      <button class="btn btn-ghost" onclick="hideDeletePlatform()">取消</button>
+      <button class="btn btn-primary" onclick="confirmDeletePlatform()"><i data-lucide="trash-2"></i>确认删除</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 能力测试产出抽屉 -->
+<div class="drawer-mask hidden" id="drawer-artifact">
+  <div class="drawer">
+    <div class="drawer-head">
+      <h3><i data-lucide="test-tube"></i><span id="artifact-title">能力测试</span></h3>
+      <button class="icon-btn-sm" onclick="closeDrawer('drawer-artifact')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer-body" id="artifact-body"></div>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost" onclick="closeDrawer('drawer-artifact')">关闭</button>
+      <button class="btn btn-primary" onclick="toast('产出已导出到本地')"><i data-lucide="download"></i>导出</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="lucide.min.js"></script>
+<script>
+const state = {
+  view: "chat",
+  chatBusy: false,
+  templateTab: "all",
+  menuFor: null,
+  capOpen: null,
+  templateDetailId: null,
+  selectedJobId: null,
+  artifactRecordId: null,
+  search: {jobs:"", templates:"", caps:"", platforms:""},
+  jobs: [
+    {id:"j1", name:"平顶山日报推送", status:"running", schedule:"每天 08:00 / 14:00", channels:"企业微信 + 钉钉", next:"今日 14:00", template:"平顶山日报推送", model:"默认模型", records:[
+      {time:"今日 10:00", state:"成功", output:"日报已推送至 企业微信 / 钉钉"},
+      {time:"今日 08:00", state:"成功", output:"日报已推送至 企业微信 / 钉钉"}
+    ]},
+    {id:"j2", name:"臭氧污染简报", status:"running", schedule:"每周二 / 周五 09:00", channels:"钉钉", next:"08-04 09:00", template:"臭氧污染简报", model:"默认模型", records:[
+      {time:"08-01 09:00", state:"成功", output:"简报已推送至钉钉"}
+    ]},
+    {id:"j3", name:"区域月度考核", status:"running", schedule:"每月 1 日 09:00", channels:"飞书", next:"09-01 09:00", template:"区域月度考核", model:"默认模型", records:[]},
+    {id:"j4", name:"周报生成", status:"paused", schedule:"每周一 10:00", channels:"飞书", next:"—", template:null, model:"默认模型", records:[
+      {time:"06-29 10:00", state:"成功", output:"周报已推送至飞书"}
+    ]},
+    {id:"j5", name:"试运行 · 采集测试", status:"ended", schedule:"一次性", channels:"本地", next:"—", template:null, model:"默认模型", records:[
+      {time:"07-28 15:00", state:"成功", output:"采集测试完成"}
+    ]},
+    {id:"j6", name:"试运行 · 排名验证", status:"ended", schedule:"一次性", channels:"本地", next:"—", template:null, model:"默认模型", records:[
+      {time:"07-25 15:00", state:"成功", output:"排名验证完成"}
+    ]}
+  ],
+  templates: {
+    system: [
+      {id:"t1", name:"平顶山日报推送", desc:"每日推送平顶山市空气质量日报，覆盖浓度排名、监测地图与语音播报", caps:[
+        {icon:"bar-chart-3", name:"浓度排名", summary:"平顶山市 · PM2.5 / O3 / AQI · 实时"},
+        {icon:"map", name:"一张图", summary:"市级范围 · AQI 图层 · 浅色"},
+        {icon:"volume-2", name:"小时播报", summary:"08:00-18:00 · 首要污染物"}
+      ], taskCount:3, schedule:"每天 08:00 / 14:00", channels:"企业微信 + 钉钉", model:"默认模型", role:"你是环保日报助手，负责整理平顶山市空气质量日报。", supplement:"工作日 08:00 与 14:00 各推送一次。"},
+      {id:"t2", name:"臭氧污染简报", desc:"臭氧污染高发时段简报，聚焦 O3 浓度排名与小时变化", caps:[
+        {icon:"bar-chart-3", name:"浓度排名", summary:"平顶山市 · O3 · 小时"},
+        {icon:"volume-2", name:"小时播报", summary:"10:00-18:00 · O3 / 首要污染物"}
+      ], taskCount:1, schedule:"每周二 / 周五 09:00", channels:"钉钉", model:"默认模型", role:"你是臭氧污染监测助手。", supplement:"推送臭氧污染风险提示。"},
+      {id:"t3", name:"区域月度考核", desc:"按月汇总城市空气质量达标率与指标排名", caps:[
+        {icon:"bar-chart-3", name:"浓度排名", summary:"省级范围 · AQI / PM2.5 / PM10 · 月"},
+        {icon:"activity", name:"监测数据", summary:"城市站点 · 逐日数据表"}
+      ], taskCount:1, schedule:"每月 1 日 09:00", channels:"飞书", model:"默认模型", role:"你是环境质量考核助手。", supplement:"生成月度考核报表。"}
+    ],
+    user: [
+      {id:"t4", name:"周报定制", desc:"每周一生成郑州空气质量周报并推送飞书", clonedFrom:"平顶山日报推送", caps:[
+        {icon:"bar-chart-3", name:"浓度排名", summary:"郑州市 · PM2.5 / O3 / AQI · 日"},
+        {icon:"map", name:"一张图", summary:"市级范围 · PM2.5 图层"},
+        {icon:"volume-2", name:"小时播报", summary:"08:00-20:00 · 首要污染物"},
+        {icon:"activity", name:"监测数据", summary:"城区站点 · 7 日数据"}
+      ], taskCount:1, schedule:"每周一 10:00", channels:"飞书", model:"默认模型", role:"你是郑州空气质量周报助手。", supplement:"仅汇总工作日数据。"},
+      {id:"t5", name:"早晚高峰监测", desc:"工作日早晚高峰时段推送主要站点浓度", clonedFrom:null, caps:[
+        {icon:"bar-chart-3", name:"浓度排名", summary:"城市范围 · PM2.5 / PM10 · 实时"}
+      ], taskCount:0, schedule:"工作日 08:00 / 18:00", channels:"企业微信", model:"默认模型", role:"你是早晚高峰监测助手。", supplement:""}
+    ]
+  },
+  capabilities: [
+    {id:"c1", platform:"数智大气", name:"浓度排名", icon:"bar-chart-3", desc:"生成城市 / 区域污染物浓度排名清单", tags:["城市","指标","时间类型","标准"], cfg:[["查询范围","城市排名 / 站点排名"],["行政区","平顶山市"],["指标","PM2.5 / PM10 / O3 / AQI"],["标准","国标 / 省标"]]},
+    {id:"c2", platform:"数智大气", name:"一张图", icon:"map", desc:"生成区域空气质量监测地图", tags:["范围","图层","配色","缩放"], cfg:[["地图范围","市级 / 区县级"],["图层","AQI / PM2.5 / O3"],["主题","浅色 / 深色"],["缩放","默认 / 手动"]]},
+    {id:"c3", platform:"数智大气", name:"小时播报", icon:"volume-2", desc:"定时播报指定时段空气质量数据", tags:["时段","因子","播报格式"], cfg:[["播报时段","08:00 - 18:00"],["污染因子","首要污染物 / O3"],["格式","文字 / 语音"]]},
+    {id:"c4", platform:"数智大气", name:"监测数据", icon:"activity", desc:"输出选定站点逐小时监测数据表", tags:["站点","指标","时间范围","格式"], cfg:[["站点","平顶山站 / 湛河站"],["指标","PM2.5 / PM10 / O3"],["时间范围","近 24 小时 / 近 7 日"],["格式","表格 / CSV"]]}
+  ],
+  platforms: [
+    {id:"p1", name:"数智大气", builtin:true, connected:true, caps:4, type:"系统自有产品 (SaaS 同步)", account:"envclaw_current_user", auth:"免验证码 (会话直连)", url:"https://szdq.envclaw.local", prompt:"登录后进入空气质量监测页面，按任务定义采集数据并生成成果。", access:"web", skills:["数据采集","报告生成","消息推送"], accounts:[{name:"envclaw_current_user", mask:"**********", status:"green", label:"有效"}], functions:[{name:"浓度排名", prompt:"进入浓度排名页面，查询平顶山市数据并截图", tags:["截图","数据采集"]},{name:"一张图", prompt:"按任务定义生成一张图成果，设置地图类型、范围、因子", tags:["截图","数据分析"]}], tasks:[{name:"平顶山日报推送", schedule:"每天 08:00 / 14:00", status:"green"},{name:"臭氧污染简报", schedule:"每周二 / 周五 09:00", status:"green"}]},
+    {id:"p2", name:"河南省厅", builtin:false, connected:true, caps:0, type:"省级政务平台", account:"hns_department_watcher", auth:"滑块轨迹模拟定位", url:"https://hns-department.local/", prompt:"登录后进入数据查询页面，选择河南各站点数据，输出并格式化播报。", access:"web", skills:["数据采集"], accounts:[{name:"hns_department_watcher", mask:"**********", status:"green", label:"有效"}], functions:[], tasks:[]},
+    {id:"p3", name:"国控站", builtin:false, connected:false, caps:0, type:"国家级官网 (政务内网)", account:"未配置账号", auth:"字母+数字输入 OCR 识别", url:"https://gov-station.example.com", prompt:"登录后进入实时监测页面，检查各站点 AQI 数值。", access:"web", skills:[], accounts:[], functions:[], tasks:[]}
+  ],
+  chat: []
+};
+
+let editor = {mode:"template", id:null, caps:[], from:"templates"};
+
+const $ = (s, el=document) => el.querySelector(s);
+const icon = (name, cls="") => `<i data-lucide="${name}" class="${cls}"></i>`;
+const esc = s => String(s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function refreshIcons(){ if(window.lucide) lucide.createIcons(); }
+function toggleTheme(){
+  const cur = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = cur;
+  try { localStorage.setItem("envclaw-prototype-theme", cur); } catch(e) {}
+  renderThemeIcon();
+}
+function renderThemeIcon(){
+  const ic = document.getElementById("theme-icon");
+  if(ic) ic.dataset.lucide = document.documentElement.dataset.theme === "light" ? "sun" : "moon";
+  refreshIcons();
+}
+function setVal(id, v){ const el = document.getElementById(id); if(el) el.value = v || ""; }
+function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ""; }
+function toast(msg){
+  const t = $("#toast");
+  t.innerHTML = icon("check") + esc(msg);
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2200);
+  refreshIcons();
+}
+function showModal(id){ document.getElementById(id).classList.remove("hidden"); }
+function closeModal(id){ document.getElementById(id).classList.add("hidden"); }
+function showDrawer(id){ document.getElementById(id).classList.remove("hidden"); }
+function closeDrawer(id){ document.getElementById(id).classList.add("hidden"); }
+
+function switchView(name){
+  state.view = name;
+  document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
+  const target = document.getElementById("view-" + name);
+  if(target) target.classList.remove("hidden");
+  const navKey = name === "job-detail" ? "jobs" : (name === "template-detail" || name === "template-editor" ? "templates" : name);
+  document.querySelectorAll(".nav-item[data-nav]").forEach(b => b.classList.toggle("active", b.dataset.nav === navKey));
+  if(name === "jobs") renderJobs();
+  if(name === "templates") renderTemplates();
+  if(name === "capabilities") renderCapabilities();
+  if(name === "platforms") renderPlatforms();
+  if(name === "chat") renderChat();
+  refreshIcons();
+}
+
+function toggleSideGroup(btn){
+  btn.classList.toggle("open");
+  btn.nextElementSibling.classList.toggle("hidden");
+}
+function toggleGroup(key){
+  const g = document.getElementById("jg-" + key);
+  if(g) g.classList.toggle("closed");
+}
+
+/* 侧边栏任务空间 */
+function renderSidebar(){
+  const groups = [
+    {key:"running", label:"运行中"},
+    {key:"paused", label:"已暂停"},
+    {key:"ended", label:"已结束"}
+  ];
+  let html = "";
+  groups.forEach(g => {
+    const list = state.jobs.filter(j => j.status === g.key);
+    const cls = g.key === "running" ? "open" : "";
+    html += `
+      <button class="status-head ${cls}" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('hidden')">
+        <i data-lucide="chevron-right" class="chev" style="width:12px;height:12px"></i>
+        <span class="dot ${g.key === "running" ? "running" : (g.key === "paused" ? "paused" : "ended")}"></span>
+        ${g.label}<span class="count">${list.length}</span>
+      </button>
+      <div class="${cls === "" ? "hidden" : ""}">
+        ${list.map(j => `<div class="mini-job" onclick="switchView('jobs');selectJob('${j.id}')"><span class="dot ${g.key === "running" ? "running" : (g.key === "paused" ? "paused" : "ended")}"></span>${esc(j.name)}</div>`).join("")}
+      </div>`;
+  });
+  $("#side-jobs").innerHTML = html;
+  const total = state.jobs.length;
+  $("#side-jobs-total").textContent = total;
+  $("#nav-jobs-count").textContent = state.jobs.filter(j => j.status === "running").length;
+  refreshIcons();
+}
+
+/* 值守任务 */
+const statusMeta = {
+  running: {label:"运行中", pill:"pill-green", dot:"dot running"},
+  paused: {label:"已暂停", pill:"pill-amber", dot:"dot paused"},
+  ended: {label:"已结束", pill:"pill-gray", dot:"dot ended"}
+};
+function jobCard(j){
+  const st = statusMeta[j.status];
+  const stIcon = j.status === "running" ? "circle" : (j.status === "paused" ? "pause" : "check-circle");
+  const runBtn = j.status === "running"
+    ? `<button class="icon-btn-sm" title="立即执行" onclick="event.stopPropagation();runJob('${j.id}')">${icon("play")}</button>`
+    : (j.status === "paused"
+      ? `<button class="icon-btn-sm" title="继续" onclick="event.stopPropagation();resumeJob('${j.id}')">${icon("play-circle")}</button>`
+      : `<button class="icon-btn-sm danger" title="删除" onclick="event.stopPropagation();deleteJob('${j.id}')">${icon("trash-2")}</button>`);
+  const menu = state.menuFor === j.id ? `
+    <div class="pop-menu">
+      ${j.status === "running" ? `<button onclick="pauseJob('${j.id}')">${icon("pause")}暂停</button>` : `<button onclick="resumeJob('${j.id}')">${icon("play-circle")}继续</button>`}
+      <button onclick="copyJob('${j.id}')">${icon("copy")}复制</button>
+      <button class="danger" onclick="deleteJob('${j.id}')">${icon("trash-2")}删除</button>
+    </div>` : "";
+  return `
+    <div class="job-card" onclick="selectJob('${j.id}')">
+      <div class="job-status-icon ${j.status}">${icon(stIcon)}</div>
+      <div class="job-main">
+        <div class="job-name">
+          <span>${esc(j.name)}</span>
+          <span class="pill ${st.pill}">${st.label}</span>
+        </div>
+        <div class="job-meta">
+          <span><b>调度：</b>${esc(j.schedule)}</span>
+          <span><b>推送：</b>${esc(j.channels)}</span>
+          <span><b>${j.status === "ended" ? "上次" : "下次"}：</b>${esc(j.next)}</span>
+          ${j.template ? `<span class="tag">${icon("file-text")}模板：${esc(j.template)}</span>` : ""}
+        </div>
+      </div>
+      <div class="job-actions">
+        <button class="icon-btn-sm" title="编辑" onclick="event.stopPropagation();editJob('${j.id}')">${icon("pencil")}</button>
+        ${runBtn}
+        <button class="icon-btn-sm" title="更多" onclick="event.stopPropagation();toggleMenu('${j.id}')">${icon("more-horizontal")}</button>
+      </div>
+      ${menu}
+    </div>`;
+}
+function renderJobs(){
+  const q = state.search.jobs.trim();
+  const groups = [
+    {key:"running", label:"运行中"},
+    {key:"paused", label:"已暂停"},
+    {key:"ended", label:"已结束"}
+  ];
+  let html = "";
+  groups.forEach(g => {
+    const list = state.jobs.filter(j => j.status === g.key && (!q || j.name.includes(q)));
+    html += `<div class="group open" id="jg-${g.key}">
+      <div class="group-head" onclick="toggleGroup('${g.key}')">
+        ${icon("chevron-right", "chev")}<span class="gl">${g.label}</span><span class="count-badge">${list.length}</span>
+      </div>
+      <div class="group-body">${list.length ? list.map(jobCard).join("") : `<div class="card" style="color:var(--text3);font-size:12.5px;text-align:center;padding:22px">该状态下暂无任务</div>`}</div>
+    </div>`;
+  });
+  $("#jobs-content").innerHTML = html;
+  refreshIcons();
+  renderJobDetail();
+}
+function toggleMenu(id){
+  state.menuFor = state.menuFor === id ? null : id;
+  renderJobs();
+}
+document.addEventListener("click", e => {
+  if(state.menuFor && !e.target.closest(".pop-menu") && !e.target.closest("[title='更多']")){
+    state.menuFor = null;
+    renderJobs();
+  }
+});
+function runJob(id){
+  const j = state.jobs.find(x => x.id === id);
+  if(!j) return;
+  j.status = "running"; j.next = "今日 14:30";
+  state.menuFor = null;
+  renderJobs(); renderSidebar(); renderJobDetail(); toast("任务已立即执行");
+}
+function pauseJob(id){
+  const j = state.jobs.find(x => x.id === id);
+  if(!j) return;
+  j.status = "paused"; j.next = "—";
+  state.menuFor = null;
+  renderJobs(); renderSidebar(); renderJobDetail(); toast("任务已暂停");
+}
+function resumeJob(id){
+  const j = state.jobs.find(x => x.id === id);
+  if(!j) return;
+  j.status = "running"; j.next = "下次执行时间已恢复";
+  state.menuFor = null;
+  renderJobs(); renderSidebar(); renderJobDetail(); toast("任务已恢复运行");
+}
+function deleteJob(id){
+  state.jobs = state.jobs.filter(j => j.id !== id);
+  state.menuFor = null;
+  renderJobs(); renderSidebar(); renderJobDetail(); toast("任务已删除");
+}
+function copyJob(id){
+  const j = state.jobs.find(x => x.id === id);
+  if(!j) return;
+  const copy = {...j, id: "j" + Date.now(), name: j.name + " 副本", status: "paused", next: "—"};
+  state.jobs.push(copy);
+  state.menuFor = null;
+  renderJobs(); renderSidebar(); renderJobDetail(); toast("已复制为暂停任务");
+}
+function editJob(id){
+  const j = state.jobs.find(x => x.id === id);
+  if(!j) return;
+  openEditor("task", null, {
+    name: j.name,
+    desc: "由值守任务进入编辑",
+    caps: [{icon:"bar-chart-3", name:"浓度排名", summary:"城市范围 · PM2.5 / O3 · 实时"}],
+    schedule: j.schedule,
+    channels: j.channels,
+    role: j.template ? "你是环保日报助手。" : ""
+  });
+}
+
+/* 任务模板 */
+function findTemplate(id){
+  return state.templates.system.find(t => t.id === id) || state.templates.user.find(t => t.id === id);
+}
+function switchTemplateTab(tab){
+  state.templateTab = tab;
+  document.querySelectorAll("#template-tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  renderTemplates();
+}
+function templateCard(t, source){
+  const stats = `${t.caps.length} 项能力`;
+  const created = `${t.taskCount} 个任务`;
+  const actions = source === "system"
+    ? `<button class="btn btn-ghost btn-sm" onclick="showTemplateDetail('${t.id}')">${icon("info")}查看详情</button>
+       <button class="btn btn-primary btn-sm" onclick="createTaskFromTemplate('${t.id}')">${icon("plus")}创建任务</button>
+       <button class="btn btn-ghost btn-sm" onclick="cloneTemplate('${t.id}')">${icon("git-fork")}克隆到我的模板</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="showTemplateDetail('${t.id}')">${icon("info")}查看详情</button>
+       <button class="btn btn-primary btn-sm" onclick="createTaskFromTemplate('${t.id}')">${icon("plus")}创建任务</button>
+       <button class="icon-btn-sm" title="编辑" onclick="editTemplate('${t.id}')">${icon("pencil")}</button>
+       <button class="icon-btn-sm" title="复制" onclick="duplicateTemplate('${t.id}')">${icon("copy")}</button>
+       <button class="icon-btn-sm danger" title="删除" onclick="deleteTemplate('${t.id}')">${icon("trash-2")}</button>`;
+  return `
+    <div class="template-card ${source}">
+      <div class="t-icon">${icon("file-text")}</div>
+      <div class="t-main">
+        <div class="t-top">
+          <span class="t-name">${esc(t.name)}</span>
+          ${source === "system" ? `<span class="system-badge">${icon("lock")}系统</span>` : (t.clonedFrom ? `<span class="clone-note">${icon("git-fork")}克隆自：${esc(t.clonedFrom)}</span>` : "")}
+        </div>
+        <p class="t-desc">${esc(t.desc)}</p>
+        <div class="t-meta">
+          <span><b>调度：</b>${esc(t.schedule)}</span>
+          <span><b>推送：</b>${esc(t.channels)}</span>
+          <span><b>能力：</b>${esc(t.caps.map(c => c.name).join(" + "))}</span>
+        </div>
+        <div class="t-stats">
+          <span class="stat">${icon("layers")}${stats}</span>
+          <span class="stat">${icon("check-circle")}已创建 ${created}</span>
+        </div>
+      </div>
+      <div class="t-actions">${actions}</div>
+    </div>`;
+}
+function renderTemplates(){
+  const q = state.search.templates.trim();
+  const source = state.templateTab;
+  const filter = t => !q || t.name.includes(q) || t.desc.includes(q);
+  let html = "";
+  if(source === "all"){
+    const groups = [
+      {key:"system", label:"系统模板"},
+      {key:"user", label:"我的模板"}
+    ];
+    groups.forEach(g => {
+      const list = state.templates[g.key].filter(filter);
+      html += `
+        <div class="group open" id="tg-${g.key}">
+          <div class="group-head" onclick="document.getElementById('tg-${g.key}').classList.toggle('closed')">
+            ${icon("chevron-right", "chev")}<span class="gl">${g.label}</span><span class="count-badge">${list.length}</span>
+          </div>
+          <div class="group-body">${list.length ? list.map(t => templateCard(t, g.key)).join("") : `<div class="card" style="color:var(--text3);font-size:12.5px;text-align:center;padding:26px">没有匹配的模板</div>`}</div>
+        </div>`;
+    });
+  } else {
+    const list = state.templates[source].filter(filter);
+    const label = source === "system" ? "系统模板" : "我的模板";
+    html = `
+      <div class="group open" id="tg-${source}">
+        <div class="group-head" onclick="document.getElementById('tg-${source}').classList.toggle('closed')">
+          ${icon("chevron-right", "chev")}<span class="gl">${label}</span><span class="count-badge">${list.length}</span>
+        </div>
+        <div class="group-body">${list.length ? list.map(t => templateCard(t, source)).join("") : `<div class="card" style="color:var(--text3);font-size:12.5px;text-align:center;padding:26px">没有匹配的模板</div>`}</div>
+      </div>`;
+  }
+  $("#templates-content").innerHTML = html;
+  $("#tab-count-all").textContent = state.templates.system.length + state.templates.user.length;
+  $("#tab-count-system").textContent = state.templates.system.length;
+  $("#tab-count-user").textContent = state.templates.user.length;
+  refreshIcons();
+}
+function cloneTemplate(id){
+  const t = findTemplate(id);
+  if(!t) return;
+  const clone = {...t, id: "t" + Date.now(), name: t.name + " 副本", source: "user", clonedFrom: t.name, taskCount: 0};
+  state.templates.user.unshift(clone);
+  renderTemplates(); toast("已克隆到我的模板");
+}
+function duplicateTemplate(id){
+  const t = findTemplate(id);
+  if(!t) return;
+  const dup = {...t, id: "t" + Date.now(), name: t.name + " 副本", taskCount: 0};
+  state.templates.user.unshift(dup);
+  renderTemplates(); toast("模板已复制");
+}
+function deleteTemplate(id){
+  state.templates.user = state.templates.user.filter(t => t.id !== id);
+  renderTemplates(); toast("模板已删除");
+}
+function editTemplate(id){
+  const t = findTemplate(id);
+  if(!t) return;
+  openEditor("template", id);
+}
+function showTemplateDetail(id){
+  state.templateDetailId = id;
+  renderTemplateDetail();
+  switchView("template-detail");
+}
+function renderTemplateDetail(){
+  const t = findTemplate(state.templateDetailId);
+  const el = document.getElementById("template-detail-body");
+  if(!el) return;
+  if(!t){ closeTemplateDetail(); return; }
+  const source = state.templates.system.some(x => x.id === t.id) ? "system" : "user";
+  const titleSpan = document.querySelector("#detail-title span");
+  if(titleSpan) titleSpan.textContent = t.name;
+  const sub = $("#detail-sub");
+  if(sub) sub.textContent = source === "system" ? "系统预置模板（只读）" : "我的模板 · " + (t.clonedFrom ? "克隆自：" + t.clonedFrom : "自建模板");
+  const actions = source === "system"
+    ? `<button class="btn btn-primary btn-sm" onclick="createTaskFromTemplate('${t.id}')">${icon("plus")}创建任务</button>
+       <button class="btn btn-ghost btn-sm" onclick="cloneTemplate('${t.id}');renderTemplateDetail()">${icon("git-fork")}克隆到我的模板</button>`
+    : `<button class="btn btn-primary btn-sm" onclick="createTaskFromTemplate('${t.id}')">${icon("plus")}创建任务</button>
+       <button class="btn btn-ghost btn-sm" onclick="editTemplate('${t.id}')">${icon("pencil")}编辑</button>
+       <button class="btn btn-ghost btn-sm" onclick="duplicateTemplate('${t.id}');renderTemplateDetail()">${icon("copy")}复制</button>
+       <button class="btn btn-danger btn-sm" onclick="deleteTemplate('${t.id}');closeTemplateDetail()">${icon("trash-2")}删除</button>`;
+  const actionsEl = $("#detail-actions");
+  if(actionsEl) actionsEl.innerHTML = actions;
+  el.innerHTML = `
+    <div class="job-detail-section">
+      <h3>${icon("info")}模板信息</h3>
+      <div class="d-card">
+        <div class="d-grid">
+          <div class="field"><span class="k">模板名称</span><span class="v">${esc(t.name)}</span></div>
+          <div class="field"><span class="k">来源</span><span class="v">${source === "system" ? "系统预置" : (t.clonedFrom ? "克隆自：" + esc(t.clonedFrom) : "用户自建")}</span></div>
+          <div class="field" style="grid-column:1 / -1"><span class="k">描述</span><span class="v">${esc(t.desc)}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="job-detail-section">
+      <h3>${icon("puzzle")}能力清单</h3>
+      <div class="d-card" style="display:flex;flex-direction:column;gap:8px">
+        ${t.caps.map(c => `
+          <div class="ed-cap">
+            <div class="cap-icon">${icon(c.icon)}</div>
+            <div class="cap-info"><div class="cap-name">${esc(c.name)}</div><div class="cap-sum">${esc(capSummary(normalizeCap(c)))}</div></div>
+          </div>`).join("")}
+      </div>
+    </div>
+    <div class="job-detail-section">
+      <h3>${icon("sliders-horizontal")}交付设置</h3>
+      <div class="d-card">
+        <div class="d-grid">
+          <div class="field"><span class="k">调度频率</span><span class="v">${esc(t.schedule)}</span></div>
+          <div class="field"><span class="k">推送渠道</span><span class="v">${esc(t.channels)}</span></div>
+          <div class="field"><span class="k">执行模型</span><span class="v">${esc(t.model || "默认模型")}</span></div>
+          <div class="field"><span class="k">已创建任务</span><span class="v">${t.taskCount} 个</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="job-detail-section">
+      <h3>${icon("lightbulb")}高级配置</h3>
+      <div class="d-card">
+        <div class="field"><span class="k">角色基底提示词</span><span class="v" style="line-height:1.7">${esc(t.role || "—")}</span></div>
+        <div class="field" style="margin-top:10px"><span class="k">补充说明</span><span class="v">${esc(t.supplement || "—")}</span></div>
+      </div>
+    </div>`;
+  refreshIcons();
+}
+function closeTemplateDetail(){
+  switchView("templates");
+}
+function createTaskFromTemplate(id){
+  closeModal("modal-newtask");
+  openEditor("task", id);
+}
+function newTemplate(){
+  closeModal("modal-newtask");
+  openEditor("template", null);
+}
+
+/* 编辑器 */
+function openEditor(mode, tid, prefill, from){
+  const t = tid ? findTemplate(tid) : null;
+  editor = {
+    mode,
+    id: tid,
+    from: from || (mode === "task" ? "jobs" : "templates"),
+    templateRefName: t ? t.name : (prefill ? (prefill.templateName || null) : null),
+    caps: t ? t.caps.map(c => normalizeCap({...c})) : (prefill ? prefill.caps.map(c => normalizeCap({...c})) : (mode === "task" ? [normalizeCap({icon:"bar-chart-3", name:"浓度排名", summary:"平顶山市 · PM2.5 · 实时"})] : []))
+  };
+  const isTask = mode === "task";
+  $("#editor-title-text").textContent = isTask ? "创建值守任务" : (tid ? "编辑模板" : "新建模板");
+  $("#ed-info-title").textContent = isTask ? "任务信息" : "模板信息";
+  $("#ed-name-label").textContent = isTask ? "任务名称" : "模板名称";
+  setVal("ed-name", prefill ? prefill.name : (t ? t.name : ""));
+  setVal("ed-desc", prefill ? prefill.desc : (t ? t.desc : ""));
+  const schedule = (prefill ? prefill.schedule : (t ? t.schedule : "每天 09:00")) || "每天 09:00";
+  const freqName = schedule.includes("每周") ? "每周" : (schedule.includes("每月") ? "每月" : "每天");
+  document.querySelectorAll("#ed-freq button").forEach(b => b.classList.toggle("active", b.dataset.freq === freqName));
+  const m = schedule.match(/(\d{2}:\d{2})/);
+  setVal("ed-time", m ? m[1] : "09:00");
+  const channels = ((prefill ? prefill.channels : (t ? t.channels : "企业微信")) || "企业微信").split(/[+、,]/).map(s => s.trim()).filter(Boolean);
+  document.querySelectorAll("#ed-channels .chip-toggle").forEach(c => c.classList.toggle("active", channels.includes(c.dataset.channel)));
+  setVal("ed-location", "~/envclaw/reports/");
+  setVal("ed-model", prefill ? (prefill.model || "默认模型") : (t ? t.model : "默认模型"));
+  setVal("ed-role", prefill ? (prefill.role || "") : (t ? t.role : ""));
+  setVal("ed-supplement", prefill ? (prefill.supplement || "") : (t ? t.supplement : ""));
+  renderEdCaps();
+  renderEdFoot();
+  $("#editor-back-label").textContent = isTask ? "返回值守任务" : "返回任务模板";
+  $("#editor-sub").textContent = isTask ? "配置任务信息、能力清单与交付设置" : "配置模板信息、能力清单与交付设置";
+  switchView("template-editor");
+  refreshIcons();
+}
+function renderEdCaps(){
+  const wrap = $("#ed-caps");
+  if(!editor.caps.length){
+    wrap.innerHTML = `<div style="border:1px dashed var(--border2);border-radius:9px;padding:14px;color:var(--text3);font-size:12.5px;text-align:center">尚未添加能力，点击右上角“添加能力”</div>`;
+  } else {
+    wrap.innerHTML = editor.caps.map((c, i) => `
+      <div class="ed-cap" style="flex-wrap:wrap">
+        <div class="cap-icon">${icon(c.icon)}</div>
+        <div class="cap-info">
+          <div class="cap-name">${esc(c.name)}</div>
+          <div class="cap-sum">${esc(capSummary(c))}</div>
+        </div>
+        <button class="cap-config-open ${c.open ? "active" : ""}" onclick="toggleCapConfig(${i})">${icon("sliders-horizontal")}${c.open ? "收起配置" : "编辑配置"}</button>
+        <button class="icon-btn-sm danger" title="移除" onclick="removeEditorCap(${i})">${icon("trash-2")}</button>
+        ${c.open ? `<div class="cap-cfg">${capConfigHtml(c, i)}</div>` : ""}
+      </div>`).join("");
+  }
+  $("#ed-cap-count").textContent = editor.caps.length + " 项能力";
+  refreshIcons();
+}
+const CAP_TYPES = {
+  "浓度排名": "concentrationRanking",
+  "一张图": "mapPackage",
+  "小时播报": "hourlyBrief",
+  "监测数据": "monitoringData"
+};
+function defaultCapCfg(name){
+  if(name === "浓度排名") return {theme:"浅色", target:"城市", region:"平顶山市", stationType:"标准站", period:"实时", factors:["PM2.5","O3"], gb:"默认"};
+  if(name === "一张图") return {mode:"默认", scope:"市级", timeType:"实时", mapType:"监测图", factor:"PM2.5", layer:"AQI", zoom:"城市层级", leftPanel:"关", panelZone:"城市", theme:"浅色", wind:"开"};
+  if(name === "小时播报") return {target:"城市", region:"平顶山市", township:"全部", stationType:"标准站", factors:["AQI","PM2.5","O3"], gb:"默认"};
+  if(name === "监测数据") return {theme:"浅色", target:"城市", region:"平顶山市", stationType:"标准站", township:"全部", factors:["AQI","PM2.5","O3"], gb:"默认", period:"小时", customRange:""};
+  return {theme:"浅色", target:"城市", region:"平顶山市", factors:["PM2.5"], gb:"默认"};
+}
+function normalizeCap(c){
+  const cfg = defaultCapCfg(c.name);
+  return {...c, type: CAP_TYPES[c.name] || "concentrationRanking", cfg: {...cfg, ...(c.cfg || {})}};
+}
+function capSummary(c){
+  const cfg = c.cfg || {};
+  if(c.name === "浓度排名") return `${cfg.target === "站点" ? "站点排名" : "城市排名"} · ${cfg.region || "平顶山市"}${cfg.target === "站点" ? " · " + (cfg.stationType || "标准站") : ""} · ${cfg.period || "实时"} · ${(cfg.factors || []).join("、")} · 国标${cfg.gb || "默认"}`;
+  if(c.name === "一张图") return `${cfg.mode || "默认"} · ${cfg.scope || "市级"} · ${cfg.mapType || "监测图"} · ${cfg.factor || "PM2.5"} · 缩放${cfg.zoom || "城市层级"} · ${cfg.theme || "浅色"}`;
+  if(c.name === "小时播报") return `${cfg.target || "城市"} · ${cfg.region || "平顶山市"} · ${cfg.township || "全部"} · ${(cfg.factors || []).join("、")} · 官网最新时点`;
+  if(c.name === "监测数据") return `${cfg.target || "城市"} · ${cfg.region || "平顶山市"} · ${cfg.period || "小时"}${cfg.period === "自定义" && cfg.customRange ? " · " + cfg.customRange : ""} · ${(cfg.factors || []).join("、")}`;
+  return c.summary || c.name;
+}
+const REGIONS = ["河南省","平顶山市","郑州市","洛阳市"];
+const STATION_TYPES = ["标准站","国控站","省控站","市控站","对比站","乡镇站","微站","TVOC站","粉尘站","高密度站"];
+const FACTORS = ["PM2.5","PM10","SO2","O3","NO2","CO","AQI"];
+function segBtns(options, value, idx, key){
+  return options.map(o => `<button class="${o === value ? "active" : ""}" onclick="setCapSeg(${idx},'${key}','${o}')">${o}</button>`).join("");
+}
+function factorChips(c, idx){
+  const list = c.cfg.factors || [];
+  return FACTORS.map(f => `<span class="factor-chip ${list.includes(f) ? "active" : ""}" onclick="toggleCapFactor(${idx},'${f}')">${f}</span>`).join("");
+}
+function setCapSeg(idx, key, value){
+  editor.caps[idx].cfg[key] = value;
+  renderEdCaps();
+}
+function setCapVal(idx, key, value){
+  editor.caps[idx].cfg[key] = value;
+  renderEdCaps();
+}
+function toggleCapFactor(idx, f){
+  const arr = editor.caps[idx].cfg.factors || (editor.caps[idx].cfg.factors = []);
+  const i = arr.indexOf(f);
+  if(i > -1) arr.splice(i,1); else arr.push(f);
+  renderEdCaps();
+}
+function toggleCapConfig(i){
+  editor.caps[i].open = !editor.caps[i].open;
+  renderEdCaps();
+}
+function capConfigHtml(c, idx){
+  const cfg = c.cfg;
+  const select = (key, options, label) => `<div class="cfg-field"><label>${label}</label><select class="select" onchange="setCapVal(${idx},'${key}',this.value)">${options.map(o => `<option ${o === cfg[key] ? "selected" : ""}>${o}</option>`).join("")}</select></div>`;
+  if(c.name === "浓度排名"){
+    return `<div class="cap-cfg-grid">
+      <div class="cfg-field"><label>截图颜色</label><div class="seg">${segBtns(["浅色","深色"], cfg.theme, idx, "theme")}</div></div>
+      <div class="cfg-field"><label>查询</label><div class="seg">${segBtns(["城市","站点"], cfg.target, idx, "target")}</div></div>
+      ${select("region", REGIONS, "行政区")}
+      ${cfg.target === "站点" ? select("stationType", STATION_TYPES, "站点类型") : ""}
+      <div class="cfg-field"><label>时间类型</label><div class="seg">${segBtns(["实时","日累计","日","月","年","自定义"], cfg.period, idx, "period")}</div></div>
+      <div class="cfg-field"><label>污染因子</label><div class="factor-chips">${factorChips(c, idx)}</div></div>
+      <div class="cfg-field"><label>国标类型</label><div class="seg">${segBtns(["新","默认","旧"], cfg.gb, idx, "gb")}</div></div>
+    </div>
+    <div class="cap-cfg-summary">${esc(capSummary(c))}</div>`;
+  }
+  if(c.name === "一张图"){
+    return `<div class="cap-cfg-grid">
+      <div class="cfg-field"><label>地图模式</label><div class="seg">${segBtns(["默认","星地模"], cfg.mode, idx, "mode")}</div></div>
+      <div class="cfg-field"><label>地图范围</label><div class="seg">${segBtns(["全国","省级","市级","区县"], cfg.scope, idx, "scope")}</div></div>
+      <div class="cfg-field"><label>时间类型</label><div class="seg">${segBtns(["实时","累计","日"], cfg.timeType, idx, "timeType")}</div></div>
+      <div class="cfg-field"><label>地图类型</label><div class="seg">${segBtns(["监测图","插值图"], cfg.mapType, idx, "mapType")}</div></div>
+      ${cfg.mode === "星地模" ? select("factor", ["PM2.5","PM10","O3","AQI"], "污染因子") : `<div class="cfg-field"><label>点位值-污染因子</label><div class="seg">${segBtns(["PM2.5","PM10","O3","AQI"], cfg.factor, idx, "factor")}</div></div>`}
+      <div class="cfg-field"><label>缩放等级</label><div class="seg">${segBtns(["站点层级","城市层级","自定义"], cfg.zoom, idx, "zoom")}</div></div>
+      <div class="cfg-field"><label>左侧面板</label><div class="seg">${segBtns(["开","关"], cfg.leftPanel, idx, "leftPanel")}</div></div>
+      <div class="cfg-field"><label>主题色</label><div class="seg">${segBtns(["浅色","深色"], cfg.theme, idx, "theme")}</div></div>
+      <div class="cfg-field"><label>风 / 海浪</label><div class="seg">${segBtns(["开","关"], cfg.wind, idx, "wind")}</div></div>
+    </div>
+    <div class="cap-cfg-summary">${esc(capSummary(c))}</div>`;
+  }
+  if(c.name === "小时播报"){
+    return `<div class="cap-cfg-grid">
+      <div class="cfg-field"><label>查询</label><div class="seg">${segBtns(["城市","站点"], cfg.target, idx, "target")}</div></div>
+      ${select("region", REGIONS, "行政区")}
+      ${cfg.target === "站点" ? select("stationType", STATION_TYPES, "站点类型") : ""}
+      ${select("township", ["全部","乡镇A","乡镇B"], "乡镇")}
+      <div class="cfg-field"><label>污染因子</label><div class="factor-chips">${factorChips(c, idx)}</div></div>
+      <div class="cfg-field"><label>国标类型</label><div class="seg">${segBtns(["新","默认","旧"], cfg.gb, idx, "gb")}</div></div>
+    </div>
+    <div class="cap-cfg-summary">${esc(capSummary(c))}</div>`;
+  }
+  if(c.name === "监测数据"){
+    return `<div class="cap-cfg-grid">
+      <div class="cfg-field"><label>截图颜色</label><div class="seg">${segBtns(["浅色","深色"], cfg.theme, idx, "theme")}</div></div>
+      <div class="cfg-field"><label>查询</label><div class="seg">${segBtns(["城市","站点"], cfg.target, idx, "target")}</div></div>
+      ${select("region", REGIONS, "行政区")}
+      ${cfg.target === "站点" ? select("stationType", STATION_TYPES, "站点类型") : ""}
+      ${select("township", ["全部","乡镇A","乡镇B"], "乡镇")}
+      <div class="cfg-field"><label>污染因子</label><div class="factor-chips">${factorChips(c, idx)}</div></div>
+      <div class="cfg-field"><label>国标类型</label><div class="seg">${segBtns(["新","默认","旧"], cfg.gb, idx, "gb")}</div></div>
+      <div class="cfg-field"><label>时间</label><div class="seg">${segBtns(["小时均值","小时","日","日统计","自定义"], cfg.period, idx, "period")}</div></div>
+      ${cfg.period === "自定义" ? `<div class="cfg-field"><label>时间范围</label><input class="input" value="${esc(cfg.customRange || "")}" onchange="setCapVal(${idx},'customRange',this.value)" placeholder="例如：2026-07-16 01:00 - 14:00"></div>` : ""}
+    </div>
+    <div class="cap-cfg-summary">${esc(capSummary(c))}</div>`;
+  }
+  return `<div class="cap-cfg-grid">${select("region", REGIONS, "行政区")}</div>`;
+}
+function renderEdFoot(){
+  const foot = $("#ed-foot");
+  if(editor.mode === "task"){
+    foot.innerHTML = `<button class="btn btn-ghost" onclick="closeEditor()">取消</button>
+      <button class="btn btn-primary" onclick="saveEditorTask()">${icon("check")}创建任务</button>`;
+  } else {
+    foot.innerHTML = `<button class="btn btn-ghost" onclick="closeEditor()">取消</button>
+      <button class="btn btn-ghost" onclick="saveEditorTemplate(false)">${icon("save")}保存模板</button>
+      <button class="btn btn-primary" onclick="saveEditorTemplate(true)">${icon("plus")}保存并创建任务</button>`;
+  }
+  refreshIcons();
+}
+function closeEditor(){
+  if(editor.mode === "task"){
+    if(editor.from === "chat") switchView("chat");
+    else switchView("jobs");
+  } else {
+    switchView("templates");
+  }
+}
+function toggleCapPicker(){ $("#ed-cap-picker").classList.toggle("hidden"); refreshIcons(); }
+function addEditorCap(name, ic, summary){
+  editor.caps.push(normalizeCap({icon: ic, name, summary}));
+  $("#ed-cap-picker").classList.add("hidden");
+  renderEdCaps(); toast("已添加能力：" + name);
+}
+function removeEditorCap(i){
+  editor.caps.splice(i, 1);
+  renderEdCaps();
+}
+function setFreq(btn){
+  document.querySelectorAll("#ed-freq button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+function toggleChannel(btn){
+  btn.classList.toggle("active");
+}
+function gatherEditorData(){
+  const freq = document.querySelector("#ed-freq button.active")?.dataset.freq || "每天";
+  const time = val("ed-time") || "09:00";
+  const channels = [...document.querySelectorAll("#ed-channels .chip-toggle.active")].map(c => c.dataset.channel);
+  return {
+    name: val("ed-name"),
+    desc: val("ed-desc"),
+    caps: editor.caps,
+    schedule: freq + " " + time,
+    channels: channels.join(" + "),
+    location: val("ed-location") || "~/envclaw/reports/",
+    model: val("ed-model") || "默认模型",
+    role: val("ed-role"),
+    supplement: val("ed-supplement")
+  };
+}
+function createJobFromData(data, templateName){
+  state.jobs.unshift({
+    id: "j" + Date.now(),
+    name: data.name,
+    status: "running",
+    schedule: data.schedule,
+    channels: data.channels || "本地",
+    next: "2026-08-03 08:00",
+    template: templateName || null,
+    model: data.model,
+    records: []
+  });
+  renderSidebar();
+}
+function saveEditorTemplate(alsoCreate){
+  const data = gatherEditorData();
+  if(!data.name){ toast("请填写模板名称"); return; }
+  if(editor.id){
+    const i = state.templates.user.findIndex(t => t.id === editor.id);
+    if(i > -1) state.templates.user[i] = {...state.templates.user[i], ...data};
+  } else {
+    state.templates.user.unshift({id: "t" + Date.now(), source: "user", clonedFrom: null, taskCount: 0, ...data});
+  }
+  if(alsoCreate) createJobFromData(data, data.name);
+  closeEditor();
+  renderTemplates(); renderSidebar();
+  toast(alsoCreate ? "模板已保存，任务已创建" : "模板已保存");
+}
+function saveEditorTask(){
+  const data = gatherEditorData();
+  if(!data.name){ toast("请填写任务名称"); return; }
+  createJobFromData(data, editor.templateRefName || null);
+  closeEditor();
+  renderJobs(); renderSidebar();
+  switchView("jobs");
+  toast("任务已创建，下次执行 " + data.schedule.split(" ").pop());
+}
+
+/* 新建任务选择器 */
+function openNewTask(){
+  $("#nt-list").classList.add("hidden");
+  renderNewTaskTemplates();
+  showModal("modal-newtask");
+  refreshIcons();
+}
+function renderNewTaskTemplates(){
+  const groups = [
+    {label:"系统模板", list: state.templates.system},
+    {label:"我的模板", list: state.templates.user}
+  ];
+  $("#nt-templates").innerHTML = groups.map(g => `
+    <div class="nt-label">${g.label}</div>
+    ${g.list.map(t => `<div class="nt-tpl" onclick="createTaskFromTemplate('${t.id}')"><span class="nt-name">${esc(t.name)}</span><span class="nt-src">${g.label === "系统模板" ? "系统" : "我的"}</span></div>`).join("")}
+  `).join("");
+  refreshIcons();
+}
+function toggleNewTaskList(){ $("#nt-list").classList.toggle("hidden"); refreshIcons(); }
+function startBlankTask(){
+  closeModal("modal-newtask");
+  openEditor("task", null);
+}
+function startChatTask(){
+  closeModal("modal-newtask");
+  switchView("chat");
+  toast("请在对话中描述任务需求");
+}
+
+/* 对话创建任务 */
+function renderChat(){
+  const col = $("#chat-messages");
+  let html = `
+    <div class="chat-title">
+      <h2>${icon("sparkles")}智能问数 · 数智大气</h2>
+      <p>自由对话、数据分析，一句话创建值守任务</p>
+    </div>
+    <div class="welcome-card">
+      <div class="w-title">${icon("message-circle-plus")}你好，我是数智大气助手</div>
+      我可以帮你：
+      <ul>
+        <li>${icon("check")}查询空气质量数据趋势</li>
+        <li>${icon("check")}对比不同城市指标</li>
+        <li>${icon("check")}直接创建值守任务</li>
+      </ul>
+      <div class="example">例如：“帮我每天早上 8 点推送平顶山 PM2.5 数据”</div>
+    </div>`;
+  state.chat.forEach(m => {
+    if(m.role === "user"){
+      html += `<div class="msg-user">${esc(m.text)}</div>`;
+    } else if(m.summary){
+      const card = m.summary.dismissed
+        ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="restoreSummary()">${icon("file-text")}恢复任务摘要</button>`
+        : summaryCard(m.summary);
+      html += `
+        <div class="msg-ai">
+          <div class="ai-name">${icon("sparkles")}数智大气助手</div>
+          <div>${esc(m.text)}</div>
+          ${card}
+        </div>`;
+    } else {
+      html += `<div class="msg-ai"><div class="ai-name">${icon("sparkles")}数智大气助手</div><div>${esc(m.text)}</div></div>`;
+    }
+  });
+  col.innerHTML = html;
+  refreshIcons();
+  const body = document.querySelector("#view-chat .chat-body");
+  if(body) body.scrollTop = body.scrollHeight;
+}
+function summaryCard(s){
+  if(s.done){
+    return `
+      <div class="summary-card done">
+        <div class="done-line">${icon("check-circle")}任务已创建</div>
+        <div class="done-sub">
+          <span class="pill pill-green">运行中</span>
+          <span>下次执行时间 2026-08-03 08:00</span>
+          <button class="btn btn-ghost btn-sm" onclick="switchView('jobs')">${icon("arrow-right")}查看值守任务</button>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="summary-card">
+      <div class="sc-head">
+        ${icon("file-text")}<b>拟创建任务</b>
+        <button class="icon-btn-sm close" title="收起" onclick="dismissSummary()">${icon("x")}</button>
+      </div>
+      <div class="summary-grid">
+        <div class="field"><span class="k">任务名称</span><span class="v">${esc(s.name)}</span></div>
+        <div class="field"><span class="k">能力清单</span><span class="v">${esc(s.caps)}</span></div>
+        <div class="field"><span class="k">执行频率</span><span class="v">${esc(s.schedule)}</span></div>
+        <div class="field"><span class="k">推送渠道</span><span class="v">${esc(s.channels)}</span></div>
+        <div class="field" style="grid-column:1 / -1"><span class="k">模板来源</span><span class="v">${esc(s.template)}</span></div>
+      </div>
+      <div class="sc-foot">
+        <button class="btn btn-ghost btn-sm" onclick="adjustChatConfig()">${icon("sliders-horizontal")}调整配置</button>
+        <button class="btn btn-primary btn-sm" onclick="confirmChatTask()">${icon("check")}确认创建</button>
+      </div>
+    </div>`;
+}
+function sendChat(){
+  const ta = $("#chat-input");
+  const text = ta.value.trim();
+  if(!text || state.chatBusy) return;
+  state.chat.push({role:"user", text});
+  ta.value = "";
+  ta.style.height = "auto";
+  state.chatBusy = true;
+  state.chat.push({role:"ai", text:"正在解析任务字段，并匹配合适模板…", typing:true});
+  renderChat();
+  setTimeout(() => {
+    state.chat.pop();
+    state.chat.push({
+      role:"ai",
+      text:"收到，我已为你规划好以下值守任务，确认后即可创建。",
+      summary:{
+        name:"平顶山PM2.5日报推送",
+        caps:"浓度排名（平顶山 · PM2.5 · 实时）",
+        schedule:"每天 08:00",
+        channels:"企业微信",
+        template:"自动匹配：系统模板「平顶山日报推送」",
+        done:false
+      }
+    });
+    state.chatBusy = false;
+    renderChat();
+  }, 900);
+}
+function confirmChatTask(){
+  const last = state.chat.filter(m => m.summary).pop();
+  if(!last || last.summary.done) return;
+  last.summary.done = true;
+  createJobFromData({
+    name: last.summary.name,
+    schedule: last.summary.schedule,
+    channels: last.summary.channels,
+    model: "默认模型",
+    caps: [{icon:"bar-chart-3", name:"浓度排名", summary: last.summary.caps}]
+  }, "平顶山日报推送");
+  renderChat(); renderJobs(); renderSidebar();
+  toast("任务已创建，下次执行 2026-08-03 08:00");
+}
+function dismissSummary(){
+  const last = state.chat.filter(m => m.summary).pop();
+  if(last) last.summary.dismissed = true;
+  renderChat();
+}
+function restoreSummary(){
+  const last = state.chat.filter(m => m.summary).pop();
+  if(last) last.summary.dismissed = false;
+  renderChat();
+}
+function adjustChatConfig(){
+  const last = state.chat.filter(m => m.summary).pop();
+  openEditor("task", null, {
+    name: last ? last.summary.name : "",
+    desc: "从对话提取",
+    caps: [{icon:"bar-chart-3", name:"浓度排名", summary: last ? last.summary.caps : ""}],
+    schedule: last ? last.summary.schedule : "每天 09:00",
+    channels: last ? last.summary.channels : "企业微信",
+    role: ""
+  }, "chat");
+}
+$("#chat-input")?.addEventListener("keydown", e => {
+  if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); }
+});
+$("#chat-input")?.addEventListener("input", e => {
+  e.target.style.height = "auto";
+  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+});
+
+/* 能力库 */
+function renderCapabilities(){
+  const q = state.search.caps.trim();
+  const byPlatform = {};
+  state.capabilities.forEach(c => {
+    if(q && !(c.name.includes(q) || c.desc.includes(q))) return;
+    (byPlatform[c.platform] = byPlatform[c.platform] || []).push(c);
+  });
+  let html = "";
+  Object.entries(byPlatform).forEach(([platform, list], idx) => {
+    html += `
+      <div class="cap-group open" id="capg-${idx}">
+        <div class="cap-platform-head" onclick="document.getElementById('capg-${idx}').classList.toggle('open')">
+          <span class="pf-ico">${icon("database")}</span>
+          <span class="pf-name">${esc(platform)}</span>
+          <span class="pf-count">内置平台</span>
+          <span class="tag">${icon("lock")}系统</span>
+          <span class="chev">${icon("chevron-right")}</span>
+        </div>
+        <div class="cap-grid">
+          ${list.map(c => capabilityCard(c)).join("")}
+        </div>
+      </div>`;
+  });
+  html += `
+    <div class="cap-group open">
+      <div class="cap-platform-head">
+        <span class="pf-ico">${icon("globe")}</span>
+        <span class="pf-name">河南省厅</span>
+        <span class="pf-count">外部平台</span>
+        <span class="chev" style="margin-left:auto">${icon("chevron-right")}</span>
+      </div>
+      <div class="cap-empty">${icon("puzzle")}该平台尚未配置能力，可在数据平台中添加</div>
+    </div>`;
+  $("#caps-content").innerHTML = html;
+  refreshIcons();
+}
+function capabilityCard(c){
+  const open = state.capOpen === c.id;
+  return `
+    <div class="cap-card">
+      <div class="cap-ico">${icon(c.icon)}</div>
+      <div class="cap-name">${esc(c.name)}</div>
+      <p class="cap-desc">${esc(c.desc)}</p>
+      <div class="cap-tags">${c.tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>
+      <div class="cap-actions">
+        <button class="btn btn-primary btn-sm" onclick="testCap('${c.id}')">${icon("test-tube")}测试</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleCapDetail('${c.id}')">${icon("info")}详情</button>
+      </div>
+      ${open ? `
+        <div class="cap-more">
+          <b>配置项</b>
+          ${c.cfg.map(r => `<div class="cfg-row"><span>${esc(r[0])}</span>${esc(r[1])}</div>`).join("")}
+        </div>` : ""}
+    </div>`;
+}
+function toggleCapDetail(id){ state.capOpen = state.capOpen === id ? null : id; renderCapabilities(); }
+function testCap(id){
+  const c = state.capabilities.find(x => x.id === id) || state.capabilities[0];
+  state.artifactCapId = c.id;
+  $("#artifact-title").textContent = c.name + " · 测试产出";
+  $("#artifact-body").innerHTML = `
+    <div class="d-card">
+      <h4>${icon("bar-chart-3")}浓度排名 · 示例产出</h4>
+      <div class="art-chart">
+        <div class="art-bars">
+          <div class="art-bar" style="height:86%">74</div>
+          <div class="art-bar" style="height:64%">58</div>
+          <div class="art-bar" style="height:78%">66</div>
+          <div class="art-bar" style="height:46%">42</div>
+          <div class="art-bar" style="height:58%">51</div>
+          <div class="art-bar" style="height:34%">28</div>
+        </div>
+        <div class="art-axis"><span>湛河</span><span>新华</span><span>卫东</span><span>高新</span><span>汝州</span><span>叶县</span></div>
+      </div>
+      <table class="art-table">
+        <tr><th>排名</th><th>站点</th><th>AQI</th><th>首要污染物</th></tr>
+        <tr><td>1</td><td>湛河站</td><td>74</td><td>PM2.5</td></tr>
+        <tr><td>2</td><td>卫东站</td><td>66</td><td>PM2.5</td></tr>
+        <tr><td>3</td><td>新华站</td><td>58</td><td>O3</td></tr>
+      </table>
+    </div>
+    <div class="art-note">${icon("info")}产出为演示数据，正式实现由数智大气能力接口返回。</div>`;
+  showDrawer("drawer-artifact");
+  refreshIcons();
+}
+
+/* 数据平台 */
+const SKILL_CATEGORIES = [
+  {name:"数据采集", skills:[{name:"数据采集", desc:"通用网页数据抓取与结构化提取"},{name:"验证码识别", desc:"OCR 识别数字、字母、滑块验证码"},{name:"文件下载", desc:"批量下载附件、报告、图片等文件"}]},
+  {name:"数据处理", skills:[{name:"Excel导出", desc:"将采集数据格式化导出为 Excel"},{name:"数据清洗", desc:"去重、补全、格式标准化处理"},{name:"日志分析", desc:"解析系统日志，提取关键事件与异常"}]},
+  {name:"通知推送", skills:[{name:"数据播报", desc:"定时播报监测数据与统计摘要"},{name:"消息推送", desc:"通过企业微信/钉钉/邮件推送通知"},{name:"异常监控", desc:"实时监测数据异常并触发告警"}]},
+  {name:"报告生成", skills:[{name:"报告生成", desc:"自动生成空气质量分析报告"},{name:"趋势预测", desc:"基于历史数据进行趋势分析与预测"},{name:"图表可视化", desc:"将数据转换为交互式图表"}]}
+];
+const FUNC_TAGS = ["截图","数据采集","文件下载","数据分析"];
+let platformDrawerMode = "add";
+let platformDrawerId = null;
+let platformSkills = [];
+let platformDeleteId = null;
+let platformDeleteOption = "clean";
+
+function renderPlatforms(){
+  const q = state.search.platforms.trim();
+  const list = state.platforms.filter(p => !q || p.name.includes(q));
+  const connected = state.platforms.filter(p => p.connected).length;
+  const waiting = state.platforms.length - connected;
+  const summary = $("#platform-summary");
+  if(summary){
+    summary.innerHTML = `
+      <div class="summary-item"><span class="summary-dot green"></span>${connected} 已连接</div>
+      <div class="summary-sep"></div>
+      <div class="summary-item"><span class="summary-dot amber"></span>${waiting} 未连接</div>
+      <div class="summary-encrypt">${icon("shield-check")}AES-256 加密存储</div>`;
+  }
+  $("#platforms-content").innerHTML = `<div class="platform-list">${list.map(platformCard).join("")}</div>`;
+  refreshIcons();
+}
+function platformCard(p){
+  const border = p.builtin ? "border-accent" : (p.connected ? "border-neutral" : "border-warn");
+  const statusCls = p.connected ? "green" : "amber";
+  const statusTxt = p.connected ? (p.builtin ? "核心在线运行中" : "正常连接") : "未连接";
+  const fields = [
+    ["类型", p.type || "外部平台", false],
+    ["绑定账号", p.account || "未配置", true],
+    ["验证机制", p.auth || "—", false],
+    ["状态", statusTxt, false]
+  ].map(f => `<div class="platform-field"><span class="platform-field-label">${f[0]}</span><span class="platform-field-value${f[2] ? " mono" : ""}">${esc(f[1])}</span></div>`).join("");
+  const hint = p.connected ? "" : `<div class="platform-error-hint">${icon("alert-circle")}凭据未配置，请编辑账号后重试</div>`;
+  const funcCount = p.functions ? p.functions.length : 0;
+  const funcBtn = p.builtin
+    ? `<button class="action-btn primary disabled" title="内置底座功能不可修改">${icon("puzzle")}专属功能(${funcCount})</button>`
+    : `<button class="action-btn primary" onclick="openPlatformDrawer('${p.id}')">${icon("puzzle")}专属功能(${funcCount})</button>`;
+  const editBtn = p.builtin
+    ? `<button class="action-btn disabled" title="内置底座禁止编辑">${icon("pencil")}编辑</button>`
+    : `<button class="action-btn" onclick="openPlatformDrawer('${p.id}')">${icon("pencil")}编辑</button>`;
+  const delBtn = p.builtin
+    ? `<button class="action-btn disabled" title="内置底座禁止删除">${icon("trash-2")}删除</button>`
+    : `<button class="action-btn danger" onclick="showDeletePlatform('${p.id}')">${icon("trash-2")}删除</button>`;
+  return `
+    <div class="platform-card ${border}">
+      <div class="platform-card-head">
+        <div class="platform-card-title">
+          <h3>${esc(p.name)}</h3>
+          <span class="${p.builtin ? "badge-builtin" : "badge-external"}">${p.builtin ? "内置底座" : "外部平台"}</span>
+        </div>
+        <div class="platform-status"><span class="status-dot ${statusCls}"></span><span class="${p.connected ? "status-online" : "status-warn"}">${statusTxt}</span></div>
+      </div>
+      <div class="platform-card-body">${fields}</div>
+      ${hint}
+      <div class="platform-card-actions">
+        ${funcBtn}
+        ${editBtn}
+        ${delBtn}
+        <button class="action-btn test" style="margin-left:auto" onclick="testPlatformConnection('${p.id}')">${icon("wifi")}测试连接</button>
+      </div>
+    </div>`;
+}
+function testPlatformConnection(id){
+  const p = state.platforms.find(x => x.id === id);
+  if(!p) return;
+  if(p.connected) toast("连接正常 · " + p.name);
+  else toast("连接失败：凭据未配置 · " + p.name);
+}
+function openPlatformDrawer(id){
+  platformDrawerId = id;
+  const p = id ? state.platforms.find(x => x.id === id) : null;
+  platformDrawerMode = p ? "edit" : "add";
+  const title = $("#platform-drawer-title");
+  if(title) title.textContent = p ? "平台配置 · " + p.name : "添加平台";
+  const nameSec = $("#pd-name-section");
+  if(nameSec) nameSec.style.display = p ? "none" : "";
+  setVal("pd-name", p ? p.name : "");
+  setVal("pd-type", p ? (p.type || "外部平台") : "外部平台");
+  setVal("pd-url", p ? (p.url || "") : "");
+  setVal("pd-prompt", p ? (p.prompt || "") : "");
+  const access = p && p.access ? p.access : "web";
+  document.querySelectorAll("#pd-access .pd-radio-item").forEach(r => r.classList.toggle("checked", r.textContent.trim() === (access === "api" ? "API 直连" : "Web 浏览器")));
+  platformSkills = p ? (p.skills || []).slice() : [];
+  renderSkillList();
+  updateSkillTags();
+  renderPlatformAccounts(p);
+  renderPlatformFunctions(p);
+  renderPlatformTasks(p);
+  const foot = $("#platform-drawer-foot");
+  if(foot){
+    foot.innerHTML = `<button class="btn btn-ghost" onclick="closePlatformDrawer()">取消</button>
+      <button class="btn btn-primary" onclick="savePlatformDrawer()">${icon(p ? "save" : "plus")}${p ? "保存配置" : "创建平台"}</button>`;
+  }
+  const disabled = !!p && !!p.builtin;
+  const url = $("#pd-url"), prompt = $("#pd-prompt");
+  if(url) url.disabled = disabled;
+  if(prompt) prompt.disabled = disabled;
+  const trigger = document.querySelector("#drawer-platform .ms-trigger");
+  if(trigger){ trigger.style.pointerEvents = disabled ? "none" : ""; trigger.style.opacity = disabled ? ".55" : ""; }
+  const accSec = $("#pd-accounts-section"), funcSec = $("#pd-functions-section"), taskSec = $("#pd-tasks-section");
+  if(accSec) accSec.style.display = disabled ? "none" : "";
+  if(funcSec) funcSec.style.display = disabled ? "none" : "";
+  if(taskSec) taskSec.style.display = p ? "" : "none";
+  showDrawer("drawer-platform");
+  refreshIcons();
+}
+function closePlatformDrawer(){
+  closeDrawer("drawer-platform");
+  closeSkillDropdown();
+}
+function togglePdRadio(el){
+  el.parentElement.querySelectorAll(".pd-radio-item").forEach(r => r.classList.remove("checked"));
+  el.classList.add("checked");
+}
+function renderPlatformAccounts(p){
+  const list = $("#pd-account-list");
+  if(!list) return;
+  if(platformDrawerMode === "add"){
+    list.innerHTML = "";
+  } else {
+    const accounts = (p && p.accounts) || [];
+    list.innerHTML = accounts.length ? accounts.map((a, i) => `
+      <div class="account-row" id="pd-acc-${i}">
+        <span class="account-name">${esc(a.name)}</span>
+        <span class="account-mask">${esc(a.mask || "**********")}</span>
+        <span class="account-status"><span class="status-dot green"></span>${esc(a.label || "有效")}</span>
+        <div class="account-actions">
+          <button class="account-action-btn danger" title="删除" onclick="removeAccountRow(this)">${icon("trash-2")}</button>
+        </div>
+      </div>`).join("") : `<div style="font-size:12px;color:var(--text3)">暂无账号</div>`;
+  }
+  refreshIcons();
+}
+function addAccountRow(){
+  const list = $("#pd-account-list");
+  if(!list) return;
+  const row = document.createElement("div");
+  row.className = "account-row";
+  row.innerHTML = `<input class="acc-input" placeholder="账号名"><input class="acc-input" type="password" placeholder="密码"><div class="account-actions"><button class="account-action-btn danger" title="删除" onclick="this.closest('.account-row').remove()">${icon("trash-2")}</button></div>`;
+  list.appendChild(row);
+  refreshIcons();
+}
+function removeAccountRow(btn){ btn.closest(".account-row").remove(); }
+function renderPlatformFunctions(p){
+  const list = $("#pd-function-list");
+  if(!list) return;
+  const funcs = (p && p.functions) || [];
+  list.innerHTML = funcs.length ? funcs.map((f, i) => functionCardHtml(f, "pd-fn-" + i)).join("") : `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">暂无专属功能</div>`;
+  refreshIcons();
+}
+function functionCardHtml(f, cid){
+  const tags = FUNC_TAGS.map(t => `<span class="func-tag ${f.tags && f.tags.includes(t) ? "selected" : ""}" data-tag="${t}" onclick="toggleFuncTag(this)"><span class="tag-dot"></span>${t}</span>`).join("");
+  return `
+    <div class="func-card" id="${cid}">
+      <div class="func-card-head">
+        <input class="pd-input func-name" value="${esc(f.name || "")}" placeholder="功能名称" style="flex:1;padding:5px 9px;font-size:12.5px">
+        <div class="func-card-actions"><button class="account-action-btn danger" title="删除" onclick="this.closest('.func-card').remove()">${icon("trash-2")}</button></div>
+      </div>
+      <textarea class="pd-textarea func-prompt" style="min-height:52px" placeholder="输入该功能的具体操作步骤...">${esc(f.prompt || "")}</textarea>
+      <div class="func-tags-row"><span>能力标签：</span>${tags}</div>
+    </div>`;
+}
+function addFunctionCard(){
+  const list = $("#pd-function-list");
+  if(!list) return;
+  const card = document.createElement("div");
+  card.innerHTML = functionCardHtml({name:"", prompt:"", tags:[]}, "pd-fn-new-" + Date.now());
+  list.appendChild(card.firstElementChild);
+  refreshIcons();
+}
+function toggleFuncTag(el){ el.classList.toggle("selected"); }
+function renderPlatformTasks(p){
+  const list = $("#pd-task-list");
+  if(!list) return;
+  const tasks = (p && p.tasks) || [];
+  list.innerHTML = tasks.length ? tasks.map(t => `
+    <div class="task-ref-item">
+      <span class="task-ref-status" style="background:${t.status === "red" ? "var(--red)" : "var(--green2)"}"></span>
+      <span class="task-ref-name">${esc(t.name)}</span>
+      <span class="task-ref-schedule">${esc(t.schedule)}</span>
+    </div>`).join("") : `<div style="font-size:12px;color:var(--text3)">暂无引用任务</div>`;
+  refreshIcons();
+}
+function savePlatformDrawer(){
+  const name = val("pd-name");
+  if(platformDrawerMode === "add" && !name){ toast("请填写平台名称"); return; }
+  const skills = platformSkills.slice();
+  const accounts = [];
+  document.querySelectorAll("#pd-account-list .account-row").forEach(row => {
+    const inputs = row.querySelectorAll(".acc-input");
+    if(inputs[0] && inputs[0].value.trim()) accounts.push({name: inputs[0].value.trim(), password: inputs[1] ? inputs[1].value : "", mask: "**********", status: "green", label: "有效"});
+  });
+  const functions = [];
+  document.querySelectorAll("#pd-function-list .func-card").forEach(card => {
+    const nameInput = card.querySelector(".func-name");
+    const promptTa = card.querySelector(".func-prompt");
+    const tags = [...card.querySelectorAll(".func-tag.selected")].map(t => t.dataset.tag);
+    if(nameInput && nameInput.value.trim()) functions.push({name: nameInput.value.trim(), prompt: promptTa ? promptTa.value.trim() : "", tags});
+  });
+  const access = (document.querySelector("#pd-access .pd-radio-item.checked")?.textContent || "").trim() || "Web 浏览器";
+  const data = {
+    name: name || "未命名平台",
+    type: val("pd-type") || "外部平台",
+    url: val("pd-url"),
+    prompt: val("pd-prompt"),
+    access: access === "API 直连" ? "api" : "web",
+    skills,
+    accounts,
+    functions
+  };
+  if(platformDrawerMode === "edit" && platformDrawerId){
+    const p = state.platforms.find(x => x.id === platformDrawerId);
+    if(p) Object.assign(p, data);
+  } else {
+    state.platforms.push({id: "p" + Date.now(), name: data.name, builtin: false, connected: false, caps: 0, auth: "—", tasks: [], ...data});
+  }
+  closePlatformDrawer();
+  renderPlatforms();
+  toast(platformDrawerMode === "edit" ? "平台配置已保存" : "平台已创建，请完成账号配置");
+}
+/* 技能多选 */
+function renderSkillList(){
+  const list = $("#pd-ms-list");
+  if(!list) return;
+  let html = "";
+  SKILL_CATEGORIES.forEach(cat => {
+    html += `<div class="ms-group-label">${cat.name}</div>`;
+    cat.skills.forEach(s => {
+      html += `<div class="ms-option ${platformSkills.includes(s.name) ? "selected" : ""}" data-skill="${esc(s.name)}" onclick="toggleSkillOption(this,'${s.name.replace(/'/g, "\\'")}')">
+        <span class="ms-checkbox"></span>
+        <div style="flex:1"><div class="ms-option-name">${esc(s.name)}</div><div class="ms-option-desc">${esc(s.desc)}</div></div>
+      </div>`;
+    });
+  });
+  list.innerHTML = html;
+}
+function toggleSkillDropdown(e){
+  if(e) e.stopPropagation();
+  const dd = $("#pd-ms-dropdown");
+  if(!dd) return;
+  const show = !dd.classList.contains("show");
+  dd.classList.toggle("show", show);
+  const trigger = document.querySelector("#drawer-platform .ms-trigger");
+  if(trigger) trigger.classList.toggle("open", show);
+  if(show){
+    const search = $("#pd-ms-search");
+    if(search) search.value = "";
+    filterPlatformSkills("");
+  }
+}
+function closeSkillDropdown(){
+  const dd = $("#pd-ms-dropdown");
+  if(dd) dd.classList.remove("show");
+  const trigger = document.querySelector("#drawer-platform .ms-trigger");
+  if(trigger) trigger.classList.remove("open");
+}
+document.addEventListener("click", e => {
+  const sel = document.getElementById("drawer-platform");
+  if(!sel || sel.classList.contains("hidden")) return;
+  if(!e.target.closest(".multi-select")) closeSkillDropdown();
+});
+function filterPlatformSkills(q){
+  const text = (q || "").toLowerCase();
+  document.querySelectorAll("#pd-ms-list .ms-option").forEach(opt => {
+    const name = (opt.dataset.skill || "").toLowerCase();
+    const desc = (opt.querySelector(".ms-option-desc")?.textContent || "").toLowerCase();
+    opt.classList.toggle("hidden", !!text && !name.includes(text) && !desc.includes(text));
+  });
+}
+function toggleSkillOption(el, name){
+  el.classList.toggle("selected");
+  if(platformSkills.includes(name)) platformSkills = platformSkills.filter(s => s !== name);
+  else platformSkills.push(name);
+  updateSkillTags();
+}
+function updateSkillTags(){
+  const container = $("#pd-ms-tags");
+  if(!container) return;
+  container.innerHTML = platformSkills.length
+    ? platformSkills.map(s => `<span class="ms-tag">${esc(s)}<span class="ms-tag-close" onclick="event.stopPropagation();removeSkillTag('${s.replace(/'/g, "\\'")}')">&times;</span></span>`).join("")
+    : `<span class="ms-placeholder">请选择技能...</span>`;
+  refreshIcons();
+}
+function removeSkillTag(name){
+  platformSkills = platformSkills.filter(s => s !== name);
+  document.querySelectorAll("#pd-ms-list .ms-option").forEach(o => o.classList.toggle("selected", platformSkills.includes(o.dataset.skill)));
+  updateSkillTags();
+}
+/* 删除平台 */
+function showDeletePlatform(id){
+  const p = state.platforms.find(x => x.id === id);
+  if(!p) return;
+  platformDeleteId = id;
+  platformDeleteOption = "clean";
+  const deps = (p.tasks || []).map(t => ({type:"任务", name:t.name, relation:t.schedule}));
+  const title = $("#delete-platform-title");
+  if(title) title.textContent = "删除平台 · " + p.name;
+  const body = $("#delete-platform-body");
+  if(!body) return;
+  body.innerHTML = `
+    <div class="modal-detect-result">已检测到 <strong>${deps.length}</strong> 个依赖项引用该平台</div>
+    <div class="modal-deps">${deps.length
+      ? deps.map((d, i) => `<div class="modal-dep-item"><span class="modal-dep-num">${i + 1}</span><span class="modal-dep-name">${esc(d.name)}</span><span class="modal-dep-relation">${d.type} · ${esc(d.relation)}</span></div>`).join("")
+      : `<div class="modal-dep-item"><span class="modal-dep-num">0</span><span class="modal-dep-name">无直接依赖</span><span class="modal-dep-relation">—</span></div>`}</div>
+    <div class="modal-warning">${icon("alert-triangle")}<span>删除平台后，引用该平台的对话产物、历史执行记录将保留在本地，但对应采集能力将不可用。</span></div>
+    <div class="modal-options">
+      <div class="modal-option selected" onclick="selectDeleteOption(this,'clean')">
+        <span class="modal-radio"><span class="modal-radio-inner"></span></span>
+        <span class="modal-option-text"><strong>删除并清理</strong><span class="modal-option-desc">同时删除引用该平台的 ${deps.length} 个任务</span></span>
+      </div>
+      <div class="modal-option" onclick="selectDeleteOption(this,'keep')">
+        <span class="modal-radio"><span class="modal-radio-inner"></span></span>
+        <span class="modal-option-text"><strong>仅删除平台</strong><span class="modal-option-desc">保留引用任务，任务将进入异常状态</span></span>
+      </div>
+    </div>`;
+  showModal("modal-platform-delete");
+  refreshIcons();
+}
+function selectDeleteOption(el, key){
+  platformDeleteOption = key;
+  document.querySelectorAll("#delete-platform-body .modal-option").forEach(o => o.classList.remove("selected"));
+  el.classList.add("selected");
+}
+function hideDeletePlatform(){ closeModal("modal-platform-delete"); }
+function confirmDeletePlatform(){
+  if(platformDeleteId){
+    state.platforms = state.platforms.filter(p => p.id !== platformDeleteId);
+    platformDeleteId = null;
+  }
+  hideDeletePlatform();
+  renderPlatforms();
+  toast("平台已删除");
+}
+
+/* 任务详情（右侧面板） */
+function selectJob(id){
+  state.selectedJobId = id;
+  renderJobs();
+  renderJobDetail();
+  switchView("job-detail");
+}
+function closeJobDetail(){
+  switchView("jobs");
+}
+function renderJobDetail(){
+  const j = state.jobs.find(x => x.id === state.selectedJobId);
+  const el = document.getElementById("job-detail");
+  if(!el) return;
+  if(!j){
+    el.innerHTML = `<div class="editor-back" onclick="closeJobDetail()">${icon("arrow-left")}返回值守任务</div><div class="job-detail-empty">${icon("mouse-pointer-click")}<div>暂无任务详情</div></div>`;
+    refreshIcons();
+    return;
+  }
+  const st = statusMeta[j.status];
+  const runAction = j.status === "running"
+    ? `<button class="btn btn-ghost btn-sm" onclick="runJob('${j.id}')">${icon("play")}立即执行</button>
+       <button class="btn btn-ghost btn-sm" onclick="pauseJob('${j.id}')">${icon("pause")}暂停</button>`
+    : (j.status === "paused"
+      ? `<button class="btn btn-primary btn-sm" onclick="resumeJob('${j.id}')">${icon("play-circle")}继续</button>`
+      : "");
+  el.innerHTML = `
+    <div class="editor-back" onclick="closeJobDetail()">${icon("arrow-left")}返回值守任务</div>
+    <div class="job-detail-head">
+      <div class="job-detail-title">
+        <span>${esc(j.name)}</span>
+        <span class="pill ${st.pill}">${st.label}</span>
+      </div>
+      <div class="job-detail-actions">
+        ${runAction}
+        <button class="btn btn-ghost btn-sm" onclick="editJob('${j.id}')">${icon("pencil")}编辑</button>
+        <button class="btn btn-ghost btn-sm" onclick="saveJobAsTemplate('${j.id}')">${icon("file-plus")}保存为模板</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyJob('${j.id}')">${icon("copy")}复制</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteJob('${j.id}')">${icon("trash-2")}删除</button>
+      </div>
+    </div>
+    <div class="job-detail-section">
+      <h3>${icon("sliders-horizontal")}任务概况</h3>
+      <div class="d-card">
+        <div class="d-grid">
+          <div class="field"><span class="k">状态</span><span class="v"><span class="pill ${st.pill}">${st.label}</span></span></div>
+          <div class="field"><span class="k">执行频率</span><span class="v">${esc(j.schedule)}</span></div>
+          <div class="field"><span class="k">推送渠道</span><span class="v">${esc(j.channels)}</span></div>
+          <div class="field"><span class="k">执行模型</span><span class="v">${esc(j.model)}</span></div>
+          <div class="field"><span class="k">下次执行</span><span class="v">${esc(j.next)}</span></div>
+          <div class="field"><span class="k">模板来源</span><span class="v">${j.template ? esc(j.template) : "从零创建"}</span></div>
+          <div class="field"><span class="k">保存位置</span><span class="v">~/envclaw/reports/</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="job-detail-section">
+      <h3>${icon("history")}执行记录</h3>
+      <div class="d-card">
+        ${j.records.length ? j.records.map(r => recordRow(j, r)).join("") : `<div style="font-size:12px;color:var(--text3);padding:8px 0">暂无执行记录</div>`}
+      </div>
+    </div>
+    <div class="job-detail-section">
+      <h3>${icon("puzzle")}能力清单</h3>
+      <div class="d-card" style="font-size:12px;color:var(--text2);line-height:1.9">${j.template ? esc("浓度排名（平顶山 · PM2.5 / O3 / AQI）") : esc("浓度排名（城市范围 · PM2.5 / O3 · 实时）")}</div>
+    </div>
+    <div class="job-detail-section">
+      <h3>${icon("list-todo")}任务操作项</h3>
+      <div class="d-card">
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${runAction}
+          <button class="btn btn-ghost btn-sm" onclick="editJob('${j.id}')">${icon("pencil")}编辑任务</button>
+          <button class="btn btn-ghost btn-sm" onclick="saveJobAsTemplate('${j.id}')">${icon("file-plus")}保存为模板</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyJob('${j.id}')">${icon("copy")}复制任务</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteJob('${j.id}')">${icon("trash-2")}删除任务</button>
+        </div>
+      </div>
+    </div>`;
+  refreshIcons();
+}
+function recordRow(j, r){
+  const open = state.artifactRecordId === r.time;
+  return `
+    <div class="record-row ${open ? "open" : ""}">
+      <span class="time">${esc(r.time)}</span>
+      <span class="state">${icon("check-circle")}${esc(r.state)}</span>
+      <span class="out">${esc(r.output)}</span>
+      <button class="record-art-toggle" onclick="event.stopPropagation();toggleRecordArtifact('${j.id}','${r.time}')">${icon(open ? "eye-off" : "eye")}${open ? "收起产出" : "查看产出"}</button>
+      ${open ? `<div class="record-art">${recordArtifactHtml(j, r)}</div>` : ""}
+    </div>`;
+}
+function toggleRecordArtifact(id, time){
+  state.artifactRecordId = state.artifactRecordId === time ? null : time;
+  renderJobDetail();
+}
+function recordArtifactHtml(j, r){
+  const title = (j.template || "浓度排名") + " · " + r.time;
+  return `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px">
+      <span class="record-file">${icon("image")}页面截图.png</span>
+      <span class="record-file">${icon("table-2")}排名数据.csv</span>
+    </div>
+    <div class="art-chart" style="padding:0">
+      <div class="art-bars">
+        <div class="art-bar" style="height:86%">74</div>
+        <div class="art-bar" style="height:64%">58</div>
+        <div class="art-bar" style="height:78%">66</div>
+        <div class="art-bar" style="height:46%">42</div>
+        <div class="art-bar" style="height:58%">51</div>
+        <div class="art-bar" style="height:34%">28</div>
+      </div>
+      <div class="art-axis"><span>湛河</span><span>新华</span><span>卫东</span><span>高新</span><span>汝州</span><span>叶县</span></div>
+    </div>
+    <div style="font-size:11.5px;color:var(--text3);margin-top:8px">${esc(title)} 产出物预览（演示数据）</div>`;
+}
+function saveJobAsTemplate(id){
+  const j = state.jobs.find(x => x.id === id);
+  if(!j) return;
+  openEditor("template", null, {
+    name: j.name + " 模板",
+    desc: "从值守任务「" + j.name + "」保存",
+    caps: [{icon:"bar-chart-3", name:"浓度排名", summary:"城市范围 · PM2.5 / O3 · 实时"}],
+    schedule: j.schedule,
+    channels: j.channels,
+    model: j.model,
+    role: j.template ? "你是环保日报助手。" : ""
+  });
+  toast("已从任务生成模板，可继续编辑");
+}
+
+/* 初始化 */
+document.documentElement.dataset.theme = (function(){ try { return localStorage.getItem("envclaw-prototype-theme") || "light"; } catch(e){ return "light"; } })();
+renderThemeIcon();
+renderSidebar();
+renderJobs();
+renderTemplates();
+renderCapabilities();
+renderPlatforms();
+renderChat();
+switchView("chat");
+refreshIcons();
+</script>
+</body>
+</html>

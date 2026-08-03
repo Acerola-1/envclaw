@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes Chat · 温润呼吸感 设计原型对比</title>
+<style>
+/* ====== 通用 ====== */
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size:14px; -webkit-font-smoothing:antialiased; background:#e8e4e0; }
+svg { stroke-width:1.6; }
+
+/* 顶部导航 */
+.toolbar { position:sticky; top:0; z-index:100; background:#1f1c1a; color:#e0ddd8; display:flex; align-items:center; justify-content:space-between; padding:10px 24px; box-shadow:0 1px 8px rgba(0,0,0,.15); }
+.toolbar-brand { font-weight:700; font-size:15px; letter-spacing:.3px; display:flex; align-items:center; gap:10px; }
+.toolbar-brand span { color:#a09888; font-weight:400; font-size:12px; }
+.toolbar-tabs { display:flex; gap:4px; background:rgba(255,255,255,.06); border-radius:8px; padding:3px; }
+.tab-btn { padding:6px 16px; border-radius:6px; font-size:12.5px; color:#a09888; cursor:pointer; border:none; background:none; font-weight:500; transition:.15s; }
+.tab-btn:hover { color:#e0ddd8; }
+.tab-btn.active { background:rgba(255,255,255,.12); color:#e0ddd8; }
+
+/* 主布局: 左右对比 */
+.compare-wrap { display:flex; min-height:calc(100vh - 48px); }
+.compare-col { flex:1; min-width:0; }
+.compare-col.old { background:#f5f5f5; }
+.compare-col.new { background:#f7f6f4; }
+.col-label { padding:10px 20px; font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; text-align:center; }
+.col-label.old { background:#e8e8e8; color:#888; }
+.col-label.new { background:#edeae6; color:#8b8278; }
+.col-inner { padding:20px; display:flex; flex-direction:column; gap:20px; }
+
+/* 场景标题 */
+.scene-title { font-size:12px; font-weight:700; color:#999; letter-spacing:.5px; padding:0 0 6px; border-bottom:1px solid #e0e0e0; margin-bottom:8px; }
+.compare-col.new .scene-title { color:#a09888; border-color:#e0d8ce; }
+
+/* ====== 旧设计变量 ====== */
+.old {
+  --bg:#f5f5f5; --card-bg:#ffffff; --card-border:#e5e5e5;
+  --text1:#1a1a1a; --text2:#666666; --text3:#999999;
+  --hover:#f0f0f0; --active:#e8e8e8;
+  --green:#52c41a; --red:#ff4d4f; --amber:#faad14; --blue:#1890ff;
+  --radius:6px; --radius-sm:4px;
+  --shadow:0 1px 2px rgba(0,0,0,.06);
+  --font:'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* ====== 新设计变量 ====== */
+.new {
+  --bg:#f7f6f4; --card-bg:#fcfbfa; --card-border:#e8e4e0;
+  --text1:#1f1c1a; --text2:#6b6560; --text3:#a09888;
+  --hover:#f2efeb; --active:#ebe6e0;
+  --green:#7a9a7e; --red:#c47a6a; --amber:#c4a35a; --blue:#5b7f95;
+  --radius:10px; --radius-sm:6px;
+  --shadow:0 1px 3px rgba(0,0,0,.04);
+  --font:'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --transition:200ms ease;
+}
+
+/* ====== 模块1: 侧边栏定时任务 ====== */
+.sidebar { width:240px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); overflow:hidden; font-family:var(--font); }
+.sidebar-head { padding:12px 14px; border-bottom:1px solid var(--card-border); display:flex; align-items:center; justify-content:space-between; }
+.sidebar-head h4 { font-size:12px; font-weight:600; color:var(--text1); }
+.sidebar-head .badge { font-size:10px; background:var(--hover); color:var(--text2); padding:2px 8px; border-radius:10px; }
+
+/* 任务折叠面板 */
+.job-panel { border-bottom:1px solid var(--card-border); }
+.job-panel:last-child { border-bottom:none; }
+.job-panel-header { display:flex; align-items:center; gap:6px; padding:10px 14px; cursor:pointer; transition:background var(--transition,0s); }
+.job-panel-header:hover { background:var(--hover); }
+.job-panel-header .arrow { font-size:10px; color:var(--text3); width:14px; transition:transform .15s; }
+.job-panel-header .name { flex:1; font-size:12.5px; font-weight:500; color:var(--text1); }
+.job-panel-header .count { font-size:10.5px; color:var(--text3); background:var(--hover); padding:1px 7px; border-radius:9px; }
+.job-panel-body { background:var(--bg); }
+.exec-item { display:flex; align-items:center; gap:8px; padding:5px 14px 5px 34px; font-size:11.5px; color:var(--text2); }
+.exec-item .time { color:var(--text3); width:36px; flex-shrink:0; font-size:11px; }
+.exec-item .status-text { font-size:11px; }
+
+/* 旧设计状态色 */
+.old .status-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.old .status-dot.ok { background:#52c41a; }
+.old .status-dot.fail { background:#ff4d4f; }
+
+/* 新设计状态色条 */
+.new .status-bar { width:2px; height:20px; border-radius:1px; flex-shrink:0; }
+.new .status-bar.ok { background:var(--green); }
+.new .status-bar.fail { background:var(--red); }
+.new .status-bar.ok.running { animation:breathe 2s ease-in-out infinite; }
+
+@keyframes breathe {
+  0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(122,154,126,.4); }
+  50% { opacity:.7; box-shadow:0 0 0 5px rgba(122,154,126,0); }
+}
+
+/* 新设计空状态 */
+.empty-state { padding:28px 16px; text-align:center; }
+.empty-state svg { width:40px; height:40px; opacity:.25; margin-bottom:10px; }
+.empty-state p { font-size:11.5px; color:var(--text3); line-height:1.6; margin-bottom:12px; }
+.empty-btn { display:inline-block; padding:5px 14px; border-radius:var(--radius-sm); font-size:11.5px; font-weight:500; background:var(--text1); color:var(--bg); cursor:pointer; border:none; }
+
+/* ====== 模块2: 值守任务详情页 ====== */
+.detail-page { max-width:760px; font-family:var(--font); }
+.detail-back { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text2); margin-bottom:16px; cursor:pointer; }
+.detail-back:hover { color:var(--text1); }
+
+/* 概况卡片 */
+.overview-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); padding:20px; margin-bottom:14px; box-shadow:var(--shadow); }
+.overview-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+.overview-top h2 { font-size:17px; font-weight:600; color:var(--text1); display:flex; align-items:center; gap:10px; }
+.status-tag { font-size:11px; padding:3px 10px; border-radius:12px; font-weight:500; }
+.old .status-tag.running { background:#e6f7e6; color:#389e0d; }
+.new .status-tag.running { background:rgba(122,154,126,.12); color:#5a8260; }
+.overview-meta { display:flex; flex-wrap:wrap; gap:16px; }
+.overview-meta-item { font-size:12.5px; color:var(--text2); }
+.overview-meta-item b { color:var(--text1); font-weight:500; }
+.progress-bar-wrap { margin-top:14px; }
+.progress-bar-label { display:flex; justify-content:space-between; font-size:11px; color:var(--text3); margin-bottom:5px; }
+.progress-bar { height:5px; border-radius:3px; background:var(--hover); overflow:hidden; }
+.progress-bar-fill { height:100%; border-radius:3px; transition:width .3s; }
+.old .progress-bar-fill { background:var(--blue); }
+.new .progress-bar-fill { background:var(--green); }
+
+/* 执行记录 */
+.records-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); overflow:hidden; margin-bottom:14px; box-shadow:var(--shadow); }
+.records-head { padding:14px 20px; border-bottom:1px solid var(--card-border); font-size:13px; font-weight:600; color:var(--text1); display:flex; align-items:center; justify-content:space-between; }
+.records-head .total { font-size:11px; color:var(--text3); font-weight:400; }
+.record-row { padding:12px 20px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--card-border); font-size:12.5px; }
+.record-row:last-child { border-bottom:none; }
+.record-status { display:flex; align-items:center; gap:6px; flex-shrink:0; width:70px; }
+.record-time { flex-shrink:0; width:90px; color:var(--text2); }
+.record-output { flex:1; color:var(--text2); }
+.record-output span { display:inline-block; background:var(--hover); padding:2px 8px; border-radius:4px; font-size:11px; margin-right:4px; color:var(--text1); }
+.record-actions { flex-shrink:0; display:flex; gap:8px; }
+.record-dl { font-size:11px; color:var(--blue); cursor:pointer; }
+.record-dl:hover { text-decoration:underline; }
+.record-retry { font-size:11px; color:var(--amber); cursor:pointer; }
+/* 旧设计记录行 */
+.old .record-row { color:var(--text2); }
+.old .record-status .dot { width:6px; height:6px; border-radius:50%; }
+.old .record-status .dot.ok { background:#52c41a; }
+.old .record-status .dot.fail { background:#ff4d4f; }
+/* 新设计记录行 */
+.new .record-row:hover { background:var(--hover); }
+.new .record-row { transition:background .15s; }
+.new .record-status .dot { width:7px; height:7px; border-radius:50%; }
+.new .record-status .dot.ok { background:var(--green); }
+.new .record-status .dot.fail { background:var(--red); }
+
+/* 配置卡片 */
+.config-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); padding:16px 20px; box-shadow:var(--shadow); }
+.config-card h4 { font-size:12.5px; font-weight:600; color:var(--text1); margin-bottom:8px; }
+.config-row { font-size:12px; color:var(--text2); line-height:1.8; }
+.config-expand { color:var(--blue); font-size:11.5px; cursor:pointer; margin-top:4px; display:inline-block; }
+
+/* ====== 模块3: 模式切换 ====== */
+.mode-demo { text-align:center; }
+.mode-bar { display:inline-flex; background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); padding:3px; gap:2px; margin-bottom:16px; position:relative; }
+.mode-btn-demo { padding:8px 20px; border-radius:var(--radius-sm); font-size:13px; border:none; background:none; cursor:pointer; color:var(--text2); font-weight:500; transition:.15s; position:relative; z-index:1; }
+.mode-btn-demo.active { color:var(--text1); }
+/* 旧设计 active 无动画 */
+.old .mode-btn-demo.active { background:var(--active); }
+/* 新设计 下划线滑动 */
+.new .mode-underline { position:absolute; bottom:3px; height:2px; background:var(--text1); border-radius:1px; transition:left .25s ease-out, width .25s ease-out; z-index:0; }
+
+/* 新设计过渡动画演示 */
+.transition-demo { background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); padding:40px 20px; min-height:160px; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+.transition-content { text-align:center; transition:opacity .15s ease-in, transform .2s ease-out; }
+.transition-content.enter { opacity:1; transform:translateY(0); }
+.transition-content.exit { opacity:0; transform:translateY(8px); position:absolute; }
+.transition-label { font-size:12px; color:var(--text3); margin-top:8px; }
+.anim-badge { display:inline-flex; align-items:center; gap:6px; background:var(--hover); padding:4px 12px; border-radius:12px; font-size:11px; color:var(--text2); }
+.transition-trigger { margin-top:12px; }
+.transition-trigger button { padding:6px 18px; border-radius:var(--radius-sm); border:1px solid var(--card-border); background:var(--card-bg); color:var(--text1); cursor:pointer; font-size:12px; }
+.transition-trigger button:hover { background:var(--hover); }
+
+/* ====== 模块4: 创建值守任务 ====== */
+.create-page { max-width:700px; font-family:var(--font); }
+
+/* 旧设计步骤条 */
+.stepper { display:flex; align-items:center; margin-bottom:24px; }
+.step-item { display:flex; align-items:center; gap:8px; cursor:pointer; }
+.step-num { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; flex-shrink:0; }
+.old .step-num { background:#e8e8e8; color:#999; }
+.old .step-num.active { background:#1a1a1a; color:#fff; }
+.old .step-num.done { background:#e8e8e8; color:#999; }
+.new .step-num { background:#e8e4e0; color:#a09888; transition:all .2s; }
+.new .step-num.active { background:var(--blue); color:#fff; }
+.new .step-num.done { background:rgba(122,154,126,.15); color:var(--green); }
+.step-label { font-size:12px; white-space:nowrap; }
+.old .step-label { color:#999; }
+.old .step-label.active { color:#1a1a1a; font-weight:500; }
+.new .step-label { color:#a09888; }
+.new .step-label.active { color:var(--text1); font-weight:500; }
+.step-connector { width:40px; height:1px; margin:0 8px; flex-shrink:0; }
+.old .step-connector { background:#e8e8e8; }
+.old .step-connector.done { background:#1a1a1a; }
+.new .step-connector { background:#e8e4e0; }
+.new .step-connector.done { background:var(--green); }
+
+/* 旧设计: 产出列表（原样式） */
+.output-list-old { display:flex; flex-direction:column; gap:6px; }
+.output-item-old { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#fff; border:1px solid #e5e5e5; border-radius:6px; font-size:13px; }
+.output-item-old .idx { width:20px; height:20px; border-radius:50%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#999; }
+.output-item-old .name { flex:1; font-weight:500; color:#333; }
+.output-item-old .action-btn { font-size:11px; color:#999; cursor:pointer; padding:2px 8px; border-radius:4px; border:1px solid #e5e5e5; background:#fafafa; }
+.add-bar-old { display:flex; align-items:center; gap:8px; padding:10px 14px; }
+.add-bar-old span { font-size:12px; color:#999; }
+.add-bar-old button { font-size:12px; color:#666; padding:4px 12px; border-radius:4px; border:1px solid #e5e5e5; background:#fff; cursor:pointer; }
+
+/* 新设计: 产出卡片 */
+.output-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); padding:14px 16px; cursor:pointer; transition:all var(--transition); box-shadow:var(--shadow); }
+.output-card:hover { box-shadow:0 2px 8px rgba(0,0,0,.06); border-color:#d8d2c8; }
+.output-card.collapsed { }
+.output-card.expanded { border-color:var(--blue); box-shadow:0 1px 6px rgba(91,127,149,.1); }
+.output-card-header { display:flex; align-items:center; gap:10px; }
+.output-card-icon { font-size:18px; flex-shrink:0; }
+.output-card-summary { flex:1; }
+.output-card-summary b { display:block; font-size:13px; color:var(--text1); font-weight:500; }
+.output-card-summary span { font-size:11.5px; color:var(--text2); }
+.output-card-actions { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+.output-card:hover .output-card-actions { opacity:1; }
+.output-card-actions button { font-size:11px; padding:3px 10px; border-radius:var(--radius-sm); border:1px solid var(--card-border); background:var(--card-bg); color:var(--text2); cursor:pointer; }
+.output-card-actions button.danger { color:var(--red); border-color:transparent; }
+.output-card-actions button:hover { background:var(--hover); }
+.output-card-expand-hint { font-size:11px; color:var(--text3); margin-top:8px; }
+.output-card-body { margin-top:14px; padding-top:14px; border-top:1px solid var(--card-border); display:none; }
+.output-card.expanded .output-card-body { display:block; }
+.output-config-placeholder { background:var(--bg); border-radius:var(--radius-sm); padding:16px; }
+.output-config-placeholder p { font-size:11.5px; color:var(--text3); }
+
+/* 虚线添加按钮 */
+.add-card { border:1.5px dashed var(--card-border); border-radius:var(--radius); padding:14px 16px; display:flex; align-items:center; gap:8px; cursor:pointer; transition:all var(--transition); background:transparent; }
+.add-card:hover { border-color:var(--blue); background:rgba(91,127,149,.03); }
+.add-card .plus { width:22px; height:22px; border-radius:50%; border:1.5px dashed var(--blue); display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--blue); flex-shrink:0; }
+.add-card .hint { font-size:12.5px; color:var(--text3); }
+.add-card .types { display:flex; gap:6px; margin-left:auto; }
+.add-card .types span { font-size:11px; color:var(--blue); padding:3px 10px; border-radius:var(--radius-sm); background:rgba(91,127,149,.06); cursor:pointer; }
+.add-card .types span:hover { background:rgba(91,127,149,.12); }
+
+/* 表单元素 */
+.form-group { margin-bottom:16px; }
+.form-label { font-size:12.5px; font-weight:500; color:var(--text1); margin-bottom:6px; display:block; }
+.form-input { width:100%; padding:9px 12px; border:1px solid var(--card-border); border-radius:var(--radius-sm); font-size:13px; color:var(--text1); background:var(--card-bg); font-family:var(--font); outline:none; transition:border-color .15s; }
+.form-input:focus { border-color:var(--blue); }
+
+/* ====== 模式切换演示 ====== */
+.switch-demo-section { background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); padding:24px; }
+.switch-nav { display:flex; gap:2px; background:var(--bg); border-radius:var(--radius); padding:3px; margin-bottom:20px; position:relative; height:38px; }
+.switch-nav-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; font-size:12.5px; border:none; background:none; cursor:pointer; color:var(--text2); font-weight:500; position:relative; z-index:1; border-radius:calc(var(--radius) - 2px); transition:color .15s; }
+.switch-nav-btn.active { color:var(--text1); }
+.old .switch-nav-btn.active { background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+.new .switch-underline { position:absolute; bottom:3px; height:2px; background:var(--text1); border-radius:1px; transition:left .25s ease-out, width .25s ease-out; z-index:0; }
+.switch-content-area { min-height:100px; position:relative; overflow:hidden; }
+.switch-pane { }
+.switch-pane-label { font-size:12px; color:var(--text3); }
+
+/* 响应式提示 */
+.note-bar { background:#fffbe6; border:1px solid #ffe58f; border-radius:8px; padding:12px 16px; font-size:12px; color:#8c6d00; margin-top:16px; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-brand">
+    Hermes Chat · 温润呼吸感 原型对比
+    <span>左侧=原设计（冷墨）| 右侧=新设计（暖墨）</span>
+  </div>
+  <div class="toolbar-tabs">
+    <button class="tab-btn active" onclick="switchTab(0)">定时任务侧边栏</button>
+    <button class="tab-btn" onclick="switchTab(1)">值守任务详情页</button>
+    <button class="tab-btn" onclick="switchTab(2)">模式切换过渡</button>
+    <button class="tab-btn" onclick="switchTab(3)">创建值守任务</button>
+  </div>
+</div>
+
+<!-- ======= 模块 1: 侧边栏定时任务 ======= -->
+<div class="compare-wrap" id="tab-0">
+  <div class="compare-col old"><div class="col-label old">原设计 · 冷墨</div><div class="col-inner">
+    <div class="scene-title">侧边栏 · 定时任务列表</div>
+
+    <div class="sidebar old" style="--bg:#f8f8f8;--card-bg:#fff;--card-border:#e5e5e5;--text1:#1a1a1a;--text2:#666;--text3:#999;--hover:#f5f5f5;--radius:6px;">
+      <div class="sidebar-head"><h4>定时任务</h4></div>
+
+      <!-- 任务1 -->
+      <div class="job-panel" style="--bg:#fafafa;--card-border:#eee;--text1:#333;--text2:#666;--text3:#999;--hover:#f5f5f5;--radius:6px;">
+        <div class="job-panel-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <span class="arrow">▼</span><span class="name">平顶山日报推送</span><span class="count">3</span>
+        </div>
+        <div class="job-panel-body" style="display:block;">
+          <div class="exec-item"><span class="time">14:00</span><span class="status-dot ok"></span><span class="status-text">执行成功</span></div>
+          <div class="exec-item"><span class="time">10:00</span><span class="status-dot ok"></span><span class="status-text">执行成功</span></div>
+          <div class="exec-item"><span class="time">昨日</span><span class="status-dot fail"></span><span class="status-text">执行失败</span></div>
+        </div>
+      </div>
+
+      <!-- 任务2 -->
+      <div class="job-panel" style="--bg:#fafafa;--card-border:#eee;--text1:#333;--text2:#666;--text3:#999;--hover:#f5f5f5;--radius:6px;">
+        <div class="job-panel-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <span class="arrow">▶</span><span class="name">浓度排名推送</span><span class="count">5</span>
+        </div>
+        <div class="job-panel-body" style="display:none;">
+          <div class="exec-item"><span class="time">18:00</span><span class="status-dot ok"></span><span class="status-text">执行成功</span></div>
+          <div class="exec-item"><span class="time">14:00</span><span class="status-dot ok"></span><span class="status-text">执行成功</span></div>
+        </div>
+      </div>
+
+      <!-- 任务3 -->
+      <div class="job-panel" style="--bg:#fafafa;--card-border:#eee;--text1:#333;--text2:#666;--text3:#999;--hover:#f5f5f5;--radius:6px;">
+        <div class="job-panel-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <span class="arrow">▶</span><span class="name">臭氧污染简报</span><span class="count">2</span>
+        </div>
+        <div class="job-panel-body" style="display:none;">
+          <div class="exec-item"><span class="time">08:00</span><span class="status-dot ok"></span><span class="status-text">执行成功</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-bar" style="margin-top:16px;">
+      <b>问题：</b>扁平列表无层级，状态仅靠6px小圆点，失败记录不醒目。折叠面板无视觉区分。
+    </div>
+  </div></div>
+
+  <div class="compare-col new"><div class="col-label new">新设计 · 暖墨</div><div class="col-inner">
+    <div class="scene-title">侧边栏 · 定时任务列表</div>
+
+    <div class="sidebar new" style="--bg:#f7f6f4;--card-bg:#fcfbfa;--card-border:#e8e4e0;--text1:#1f1c1a;--text2:#6b6560;--text3:#a09888;--hover:#f2efeb;--green:#7a9a7e;--red:#c47a6a;--radius:10px;--radius-sm:6px;">
+      <div class="sidebar-head"><h4>定时任务</h4></div>
+
+      <!-- 任务1 - 展开态 -->
+      <div class="job-panel" style="--bg:#f7f6f4;--card-border:#e8e4e0;--text1:#1f1c1a;--text2:#6b6560;--text3:#a09888;--hover:#f2efeb;--green:#7a9a7e;--red:#c47a6a;--radius:10px;">
+        <div class="job-panel-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'">
+          <span class="arrow">▼</span><span class="name">平顶山日报推送</span><span class="count">3</span>
+        </div>
+        <div class="job-panel-body" style="display:block;background:#f7f6f4;">
+          <div class="exec-item"><span class="time">14:00</span><span class="status-bar ok"></span><span class="status-text">执行成功</span></div>
+          <div class="exec-item"><span class="time">10:00</span><span class="status-bar ok"></span><span class="status-text">执行成功</span></div>
+          <div class="exec-item"><span class="time">昨日</span><span class="status-bar fail"></span><span class="status-text">执行失败</span></div>
+        </div>
+      </div>
+
+      <!-- 任务2 - 折叠 -->
+      <div class="job-panel" style="--bg:#f7f6f4;--card-border:#e8e4e0;--text1:#1f1c1a;--text2:#6b6560;--text3:#a09888;--hover:#f2efeb;--green:#7a9a7e;--red:#c47a6a;--radius:10px;">
+        <div class="job-panel-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'">
+          <span class="arrow">▶</span><span class="name">浓度排名推送</span><span class="count">5</span>
+        </div>
+        <div class="job-panel-body" style="display:none;background:#f7f6f4;"></div>
+      </div>
+
+      <!-- 任务3 - 折叠 -->
+      <div class="job-panel" style="--bg:#f7f6f4;--card-border:#e8e4e0;--text1:#1f1c1a;--text2:#6b6560;--text3:#a09888;--hover:#f2efeb;--green:#7a9a7e;--red:#c47a6a;--radius:10px;">
+        <div class="job-panel-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'">
+          <span class="arrow">▶</span><span class="name">臭氧污染简报</span><span class="count">2</span>
+        </div>
+        <div class="job-panel-body" style="display:none;background:#f7f6f4;"></div>
+      </div>
+
+      <!-- 空状态示例 -->
+      <div style="padding:12px;">
+        <div class="empty-state" style="background:0;padding:20px 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#a09888"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+          <p>暂无定时任务<br>创建你的第一个<br>自动化值守任务</p>
+          <button class="empty-btn" style="background:var(--text1);color:var(--bg);">创建任务</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-bar" style="margin-top:16px;background:#f0f7f0;border-color:#b7d7b7;color:#4a7a4a;">
+      <b>改进：</b>2px色条替代圆点，暖色状态（淡墨绿/淡朱砂），折叠有层级感，运行中任务色条可加呼吸动画，空状态友好引导。
+    </div>
+  </div></div>
+</div>
+
+<!-- ======= 模块 2: 值守任务详情页 ======= -->
+<div class="compare-wrap" id="tab-1" style="display:none;">
+  <div class="compare-col old"><div class="col-label old">原设计 · 冷墨</div><div class="col-inner">
+    <div class="scene-title">值守任务详情页</div>
+
+    <!-- 原设计: 1:1 还原当前 JobCard.vue -->
+    <div class="detail-page old" style="--bg:#f5f5f5;--card-bg:#fff;--card-border:#e5e5e5;--text1:#1a1a1a;--text2:#666;--text3:#999;--hover:#f0f0f0;--blue:#1890ff;--radius:6px;--shadow:0 1px 2px rgba(0,0,0,.06);max-width:600px;">
+
+      <!-- 顶部操作栏（返回和操作挤在一起，图标按钮等大排列） -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-size:12.5px;color:#999;cursor:pointer;">← 返回任务列表</span>
+        <div style="display:flex;gap:6px;">
+          <button style="padding:5px 10px;border:1px solid #e5e5e5;border-radius:4px;background:#fff;color:#666;font-size:11px;cursor:pointer;" title="暂停">⏸</button>
+          <button style="padding:5px 10px;border:1px solid #e5e5e5;border-radius:4px;background:#fff;color:#666;font-size:11px;cursor:pointer;" title="立即执行">↻</button>
+          <button style="padding:5px 10px;border:1px solid #e5e5e5;border-radius:4px;background:#fff;color:#666;font-size:11px;cursor:pointer;" title="编辑">✎</button>
+          <button style="padding:5px 10px;border:1px solid #ffccc7;border-radius:4px;background:#fff;color:#ff4d4f;font-size:11px;cursor:pointer;" title="删除">✕</button>
+        </div>
+      </div>
+
+      <!-- 一个大白卡片平铺所有8个字段（无优先级区分） -->
+      <div class="overview-card" style="padding:18px;">
+        <div class="overview-top" style="margin-bottom:8px;">
+          <h2 style="font-size:16px;"><span style="color:#52c41a;font-size:9px;">●</span> 平顶山日报推送 <span class="status-tag running" style="font-size:10px;">运行中</span></h2>
+        </div>
+        <p style="font-size:12px;color:#999;margin-bottom:14px;">按结构化成果清单生成空气质量值守成果，并统一推送。</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px;margin-bottom:10px;">
+          <div><span style="color:#999;">调度规则</span><br><b>每天 08:00, 14:00</b></div>
+          <div><span style="color:#999;">重复次数</span><br><b>不限次数</b></div>
+          <div><span style="color:#999;">执行模型</span><br><b>默认模型</b></div>
+          <div><span style="color:#999;">推送目标</span><br><b>企业微信 · 钉钉</b></div>
+          <div><span style="color:#999;">来源平台</span><br><b>—</b></div>
+          <div><span style="color:#999;">创建时间</span><br><b>2026/07/20 10:30</b></div>
+          <div><span style="color:#999;">上次执行</span><br><b style="color:#52c41a;">07/29 14:00</b> <span style="font-size:10px;background:#f6ffed;color:#52c41a;padding:1px 6px;border-radius:8px;">成功</span></div>
+          <div><span style="color:#999;">下次执行</span><br><b style="color:#1890ff;">今日 18:00</b></div>
+        </div>
+        <div style="font-size:12px;">
+          <span style="color:#999;">关联技能</span>
+          <span style="background:#f0f0f0;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px;">浓度排名</span>
+          <span style="background:#f0f0f0;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px;">一张图</span>
+        </div>
+      </div>
+
+      <!-- 执行记录：仅序号+时间+大小，无状态区分 -->
+      <div class="records-card" style="margin-top:12px;">
+        <div class="records-head">最近运行 <span class="total">3 条记录</span></div>
+        <div class="record-row" style="cursor:pointer;">
+          <span class="record-time" style="flex:1;">1. 07/29 14:00</span>
+          <span style="font-size:11px;color:#999;">2.4 MB</span>
+          <span style="margin-left:8px;color:#ccc;">▸</span>
+        </div>
+        <div class="record-row" style="cursor:pointer;">
+          <span class="record-time" style="flex:1;">2. 07/29 10:00</span>
+          <span style="font-size:11px;color:#999;">45 KB</span>
+          <span style="margin-left:8px;color:#ccc;">▸</span>
+        </div>
+        <div class="record-row" style="cursor:pointer;">
+          <span class="record-time" style="flex:1;">3. 07/28 18:00</span>
+          <span style="font-size:11px;color:#999;">1.8 MB</span>
+          <span style="margin-left:8px;color:#ccc;">▸</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-bar" style="margin-top:16px;">
+      <b>问题：</b>① 8字段均等排列无信息层级；② 返回和操作按钮挤在同一行，删除按钮暴露且等大；③ 执行记录无成功/失败状态区分，失败记录无错误信息；④ 点击整行跳转离开详情页看日志。
+    </div>
+  </div></div>
+
+  <div class="compare-col new"><div class="col-label new">新设计 · 暖墨</div><div class="col-inner">
+    <div class="scene-title">值守任务详情页</div>
+
+    <div class="detail-page new" style="--bg:#f7f6f4;--card-bg:#fcfbfa;--card-border:#e8e4e0;--text1:#1f1c1a;--text2:#6b6560;--text3:#a09888;--hover:#f2efeb;--blue:#5b7f95;--green:#7a9a7e;--red:#c47a6a;--amber:#c4a35a;--radius:10px;--shadow:0 1px 3px rgba(0,0,0,.04);max-width:620px;">
+
+      <!-- ① 轻量返回行（独立一行） -->
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:4px;width:fit-content;" onmouseenter="this.style.color='var(--text1)'" onmouseleave="this.style.color='var(--text2)'">← 返回任务列表</div>
+
+      <!-- ② 吸顶操作栏 -->
+      <div style="position:sticky;top:0;z-index:10;background:var(--bg);padding:12px 0;margin:-4px 0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--card-border);">
+        <div style="display:flex;align-items:baseline;gap:12px;">
+          <h2 style="font-size:17px;font-weight:600;color:var(--text1);display:flex;align-items:center;gap:8px;">
+            <span style="color:var(--green);font-size:10px;">◉</span>平顶山日报推送
+            <span class="status-tag running">运行中</span>
+          </h2>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button style="padding:5px 14px;border:1px solid var(--card-border);border-radius:var(--radius-sm);background:var(--card-bg);color:var(--text2);font-size:12px;cursor:pointer;">编辑</button>
+          <div style="position:relative;">
+            <button style="padding:5px 10px;border:1px solid var(--card-border);border-radius:var(--radius-sm);background:var(--card-bg);color:var(--text2);font-size:13px;cursor:pointer;letter-spacing:1px;" title="更多操作">···</button>
+          </div>
+        </div>
+      </div>
+      <!-- 主操作按钮（文字+底色的实心按钮） -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <button style="padding:8px 20px;border:none;border-radius:var(--radius-sm);background:var(--blue);color:#fff;font-size:12.5px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;">▶ 立即执行</button>
+        <button style="padding:8px 20px;border:1px solid var(--amber);border-radius:var(--radius-sm);background:transparent;color:var(--amber);font-size:12.5px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;">⏸ 暂停</button>
+      </div>
+
+      <!-- ③ 运行卡片（核心信息，高优先级） -->
+      <div class="overview-card" style="margin-bottom:14px;">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5;">按结构化成果清单生成空气质量值守成果，并统一推送。</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12.5px;">
+          <div><span style="color:var(--text3);">调度规则</span><br><b>每天 08:00, 14:00</b></div>
+          <div><span style="color:var(--text3);">下次执行</span><br><b style="color:var(--blue);">今日 18:00</b></div>
+          <div><span style="color:var(--text3);">推送目标</span><br><b>企业微信 · 钉钉</b></div>
+          <div><span style="color:var(--text3);">来源平台</span><br><b style="color:var(--text3);">—</b></div>
+        </div>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:6px;font-size:12px;">
+          <span style="color:var(--text3);">关联技能</span>
+          <span style="background:var(--hover);padding:3px 10px;border-radius:10px;font-size:11px;color:var(--text2);">浓度排名</span>
+          <span style="background:var(--hover);padding:3px 10px;border-radius:10px;font-size:11px;color:var(--text2);">一张图</span>
+        </div>
+        <!-- 错误信息内嵌到运行卡片中 -->
+        <div style="margin-top:12px;padding:10px 14px;background:rgba(196,122,106,.06);border-radius:var(--radius-sm);display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--red);">
+          <span style="flex-shrink:0;">⚠</span>
+          <span>上次执行失败：站点数据接口响应超时，已自动重试 3 次</span>
+        </div>
+      </div>
+
+      <!-- ④ 任务属性（次要字段，折叠在运行卡片下方） -->
+      <div class="config-card" id="prop-card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="togglePropCard()">
+          <h4>任务属性</h4>
+          <span id="prop-summary" style="font-size:11px;color:var(--text3);">不限次数 · 默认模型 · 2026/07/20 创建 ▾</span>
+        </div>
+        <div id="prop-body" style="display:none;margin-top:12px;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
+          <div><span style="color:var(--text3);">重复次数</span><br><span>不限次数</span></div>
+          <div><span style="color:var(--text3);">执行模型</span><br><span>默认模型</span></div>
+          <div><span style="color:var(--text3);">来源平台</span><br><span style="color:var(--text3);">—</span></div>
+          <div><span style="color:var(--text3);">创建时间</span><br><span>2026/07/20 10:30</span></div>
+          <div><span style="color:var(--text3);">上次执行</span><br><span style="color:var(--green);">07/29 14:00 成功</span></div>
+        </div>
+      </div>
+
+      <!-- ⑤ 执行记录（三态行 + 内联展开日志预览） -->
+      <div class="records-card" style="margin-bottom:14px;">
+        <div class="records-head">执行记录 <span class="total">共 8 条</span></div>
+
+        <!-- 成功行 - 点击展开日志预览 -->
+        <div class="record-row" onclick="toggleRunLog(this)" style="cursor:pointer;">
+          <span class="record-status"><span class="dot ok"></span>成功</span>
+          <span class="record-time">07/29 14:00</span>
+          <span class="record-output" style="font-size:11px;color:var(--text3);">2.4 MB</span>
+          <span class="record-actions"><span class="record-dl">查看详情 ▸</span></span>
+          <div class="run-log-preview" style="display:none;width:100%;margin-top:8px;padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);font-size:11px;color:var(--text2);font-family:monospace;line-height:1.6;">
+            14:00:01  开始获取站点数据...<br>
+            14:00:12  数据获取完成，共 15 个站点<br>
+            14:00:15  开始生成浓度排名...<br>
+            14:01:30  浓度排名生成完成<br>
+            14:01:32  开始渲染地图...<br>
+            <span style="color:var(--blue);cursor:pointer;">查看完整日志 →</span>
+          </div>
+        </div>
+
+        <!-- 失败行 - 淡朱砂底色 + 错误原因直接展示 + 行内重试 -->
+        <div class="record-row" style="background:rgba(196,122,106,.03);">
+          <span class="record-status"><span class="dot fail"></span>失败</span>
+          <span class="record-time">07/29 10:00</span>
+          <span class="record-output" style="font-size:11px;color:var(--red);">站点数据接口超时</span>
+          <span class="record-actions">
+            <span style="font-size:11px;color:var(--text3);margin-right:6px;">45 KB</span>
+            <span class="record-retry">🔄 重试</span>
+          </span>
+        </div>
+
+        <!-- 运行中行 - 青蓝色点 + 呼吸动画 -->
+        <div class="record-row">
+          <span class="record-status"><span class="dot ok" style="background:var(--blue);animation:breathe 2s ease-in-out infinite;"></span>运行中</span>
+          <span class="record-time">今日 14:00</span>
+          <span class="record-output" style="font-size:11px;color:var(--blue);">生成中…</span>
+          <span class="record-actions"></span>
+        </div>
+
+        <!-- 更多成功行 -->
+        <div class="record-row" onclick="toggleRunLog(this)" style="cursor:pointer;">
+          <span class="record-status"><span class="dot ok"></span>成功</span>
+          <span class="record-time">07/28 18:00</span>
+          <span class="record-output" style="font-size:11px;color:var(--text3);">1.8 MB</span>
+          <span class="record-actions"><span class="record-dl">查看详情 ▸</span></span>
+          <div class="run-log-preview" style="display:none;width:100%;margin-top:8px;padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);font-size:11px;color:var(--text2);font-family:monospace;line-height:1.6;">
+            18:00:03  开始获取站点数据...<br>
+            18:00:13  数据获取完成，共 15 个站点<br>
+            <span style="color:var(--blue);cursor:pointer;">查看完整日志 →</span>
+          </div>
+        </div>
+
+        <div class="record-row" onclick="toggleRunLog(this)" style="cursor:pointer;">
+          <span class="record-status"><span class="dot ok"></span>成功</span>
+          <span class="record-time">07/28 14:00</span>
+          <span class="record-output" style="font-size:11px;color:var(--text3);">2.1 MB</span>
+          <span class="record-actions"><span class="record-dl">查看详情 ▸</span></span>
+          <div class="run-log-preview" style="display:none;width:100%;margin-top:8px;padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);font-size:11px;color:var(--text2);font-family:monospace;line-height:1.6;">
+            <span style="color:var(--blue);cursor:pointer;">查看完整日志 →</span>
+          </div>
+        </div>
+
+        <!-- 加载更多 -->
+        <div style="text-align:center;padding:10px;font-size:11.5px;color:var(--text3);cursor:pointer;">── 加载更多 (还剩 3 条) ──</div>
+      </div>
+
+    </div>
+
+    <div class="note-bar" style="margin-top:16px;background:#f0f7f0;border-color:#b7d7b7;color:#4a7a4a;">
+      <b>改进：</b>① 信息分三区 — 运行卡片(核心字段：调度/下次执行/推送/技能 + 错误内嵌) → 任务属性(次要字段折叠为一行摘要，位于顶部) → 执行记录(三态行+内联日志预览+重试+加载更多)；② 操作栏吸顶分三层 — 轻量返回 → 任务名+编辑/··· → 主操作按钮(立即执行/暂停用实心底色区分)；③ 所有字段均来自 JobCard.vue 真实配置项。
+    </div>
+  </div></div>
+</div>
+
+<script>
+// 执行记录内联展开日志
+function toggleRunLog(row) {
+  var preview = row.querySelector('.run-log-preview');
+  if (preview) preview.style.display = preview.style.display === 'none' ? 'block' : 'none';
+}
+// 任务属性折叠/展开
+function togglePropCard() {
+  var body = document.getElementById('prop-body');
+  var summary = document.getElementById('prop-summary');
+  if (body && summary) {
+    if (body.style.display === 'none') {
+      body.style.display = 'grid';
+      summary.textContent = '不限次数 · 默认模型 · 2026/07/20 创建 ▴';
+    } else {
+      body.style.display = 'none';
+      summary.textContent = '不限次数 · 默认模型 · 2026/07/20 创建 ▾';
+    }
+  }
+}
+</script>
+
+
+<!-- ======= 模块 3: 模式切换过渡 ======= -->
+<div class="compare-wrap" id="tab-2" style="display:none;">
+  <div class="compare-col old"><div class="col-label old">原设计 · 冷墨（无过渡动效）</div><div class="col-inner">
+    <div class="scene-title">智能问数 ↔ 自动化值守 模式切换</div>
+
+    <div class="switch-demo-section old" style="--bg:#f0f0f0;--card-bg:#fff;--card-border:#e5e5e5;--text1:#1a1a1a;--text2:#999;--text3:#bbb;--radius:6px;">
+      <!-- 导航 tab -->
+      <div class="switch-nav" id="old-nav" style="background:#f0f0f0;border-radius:6px;height:38px;position:relative;">
+        <button class="switch-nav-btn active" onclick="oldSwitchMode('chat')" style="border-radius:4px;">💬 智能问数</button>
+        <button class="switch-nav-btn" onclick="oldSwitchMode('automation')" style="border-radius:4px;">📅 自动化值守</button>
+      </div>
+      <!-- 内容区（无过渡） -->
+      <div class="switch-content-area" id="old-content">
+        <div class="switch-pane">
+          <div style="padding:30px;text-align:center;">
+            <div style="font-size:32px;margin-bottom:8px;">💬</div>
+            <div style="font-weight:600;color:#1a1a1a;">智能问数模式</div>
+            <div class="switch-pane-label" style="color:#999;">自由对话 · 数据分析 · Agent 调用</div>
+            <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+              <span style="background:#f0f0f0;padding:4px 12px;border-radius:12px;font-size:11px;color:#666;">今天平顶山市空气质量？</span>
+              <span style="background:#f0f0f0;padding:4px 12px;border-radius:12px;font-size:11px;color:#666;">PM2.5浓度排名</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="transition-trigger" style="text-align:center;">
+        <button onclick="oldSwitchMode('chat')" id="old-btn-chat" style="background:#e8e8e8;border-color:#d0d0d0;">切换到智能问数</button>
+        <button onclick="oldSwitchMode('automation')" id="old-btn-auto">切换到自动化值守</button>
+      </div>
+      <p style="font-size:11px;color:#999;text-align:center;margin-top:8px;">↑ 点击切换：内容区瞬间替换，无过渡动效</p>
+    </div>
+
+    <div class="note-bar" style="margin-top:16px;">
+      <b>问题：</b>点击 Tab 后内容区直接替换，侧边栏突变，无方向感和过渡感。
+    </div>
+  </div></div>
+
+  <div class="compare-col new"><div class="col-label new">新设计 · 暖墨（三层时序过渡）</div><div class="col-inner">
+    <div class="scene-title">智能问数 ↔ 自动化值守 模式切换</div>
+
+    <div class="switch-demo-section new" style="--bg:#f2efeb;--card-bg:#fcfbfa;--card-border:#e8e4e0;--text1:#1f1c1a;--text2:#6b6560;--text3:#a09888;--blue:#5b7f95;--radius:10px;">
+      <!-- 导航 tab（下划线滑动） -->
+      <div class="switch-nav" id="new-nav" style="background:#f2efeb;border-radius:10px;height:40px;position:relative;">
+        <div class="switch-underline" id="new-underline" style="position:absolute;bottom:3px;height:2px;background:var(--text1);border-radius:1px;transition:left .25s ease-out,width .25s ease-out;left:3px;width:calc(50% - 4px);z-index:0;"></div>
+        <button class="switch-nav-btn active" onclick="newSwitchMode('chat')" style="border-radius:8px;position:relative;z-index:1;">💬 智能问数</button>
+        <button class="switch-nav-btn" onclick="newSwitchMode('automation')" style="border-radius:8px;position:relative;z-index:1;">📅 自动化值守</button>
+      </div>
+      <!-- 内容区（上滑+淡出过渡） -->
+      <div class="switch-content-area" id="new-content" style="position:relative;overflow:hidden;">
+        <div id="new-pane" style="transition:opacity .15s ease-in,transform .2s ease-out;opacity:1;transform:translateY(0);">
+          <div style="padding:30px;text-align:center;">
+            <div style="font-size:32px;margin-bottom:8px;">💬</div>
+            <div style="font-weight:600;color:#1f1c1a;">智能问数模式</div>
+            <div class="switch-pane-label" style="color:#6b6560;">自由对话 · 数据分析 · Agent 调用</div>
+            <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+              <span style="background:var(--bg);padding:5px 14px;border-radius:14px;font-size:11px;color:var(--text2);">今天平顶山市空气质量？</span>
+              <span style="background:var(--bg);padding:5px 14px;border-radius:14px;font-size:11px;color:var(--text2);">PM2.5浓度排名</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="transition-trigger" style="text-align:center;">
+        <button onclick="newSwitchMode('chat')" id="new-btn-chat" style="background:var(--hover);border-color:var(--card-border);">切换到智能问数</button>
+        <button onclick="newSwitchMode('automation')" id="new-btn-auto">切换到自动化值守</button>
+      </div>
+      <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px;">↑ 点击切换：下划线滑动 250ms → 侧边栏 crossfade 300ms → 主内容上滑+淡出 200ms</p>
+    </div>
+
+    <div class="note-bar" style="margin-top:16px;background:#f0f7f0;border-color:#b7d7b7;color:#4a7a4a;">
+      <b>改进：</b>下划线滑动提供方向锚点，内容区上滑 8px + 淡出形成"翻页"隐喻，三层动画有时序差形成从左到右的推动感。
+    </div>
+  </div></div>
+</div>
+
+<!-- ======= 模块 4: 创建值守任务 ======= -->
+<div class="compare-wrap" id="tab-3" style="display:none;">
+  <div class="compare-col old"><div class="col-label old">原设计 · 冷墨</div><div class="col-inner">
+    <div class="scene-title">创建值守任务 · Step 1</div>
+
+    <div class="create-page old" style="--bg:#f5f5f5;--card-bg:#fff;--card-border:#e5e5e5;--text1:#1a1a1a;--text2:#666;--text3:#999;--hover:#f0f0f0;--radius:6px;">
+
+      <!-- 旧步骤条 -->
+      <div class="stepper">
+        <div class="step-item"><span class="step-num active" style="background:#1a1a1a;color:#fff;">1</span><span class="step-label active" style="color:#1a1a1a;font-weight:500;">选择要做什么</span></div>
+        <div class="step-connector"></div>
+        <div class="step-item"><span class="step-num" style="background:#e8e8e8;color:#999;">2</span><span class="step-label" style="color:#999;">设置推送方式</span></div>
+        <div class="step-connector"></div>
+        <div class="step-item"><span class="step-num" style="background:#e8e8e8;color:#999;">3</span><span class="step-label" style="color:#999;">确认任务</span></div>
+      </div>
+
+      <!-- 旧任务名 -->
+      <div class="form-group">
+        <label class="form-label" style="color:#333;">任务名称</label>
+        <input class="form-input" value="平顶山市空气质量值守" style="border:1px solid #e5e5e5;">
+      </div>
+
+      <!-- 旧产出区域 -->
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:#999;font-weight:600;margin-bottom:8px;">01 · 组合任务成果</div>
+        <h3 style="font-size:15px;margin-bottom:12px;color:#333;">这次任务需要交付什么？</h3>
+      </div>
+
+      <div class="output-list-old">
+        <div class="output-item-old">
+          <span class="idx">1</span><span class="name">浓度排名</span>
+          <span style="font-size:11px;color:#1890ff;margin-right:8px;">正在编辑</span>
+          <button class="action-btn">复制</button><button class="action-btn" style="color:#ff4d4f;">删除</button>
+        </div>
+        <div class="output-item-old">
+          <span class="idx">2</span><span class="name">一张图</span>
+          <button class="action-btn">复制</button><button class="action-btn" style="color:#ff4d4f;">删除</button>
+        </div>
+      </div>
+
+      <div class="add-bar-old">
+        <span>添加成果</span>
+        <button><b>＋</b> 一张图</button>
+        <button><b>＋</b> 浓度排名</button>
+        <button><b>＋</b> 小时播报</button>
+        <button><b>＋</b> 监测数据</button>
+      </div>
+
+      <!-- 旧配置区（一大坨） -->
+      <div style="margin-top:16px;background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:16px;">
+        <div style="font-size:11px;color:#999;font-weight:600;margin-bottom:10px;">02 · 配置浓度排名</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#666;">
+            <span>生成成果：</span><label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" checked disabled>页面截图</label>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#666;">
+            <span>截图颜色：</span>
+            <button style="padding:4px 14px;border:1px solid #e5e5e5;border-radius:4px;background:#e8e8e8;font-size:11px;">浅色</button>
+            <button style="padding:4px 14px;border:1px solid #e5e5e5;border-radius:4px;background:#fff;font-size:11px;">深色</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#666;">
+            <span>查询：</span>
+            <button style="padding:4px 14px;border:1px solid #e5e5e5;border-radius:4px;background:#e8e8e8;font-size:11px;">城市</button>
+            <button style="padding:4px 14px;border:1px solid #e5e5e5;border-radius:4px;background:#fff;font-size:11px;">站点</button>
+            <span>行政区：</span>
+            <select style="padding:4px 8px;border:1px solid #e5e5e5;border-radius:4px;font-size:11px;color:#666;"><option>平顶山市</option></select>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#666;">
+            <span>时间类型：</span>
+            <button style="padding:4px 14px;border:1px solid #e5e5e5;border-radius:4px;background:#e8e8e8;font-size:11px;">实时</button>
+            <button style="padding:4px 14px;border:1px solid #e5e5e5;border-radius:4px;background:#fff;font-size:11px;">日</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#666;">
+            <span>污染因子：</span>
+            <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" checked>PM2.5</label>
+            <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" checked>PM10</label>
+            <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox">O3</label>
+            <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox">AQI</label>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#999;margin-top:10px;padding:6px 10px;background:#f8f8f8;border-radius:4px;">
+          本次成果：城市排名 · 平顶山市 · 实时 · PM2.5, PM10 · 页面截图
+        </div>
+      </div>
+    </div>
+
+    <div class="note-bar" style="margin-top:16px;">
+      <b>问题：</b>Step 1 同时承载命名+选产出+配产出，信息密度过大。产出列表和配置区视觉混在一起，没有卡片化隔离。
+    </div>
+  </div></div>
+
+  <div class="compare-col new"><div class="col-label new">新设计 · 暖墨</div><div class="col-inner">
+    <div class="scene-title">创建值守任务 · Step 1（拆分重组）</div>
+
+    <div class="create-page new" style="--bg:#f7f6f4;--card-bg:#fcfbfa;--card-border:#e8e4e0;--text1:#1f1c1a;--text2:#6b6560;--text3:#a09888;--hover:#f2efeb;--blue:#5b7f95;--green:#7a9a7e;--red:#c47a6a;--radius:10px;--radius-sm:6px;">
+
+      <!-- 新步骤条 -->
+      <div class="stepper">
+        <div class="step-item"><span class="step-num active">1</span><span class="step-label active">选择产出</span></div>
+        <div class="step-connector"></div>
+        <div class="step-item"><span class="step-num">2</span><span class="step-label">设置交付</span></div>
+        <div class="step-connector"></div>
+        <div class="step-item"><span class="step-num">3</span><span class="step-label">确认任务</span></div>
+      </div>
+
+      <!-- 新任务名 -->
+      <div class="form-group">
+        <label class="form-label">任务名称</label>
+        <input class="form-input" value="平顶山市空气质量值守">
+      </div>
+
+      <!-- 新产出区域 -->
+      <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:12px;color:var(--text2);font-weight:500;">这次需要交付什么？</div>
+        </div>
+        <span style="font-size:11px;color:var(--text2);background:var(--hover);padding:3px 10px;border-radius:10px;">关联：平顶山市</span>
+      </div>
+
+      <!-- 新产出卡片（折叠态） -->
+      <div class="output-card collapsed" onclick="this.classList.toggle('collapsed');this.classList.toggle('expanded');" style="margin-bottom:10px;">
+        <div class="output-card-header">
+          <span class="output-card-icon">📊</span>
+          <div class="output-card-summary">
+            <b>浓度排名</b>
+            <span>城市排名 · 平顶山市 · 实时 · PM2.5, PM10</span>
+          </div>
+          <div class="output-card-actions">
+            <button onclick="event.stopPropagation()">复制</button>
+            <button class="danger" onclick="event.stopPropagation()">删除</button>
+          </div>
+        </div>
+        <div class="output-card-expand-hint">▸ 点击展开配置</div>
+        <div class="output-card-body">
+          <div class="output-config-placeholder">
+            <p style="margin-bottom:8px;color:var(--text2);font-size:12px;">配置浓度排名参数</p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--text3);">
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">截图颜色：浅色</span>
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">查询：城市</span>
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">行政区：平顶山市</span>
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">时间：实时</span>
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">因子：PM2.5, PM10</span>
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">国标：默认</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 新产出卡片2 -->
+      <div class="output-card collapsed" onclick="this.classList.toggle('collapsed');this.classList.toggle('expanded');" style="margin-bottom:10px;">
+        <div class="output-card-header">
+          <span class="output-card-icon">🗺</span>
+          <div class="output-card-summary">
+            <b>一张图</b>
+            <span>监测图 · 平顶山市 · PM2.5 · 浅色 · 城市层级</span>
+          </div>
+          <div class="output-card-actions">
+            <button onclick="event.stopPropagation()">复制</button>
+            <button class="danger" onclick="event.stopPropagation()">删除</button>
+          </div>
+        </div>
+        <div class="output-card-expand-hint">▸ 点击展开配置</div>
+        <div class="output-card-body">
+          <div class="output-config-placeholder">
+            <p style="margin-bottom:8px;color:var(--text2);font-size:12px;">配置一张图参数</p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--text3);">
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">地图模式：默认</span>
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">范围：平顶山市</span>
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">类型：监测图</span>
+              <span style="background:var(--hover);padding:3px 10px;border-radius:10px;">主题：浅色</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 虚线添加按钮 -->
+      <div class="add-card" style="margin-bottom:10px;">
+        <div class="plus">＋</div>
+        <span class="hint">添加产出</span>
+        <div class="types">
+          <span>一张图</span>
+          <span>浓度排名</span>
+          <span>小时播报</span>
+          <span>监测数据</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-bar" style="margin-top:16px;background:#f0f7f0;border-color:#b7d7b7;color:#4a7a4a;">
+      <b>改进：</b>产出卡片化 — 折叠态显示一行摘要，点击展开内联配置。hover 时卡片阴影加深 + 操作按钮淡入。虚线边框"添加产出"有物件感。Step 1 不再被配置段淹没。
+    </div>
+  </div></div>
+</div>
+
+<script>
+// Tab 切换
+function switchTab(n) {
+  document.querySelectorAll('.compare-wrap').forEach((el,i) => el.style.display = i===n ? 'flex' : 'none');
+  document.querySelectorAll('.tab-btn').forEach((el,i) => el.classList.toggle('active', i===n));
+}
+
+// ====== 旧设计模式切换（无过渡） ======
+function oldSwitchMode(mode) {
+  const content = document.getElementById('old-content');
+  const chatHTML = '<div style="padding:30px;text-align:center;"><div style="font-size:32px;margin-bottom:8px;">💬</div><div style="font-weight:600;color:#1a1a1a;">智能问数模式</div><div class="switch-pane-label" style="color:#999;">自由对话 · 数据分析 · Agent 调用</div><div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;"><span style="background:#f0f0f0;padding:4px 12px;border-radius:12px;font-size:11px;color:#666;">今天平顶山市空气质量？</span><span style="background:#f0f0f0;padding:4px 12px;border-radius:12px;font-size:11px;color:#666;">PM2.5浓度排名</span></div></div>';
+  const autoHTML = '<div style="padding:30px;text-align:center;"><div style="font-size:32px;margin-bottom:8px;">📅</div><div style="font-weight:600;color:#1a1a1a;">自动化值守模式</div><div class="switch-pane-label" style="color:#999;">定时任务 · 自动产出 · 多渠道推送</div><div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;"><span style="background:#f0f0f0;padding:4px 12px;border-radius:12px;font-size:11px;color:#666;">运行中: 2 个任务</span><span style="background:#f0f0f0;padding:4px 12px;border-radius:12px;font-size:11px;color:#666;">下次: 今日 18:00</span></div></div>';
+
+  content.innerHTML = mode === 'chat' ? chatHTML : autoHTML;
+
+  // 更新按钮 active
+  document.querySelectorAll('#old-nav .switch-nav-btn').forEach((btn,i) => {
+    btn.classList.toggle('active', (mode==='chat'&&i===0)||(mode==='automation'&&i===1));
+    btn.style.background = btn.classList.contains('active') ? '#fff' : '';
+    btn.style.boxShadow = btn.classList.contains('active') ? '0 1px 2px rgba(0,0,0,.04)' : '';
+  });
+}
+
+// ====== 新设计模式切换（有过渡动效） ======
+function newSwitchMode(mode) {
+  const pane = document.getElementById('new-pane');
+  const underline = document.getElementById('new-underline');
+  const nav = document.getElementById('new-nav');
+  const buttons = nav.querySelectorAll('.switch-nav-btn');
+
+  const chatHTML = '<div style="padding:30px;text-align:center;"><div style="font-size:32px;margin-bottom:8px;">💬</div><div style="font-weight:600;color:#1f1c1a;">智能问数模式</div><div class="switch-pane-label" style="color:#6b6560;">自由对话 · 数据分析 · Agent 调用</div><div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;"><span style="background:#f2efeb;padding:5px 14px;border-radius:14px;font-size:11px;color:#6b6560;">今天平顶山市空气质量？</span><span style="background:#f2efeb;padding:5px 14px;border-radius:14px;font-size:11px;color:#6b6560;">PM2.5浓度排名</span></div></div>';
+  const autoHTML = '<div style="padding:30px;text-align:center;"><div style="font-size:32px;margin-bottom:8px;">📅</div><div style="font-weight:600;color:#1f1c1a;">自动化值守模式</div><div class="switch-pane-label" style="color:#6b6560;">定时任务 · 自动产出 · 多渠道推送</div><div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;"><span style="background:#f2efeb;padding:5px 14px;border-radius:14px;font-size:11px;color:#6b6560;">运行中: 2 个任务</span><span style="background:#f2efeb;padding:5px 14px;border-radius:14px;font-size:11px;color:#6b6560;">下次: 今日 18:00</span></div></div>';
+
+  // 1. 下划线滑动 (250ms)
+  if (mode === 'chat') {
+    underline.style.left = '3px';
+    underline.style.width = 'calc(50% - 4px)';
+  } else {
+    underline.style.left = 'calc(50% + 1px)';
+    underline.style.width = 'calc(50% - 4px)';
+  }
+
+  // 2. 侧边栏 crossfade 用 300ms（此处简化，在页面中用同一动画表示）
+
+  // 3. 主内容上滑 + 淡出 (200ms)
+  pane.style.opacity = '0';
+  pane.style.transform = 'translateY(8px)';
+
+  setTimeout(() => {
+    pane.innerHTML = mode === 'chat' ? chatHTML : autoHTML;
+    pane.style.opacity = '1';
+    pane.style.transform = 'translateY(0)';
+  }, 200);
+
+  // 更新按钮
+  buttons.forEach((btn,i) => {
+    btn.classList.toggle('active', (mode==='chat'&&i===0)||(mode==='automation'&&i===1));
+  });
+}
+</script>
+
+</body>
+</html>

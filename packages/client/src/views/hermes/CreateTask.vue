@@ -1345,7 +1345,7 @@ async function handleSubmit() {
 
     console.log(payload, payload.prompt)
 
-    return
+    // return
     if (isEdit.value && props.jobId) {
       await jobsStore.updateJob(props.jobId, payload)
       message.success('任务更新成功')
@@ -1536,7 +1536,7 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
             <section class="capability-section">
               <div class="capability-heading">
-                <div><span class="capability-kicker">01 · 组合任务成果</span>
+                <div>
                   <h2>这次任务需要交付什么？</h2>
                 </div>
                 <span class="bound-context">关联城市：<b>{{ userStore.platformUserInfo?.region?.currentRegionName || '—'
@@ -1546,18 +1546,27 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
                 <article v-for="(output, index) in dutyOutputs" :key="output.id" class="output-item"
                   :class="{ active: activeOutputId === output.id }" @click="selectDutyOutput(output)">
                   <span class="output-index">{{ index + 1 }}</span>
-                  <span class="output-item-copy"><b>{{ output.title }}</b></span>
-                  <span v-if="activeOutputId === output.id" class="editing-badge">正在编辑</span>
-                  <button class="output-action" title="复制成果" @click.stop="duplicateOutput(output)">复制</button>
-                  <button class="output-action danger" title="删除成果" @click.stop="removeOutput(output)">删除</button>
+                  <div class="output-item-body">
+                    <div class="output-item-head">
+                      <b>{{ output.title }}</b>
+                      <span v-if="activeOutputId === output.id" class="editing-badge">编辑中</span>
+                    </div>
+                    <span class="output-item-summary">{{ outputDefinition(output) }}</span>
+                  </div>
+                  <div class="output-item-actions">
+                    <button class="output-action" title="复制成果" @click.stop="duplicateOutput(output)">复制</button>
+                    <button class="output-action danger" title="删除成果" @click.stop="removeOutput(output)">删除</button>
+                  </div>
                 </article>
               </div>
               <div class="output-add-bar">
-                <span>添加成果</span>
-                <button @click="addMapOutput"><b>＋</b> 一张图</button>
-                <button @click="addRankingOutput"><b>＋</b> 浓度排名</button>
-                <button @click="addHourlyOutput"><b>＋</b> 小时播报</button>
-                <button @click="addMonitoringOutput"><b>＋</b> 监测数据</button>
+                <span>＋ 添加产出</span>
+                <div class="output-add-options">
+                  <button @click="addMapOutput">一张图</button>
+                  <button @click="addRankingOutput">浓度排名</button>
+                  <button @click="addHourlyOutput">小时播报</button>
+                  <button @click="addMonitoringOutput">监测数据</button>
+                </div>
               </div>
             </section>
 
@@ -2430,10 +2439,11 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 }
 
 .capability-section {
-  padding: 20px;
-  border: 1px solid #dce7ef;
+  padding: 24px;
+  border: 1px solid #e8e4e0;
   border-radius: 14px;
-  background: linear-gradient(135deg, #fbfdff, #f2f9ff);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .capability-heading {
@@ -2441,20 +2451,21 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .capability-kicker {
-  color: #1985d2;
+  color: #5b7f95;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .7px;
 }
 
 .capability-heading h2 {
-  margin: 3px 0 4px;
-  color: $text-primary;
-  font-size: 19px;
+  margin: 0;
+  color: #1f1c1a;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .capability-heading p {
@@ -2464,17 +2475,17 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 }
 
 .bound-context {
-  padding: 7px 9px;
-  border: 1px solid #cfe5f6;
+  padding: 7px 10px;
+  border: 1px solid #e8e4e0;
   border-radius: 6px;
-  background: #fff;
-  color: #71869a;
+  background: #fcfbfa;
+  color: #6b6560;
   font-size: 11px;
   white-space: nowrap;
 }
 
 .bound-context b {
-  color: #287ab4;
+  color: #5b7f95;
 }
 
 .capability-grid {
@@ -2621,119 +2632,171 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 
 .output-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  min-width: 0;
-  padding: 10px 11px;
-  border: 1px solid #dce6ee;
-  border-radius: 9px;
-  background: #fff;
+  padding: 12px 14px;
+  border: 1px solid #e8e4e0;
+  border-radius: 10px;
+  background: #fcfbfa;
   cursor: pointer;
-  transition: .15s ease;
-}
+  transition: all 0.18s ease;
 
-.output-item:hover {
-  border-color: #a9cce7;
-}
+  .output-item-actions {
+    opacity: 0;
+    transition: opacity 0.15s;
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
 
-.output-item.active {
-  border-color: #2b97e8;
-  background: #edf8ff;
-  box-shadow: 0 0 0 2px rgba(43, 151, 232, .1);
+  &:hover {
+    border-color: darken(#e8e4e0, 12%);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+    .output-item-actions {
+      opacity: 1;
+    }
+  }
+
+  &.active {
+    border-color: #5b7f95;
+    background: rgba(#5b7f95, 0.04);
+    box-shadow: 0 0 0 2px rgba(#5b7f95, 0.08);
+
+    .output-item-actions {
+      opacity: 1;
+    }
+  }
 }
 
 .output-index {
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   flex: 0 0 auto;
   border-radius: 50%;
-  color: #668195;
-  background: #edf2f6;
-  font-size: 10px;
+  color: #6b6560;
+  background: #f2efeb;
+  font-size: 11px;
   font-weight: 700;
+  margin-top: 1px;
 }
 
 .output-item.active .output-index {
   color: #fff;
-  background: #218fe0;
+  background: #5b7f95;
 }
 
-.output-item-copy {
+.output-item-body {
   min-width: 0;
   flex: 1;
 }
 
-.output-item-copy b {
+.output-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  b {
+    color: #1f1c1a;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+.output-item-summary {
   display: block;
-  color: $text-primary;
-  font-size: 12px;
+  margin-top: 3px;
+  color: #6b6560;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .editing-badge {
   flex: 0 0 auto;
-  padding: 2px 6px;
+  padding: 1px 6px;
   border-radius: 99px;
-  color: #1879bd;
-  background: #dff1ff;
-  font-size: 9px;
+  color: #5b7f95;
+  background: rgba(#5b7f95, 0.1);
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .output-action {
   flex: 0 0 auto;
-  padding: 4px 6px;
-  border: 0;
-  border-radius: 4px;
-  color: #678093;
-  background: transparent;
+  padding: 3px 7px;
+  border: 1px solid #e8e4e0;
+  border-radius: 5px;
+  color: #6b6560;
+  background: #fff;
   cursor: pointer;
   font-size: 10px;
-}
+  transition: all 0.15s;
 
-.output-action:hover {
-  background: #e9f1f6;
-}
+  &:hover {
+    border-color: #5b7f95;
+    color: #5b7f95;
+    background: rgba(#5b7f95, 0.04);
+  }
 
-.output-action.danger:hover {
-  color: #bd4545;
-  background: #fff0f0;
+  &.danger:hover {
+    border-color: #c47a6a;
+    color: #c47a6a;
+    background: rgba(#c47a6a, 0.06);
+  }
 }
 
 .output-add-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #d7e3ec;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1.5px dashed #e8e4e0;
+  border-radius: 10px;
+  background: #fcfbfa;
+  transition: all 0.18s ease;
+
+  &:hover {
+    border-color: #5b7f95;
+    background: rgba(#5b7f95, 0.02);
+  }
+
+  > span {
+    color: #6b6560;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
 }
 
-.output-add-bar>span {
-  margin-right: 3px;
-  color: $text-secondary;
-  font-size: 11px;
-  font-weight: 650;
-}
+.output-add-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 
-.output-add-bar button {
-  height: 30px;
-  padding: 0 11px;
-  border: 1px solid #bdd8eb;
-  border-radius: 6px;
-  color: #2676ad;
-  background: #fff;
-  cursor: pointer;
-  font-size: 11px;
-}
+  button {
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid #e8e4e0;
+    border-radius: 6px;
+    color: #5b7f95;
+    background: #fff;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.15s;
 
-.output-add-bar button:hover {
-  border-color: #2996df;
-  background: #edf8ff;
-}
-
-.output-add-bar button b {
-  font-size: 14px;
+    &:hover {
+      border-color: #5b7f95;
+      background: rgba(#5b7f95, 0.06);
+    }
+  }
 }
 
 .confirm-output-list {
@@ -3222,15 +3285,15 @@ const tagTypeMap = (tag: string): 'default' | 'info' | 'success' | 'warning' => 
 }
 
 .task-identity {
-  padding: 2px 2px 0;
-}
+  padding: 2px 2px 12px;
 
-.task-identity label {
-  display: block;
-  margin-bottom: 8px;
-  color: $text-primary;
-  font-size: 12px;
-  font-weight: 650;
+  label {
+    display: block;
+    margin-bottom: 8px;
+    color: #1f1c1a;
+    font-size: 13px;
+    font-weight: 600;
+  }
 }
 
 .delivery-intro {
