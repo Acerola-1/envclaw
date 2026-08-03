@@ -1791,9 +1791,107 @@ a { color: inherit; }
 }
 .output-kind-tag.sk { background:#e8fbf2; color:#1d8c52; }
 .output-kind-tag.mcp { background:#f2ebff; color:#6d3ff0; }
-.output-kind-tag.cap { display:none; } /* 能力默认不显示标签，避免重复 */
+.output-kind-tag.cap { background:#e4f3ff; color:#0b65bb; }
 .output-item.sk.active { border-color: var(--success); box-shadow: 0 0 0 1px var(--success); }
 .output-item.mcp.active { border-color: #8b5cf6; box-shadow: 0 0 0 1px #8b5cf6; }
+
+/* ====== 已选技能 Chips 行：替代原 output-list 大卡片（紧凑胶囊，点击切换，悬停出 ×） ====== */
+.sel-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:5px 9px 5px 10px;
+  border-radius:999px;
+  border:1px solid var(--border-color);
+  background: var(--bg-card);
+  font-size:12.5px; cursor:pointer;
+  transition: all .15s ease;
+  user-select:none;
+  line-height:1.3;
+}
+.sel-chip:hover { border-color: var(--accent-primary); }
+.sel-chip .sc-badge {
+  font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:999px;
+}
+/* 三种类型配色 */
+.sel-chip.t-cap .sc-badge { background:#e4f3ff; color:#0b65bb; }
+.sel-chip.t-cap            { background:#f4faff; border-color:#cfe2f6; }
+.sel-chip.t-cap.active     { background:#e4f3ff; border-color:#0b65bb; box-shadow:0 0 0 1.5px #0b65bb; }
+.sel-chip.t-cap:hover      { border-color:#0b65bb; }
+
+.sel-chip.t-sk .sc-badge  { background:#e8fbf2; color:#1d8c52; }
+.sel-chip.t-sk             { background:#f4fcf8; border-color:#c9ecd7; }
+.sel-chip.t-sk.active      { background:#e8fbf2; border-color:#1d8c52; box-shadow:0 0 0 1.5px #1d8c52; }
+.sel-chip.t-sk:hover       { border-color:#1d8c52; }
+
+.sel-chip.t-mcp .sc-badge { background:#f2ebff; color:#6d3ff0; }
+.sel-chip.t-mcp            { background:#f9f5ff; border-color:#e0d3ff; }
+.sel-chip.t-mcp.active     { background:#f2ebff; border-color:#6d3ff0; box-shadow:0 0 0 1.5px #6d3ff0; }
+.sel-chip.t-mcp:hover      { border-color:#6d3ff0; }
+
+.sel-chip .sc-mono {
+  width:16px; height:16px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; color:#fff; flex-shrink:0;
+}
+.sel-chip .sc-close {
+  width:14px; height:14px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  color: var(--text-muted); font-size:10px; opacity:0;
+  transition: opacity .12s, background .12s, color .12s;
+}
+.sel-chip:hover .sc-close { opacity:1; }
+.sel-chip .sc-close:hover { background: rgba(0,0,0,.1); color:var(--text-primary); }
+/* Chips 行空态提示（outputs 空且无连接器选中时显示） */
+.sel-chips-row.empty::before {
+  content:"未选择技能或连接器 · 点击底栏「技能」或右上角「选择连接器库」多选添加";
+  color:var(--text-muted); font-size:12.5px;
+}
+
+/* ====== Modal 内卡片：技能 / 连接器多选样式 ====== */
+.mc-card {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:11px 12px;
+  border:1.5px solid var(--border-color);
+  border-radius:var(--radius-md);
+  cursor:pointer;
+  transition: all .12s ease;
+  background: var(--bg-card);
+  position:relative;
+}
+.mc-card:hover { border-color:#b9c7d9; background:#f6fafd; }
+.mc-card.selected {
+  border-color: var(--accent-primary);
+  background: #eef6ff;
+  box-shadow: 0 0 0 1.5px var(--accent-primary);
+}
+.mc-card .mc-ic {
+  width:34px; height:34px; flex-shrink:0;
+  border-radius:9px; display:flex; align-items:center; justify-content:center;
+  font-size:16px; font-weight:700; color:#fff;
+}
+.mc-card .mc-body { flex:1; min-width:0; }
+.mc-card .mc-title { font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+.mc-card .mc-sub { font-size:11.5px; color:var(--text-muted); }
+.mc-card .mc-tag {
+  position:absolute; top:9px; right:9px;
+  font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:999px;
+}
+.mc-card.tag-cap .mc-tag { background:#e4f3ff; color:#0b65bb; }
+.mc-card.tag-sk  .mc-tag { background:#e8fbf2; color:#1d8c52; }
+.mc-card.tag-mcp .mc-tag { background:#f2ebff; color:#6d3ff0; }
+.mc-card .mc-check {
+  position:absolute; left:8px; bottom:8px;
+  width:17px; height:17px; border-radius:5px;
+  border:1.5px solid var(--border-color);
+  background:#fff;
+  display:flex; align-items:center; justify-content:center;
+  transition: all .12s ease;
+}
+.mc-card.selected .mc-check {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+.mc-card.selected .mc-check svg { opacity:1; }
+.mc-card .mc-check svg { opacity:0; width:11px; height:11px; stroke:#fff; fill:none; stroke-width:3; }
 
 /* ================================================================
  * 对话页 Workbuddy 风格改造（duty-chat.html）

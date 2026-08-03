@@ -22,7 +22,7 @@
           <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
           <a class="sidebar-primary-nav-item active" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
           <a class="sidebar-primary-nav-item " href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
-          <a class="sidebar-primary-nav-item " href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <a class="sidebar-primary-nav-item " href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>平台·技能·连接器</span></a>
           <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
         </div>
       </div>
@@ -95,23 +95,16 @@
                 <span class="obc-badge">最推荐</span>
               </div>
               <h3>从模板添加</h3>
-              <p>系统内预置 6+ 份行业模板，一键应用到本次任务，后续可继续细化能力与推送方式。</p>
+              <p>系统内预置 6+ 份行业模板，一键应用到本次任务，后续可继续细化技能与推送方式。</p>
               <span class="obc-cta">去选模板 →</span>
-            </div>
-            <div class="onboard-card cap" onclick="gotoPicker('caps')">
-              <div class="obc-head">
-                <span class="obc-ic" style="background:linear-gradient(135deg,#e4f3ff,#c9e4ff);color:#0b65bb;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
-              </div>
-              <h3>从能力添加</h3>
-              <p>在平台能力库中挑选「一张图 / 浓度排名 / 小时播报 / 监测数据」等能力自由组合。</p>
-              <span class="obc-cta">去选能力 →</span>
             </div>
             <div class="onboard-card skill" onclick="gotoPicker('skills')">
               <div class="obc-head">
                 <span class="obc-ic" style="background:linear-gradient(135deg,#e8fbf2,#cff3e0);color:#1d8c52;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg></span>
+                <span class="obc-badge" style="background:#0b65bb;color:#fff;">2 种形态</span>
               </div>
               <h3>从技能添加</h3>
-              <p>选择 AI 技能脚本作为任务项，可直接执行「日报生成 / 重污染研判 / O₃ 追踪 / PDF 导出」等。</p>
+              <p>技能库包含两类：<b style="color:#0b65bb;">需配置</b>（一张图 / 浓度排名 / 监测数据等平台能力）和 <b style="color:#1d8c52;">直接用</b>（日报生成 / 重污染研判等 AI 脚本）。</p>
               <span class="obc-cta">去选技能 →</span>
             </div>
             <div class="onboard-card mcp" onclick="gotoPicker('mcps')">
@@ -126,7 +119,7 @@
 
           <!-- 提示词主输入框 + 底部一行选择（仿 workbuddy 风格） -->
           <div class="prompt-block">
-            <div class="pb-label">提示词 <span style="color:var(--text-muted);font-weight:400;font-size:12px;margin-left:4px">描述任务目标，AI 将按目标调用下方技能、连接器与能力</span></div>
+            <div class="pb-label">提示词 <span style="color:var(--text-muted);font-weight:400;font-size:12px;margin-left:4px">描述任务目标，AI 将按目标调用下方技能、连接器与工具</span></div>
             <div class="prompt-box">
               <textarea id="taskPrompt" placeholder="例如：&#10;针对平顶山市，获取今早 08:00~16:00 的小时监测数据，生成一张空气质量分布插值图，汇总浓度排名，并以日报格式推送到企业微信群；如出现 AQI>150 的情况，额外调用重污染研判技能给出处置建议。"></textarea>
               <div class="prompt-toolbar">
@@ -136,18 +129,12 @@
                   <b>Auto</b>
                   <span class="pt-arrow">▾</span>
                 </div>
-                <!-- 技能选择（点击跳转 picker skills Tab） -->
-                <div class="pt-select" onclick="gotoPicker('skills')" title="从 picker 挑选技能">
+                <!-- 技能选择（点此弹 Modal，不跳转；含搜索+双形态Tab+多选） -->
+                <div class="pt-select" onclick="openSkillModal()" title="从技能库挑选：需配置 / 直接用 两类（多选，支持搜索）">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
                   <b>技能</b>
-                  <span id="ptSkillCount" class="seg-count" style="margin-left:4px;background:rgba(29,140,82,.12);color:#1d8c52;padding:1px 7px;border-radius:999px;font-size:11px">0</span>
-                  <span class="pt-arrow">▾</span>
-                </div>
-                <!-- 能力组合（点击跳转 picker caps Tab） -->
-                <div class="pt-select" onclick="gotoPicker('caps')" title="组合平台能力">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                  <b>能力组合</b>
-                  <span id="ptCapCount" class="seg-count" style="margin-left:4px;background:rgba(11,101,187,.12);color:#0b65bb;padding:1px 7px;border-radius:999px;font-size:11px">0</span>
+                  <span id="ptCapCount" class="seg-count" style="margin-left:4px;background:rgba(11,101,187,.12);color:#0b65bb;padding:1px 7px;border-radius:999px;font-size:11px" title="需配置型">0 需</span>
+                  <span id="ptSkillCount" class="seg-count" style="margin-left:2px;background:rgba(29,140,82,.12);color:#1d8c52;padding:1px 7px;border-radius:999px;font-size:11px" title="直接用型">0 直</span>
                   <span class="pt-arrow">▾</span>
                 </div>
                 <!-- 权限等级（提示信息） -->
@@ -162,33 +149,18 @@
             </div>
           </div>
 
-          <!-- 连接器多选区 -->
-          <div class="connector-block">
-            <div class="cb-head">
-              <div>
-                <label>连接器</label>
-                <small>（勾选即授权该连接器在任务中免确认使用）</small>
-              </div>
-              <a style="font-size:12px;color:var(--accent-primary);cursor:pointer" onclick="gotoPicker('mcps')">到连接器库选择 →</a>
-            </div>
-            <div class="connector-list" id="connectorList"></div>
+          <!-- 连接器（授权，无配置）：标题 + 链接 → 实际 chips 合并到下方 selectedChipsRow -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 4px 2px;margin-top:4px;">
+            <span style="font-size:13px;font-weight:600;color:var(--text-primary);">连接器</span>
+            <a style="font-size:12px;color:var(--accent-primary);cursor:pointer" onclick="openMcpModal()">选择连接器库 →</a>
           </div>
 
-          <!-- 已选的 legacy 4 能力 / 技能 卡片列表，便于用户查看和删除（兼容 step2/step3 已有逻辑） -->
-          <div id="outputWrap" style="margin-top:14px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-primary)">已选成果/技能</div>
-            <div class="output-list" id="outputList"></div>
-            <div class="output-add-bar">
-              <span>添加</span>
-              <button onclick="addOutput('mapPackage')"><b>＋</b> 一张图</button>
-              <button onclick="addOutput('concentrationRanking')"><b>＋</b> 浓度排名</button>
-              <button onclick="addOutput('hourlyBrief')"><b>＋</b> 小时播报</button>
-              <button onclick="addOutput('monitoringData')"><b>＋</b> 监测数据</button>
-              <button onclick="gotoPicker('skills')" style="color:#1d8c52"><b>＋</b> 技能</button>
-              <button onclick="gotoPicker('mcps')" style="color:#6d3ff0"><b>＋</b> 连接器</button>
-            </div>
-          </div>
-
+          <!-- ====== 紧凑的「已选技能配置区」：Chips 行 + 当前选中配置面板 ====== -->
+          <div id="configArea" style="margin-top:8px">
+            <!-- ① 已选技能 Chips 行：替代原 output-list 大卡片；点击 chip 切换配置，悬停出 × 可删 -->
+            <div id="selectedChipsRow" class="sel-chips-row" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-md);min-height:46px;"></div>
+            <!-- ② 当前选中项的配置面板（紧接 chips 下方，视觉上是一体的） -->
+            <div id="cfgSectionHost" style="margin-top:10px">
           <section class="ranking-config cfg" id="cfg-concentrationRanking" style="display:none">
             <div class="ranking-config-head">02 · 配置浓度排名</div>
             <div class="ranking-toolbar">
@@ -319,6 +291,8 @@
             </div>
             <div class="ranking-summary">每次执行按所选工具入参发起调用，失败会按任务级失败处理策略重试或终止。</div>
           </section>
+            </div><!-- cfgSectionHost end -->
+          </div><!-- configArea end -->
         </div>
         <div class="action-bar">
           <span></span>
@@ -418,7 +392,7 @@
               <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>
               <span>
                 <h3>创建任务时一并保存为模板 <span class="tag-pill" style="margin-left:6px">推荐</span></h3>
-                <small>勾选后，本次配置的能力组合、调度方式、推送渠道会同步保存为模板，其他团队也能一键复用。</small>
+                <small>勾选后，本次配置的技能组合、调度方式、推送渠道会同步保存为模板，其他团队也能一键复用。</small>
               </span>
             </label>
             <button class="sat-toggle" onclick="toggleSatPanel()" id="satToggleBtn">展开填写 ↓</button>
@@ -465,6 +439,67 @@
 
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
 
+<!-- ==================== 技能选择 Modal（带搜索 + 双形态分类 Tab + 多选） ==================== -->
+<div class="modal-mask" id="skillModalMask" onclick="if(event.target===this) closeSkillModal()">
+  <div class="modal" style="width:840px;">
+    <div class="modal-head">
+      <div class="modal-title">选择技能</div>
+      <div class="modal-sub">技能分两类：<b style="color:#0b65bb;">⚙ 需配置</b>（平台能力，需逐项配置参数）&nbsp;&nbsp;·&nbsp;&nbsp;<b style="color:#1d8c52;">⚡ 直接用</b>（AI 脚本，Agent 按上下文填参）</div>
+    </div>
+    <div class="modal-body" style="padding:14px 22px;">
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="n-input" style="display:flex;align-items:center;gap:8px;padding:0 12px;flex:1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15" style="color:var(--text-muted)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input placeholder="搜索技能名 / 关键字（如 日报 / 监测 / O3）" id="smSearch" style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-family:var(--font-ui);color:var(--text-primary);padding:9px 0;" oninput="renderSkillModal()">
+        </div>
+        <div class="segmented" id="smTabs">
+          <button class="active" onclick="setSmTab('all',this)">全部 <span id="smCountAll" style="margin-left:3px;font-weight:600;color:var(--text-muted);font-size:11px">0</span></button>
+          <button onclick="setSmTab('cap',this)">⚙ 需配置 <span id="smCountCap" style="margin-left:3px;font-weight:600;color:#0b65bb;font-size:11px">0</span></button>
+          <button onclick="setSmTab('sk',this)">⚡ 直接用 <span id="smCountSk" style="margin-left:3px;font-weight:600;color:#1d8c52;font-size:11px">0</span></button>
+        </div>
+      </div>
+      <div id="smGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;"></div>
+    </div>
+    <div class="modal-foot">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="modal-adv-link" onclick="gotoPicker('skills');closeSkillModal()">打开完整选择器 →</span>
+        <span id="smPicked" style="font-size:12.5px;color:var(--text-muted);">已选 0 项</span>
+      </div>
+      <div class="modal-foot-right">
+        <button class="btn btn-default" onclick="closeSkillModal()">取消</button>
+        <button class="btn btn-primary" onclick="confirmSkillModal()">确认添加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 连接器选择 Modal（带搜索 + 多选） ==================== -->
+<div class="modal-mask" id="mcpModalMask" onclick="if(event.target===this) closeMcpModal()">
+  <div class="modal" style="width:720px;">
+    <div class="modal-head">
+      <div class="modal-title">选择连接器</div>
+      <div class="modal-sub">勾选连接器后，任务运行时无需二次确认即可调用对应工具</div>
+    </div>
+    <div class="modal-body" style="padding:14px 22px;">
+      <div class="n-input" style="display:flex;align-items:center;gap:8px;padding:0 12px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="15" height="15" style="color:var(--text-muted)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input placeholder="搜索连接器名（如 飞书 / Git / S3）" id="mmSearch" style="flex:1;border:none;outline:none;background:transparent;font-size:13px;font-family:var(--font-ui);color:var(--text-primary);padding:9px 0;" oninput="renderMcpModal()">
+      </div>
+      <div id="mmGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;"></div>
+    </div>
+    <div class="modal-foot">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="modal-adv-link" onclick="gotoPicker('mcps');closeMcpModal()">打开完整选择器 →</span>
+        <span id="mmPicked" style="font-size:12.5px;color:var(--text-muted);">已选 0 个</span>
+      </div>
+      <div class="modal-foot-right">
+        <button class="btn btn-default" onclick="closeMcpModal()">取消</button>
+        <button class="btn btn-primary" onclick="confirmMcpModal()">确认添加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const CAPS = {
   mapPackage:          { mono:'◇', name:'一张图', def:'全国 · 监测图 · 首要污染物' },
@@ -474,13 +509,13 @@ const CAPS = {
 };
 /** 技能任务项定义（id 与 duty-picker skillLib.id 保持一致） */
 const SKILL_DEF = {
-  sk_01: { mono:'A', name:'空气质量日报生成 技能', def:'平顶山市 · 当日 · 含一张图', color:'#0b65bb' },
-  sk_02: { mono:'W', name:'重污染预警研判 技能', def:'平顶山市 · 未来 7 天预测', color:'#d97706' },
-  sk_03: { mono:'O', name:'O₃ 8h 污染追踪 技能', def:'平顶山市 · 追溯 7 天', color:'#b45309' },
-  sk_04: { mono:'D', name:'扬尘源排查 技能', def:'平顶山市 · PM10 异常识别', color:'#6d3ff0' },
+  sk_01: { mono:'A', name:'空气质量日报生成 技能', def:'平顶山市 · 当日 · 含一张图', color:'#1d8c52' },
+  sk_02: { mono:'W', name:'重污染预警研判 技能', def:'平顶山市 · 未来 7 天预测', color:'#1d8c52' },
+  sk_03: { mono:'O', name:'O₃ 8h 污染追踪 技能', def:'平顶山市 · 追溯 7 天', color:'#1d8c52' },
+  sk_04: { mono:'D', name:'扬尘源排查 技能', def:'平顶山市 · PM10 异常识别', color:'#1d8c52' },
   sk_05: { mono:'P', name:'日报 PDF 导出 技能', def:'将日报 JSON 导出为 PDF', color:'#1d8c52' },
-  sk_06: { mono:'R', name:'巡检排班 技能', def:'平顶山市 · 今日巡检排班', color:'#0891b2' },
-  sk_07: { mono:'V', name:'渠道发布检查 技能', def:'校验多渠道发布完整性', color:'#be123c' },
+  sk_06: { mono:'R', name:'巡检排班 技能', def:'平顶山市 · 今日巡检排班', color:'#1d8c52' },
+  sk_07: { mono:'V', name:'渠道发布检查 技能', def:'校验多渠道发布完整性', color:'#1d8c52' },
 };
 /** MCP 连接器任务项定义（id 与 duty-picker mcpLib.id 保持一致） */
 const MCP_DEF = {
@@ -494,6 +529,20 @@ const MCP_DEF = {
 const MCP_CONNECTORS = [
   { id:'mcp_fs' }, { id:'mcp_hermes' }, { id:'mcp_git' }, { id:'mcp_lark' }, { id:'mcp_s3' }
 ];
+/**
+ * 技能选择 Modal 使用的统一数据集：合并需配置（原能力）+ 直接用（原技能）
+ */
+const SKILL_LIB_FLAT = [
+  ...Object.entries(CAPS).map(([k,v]) => ({ key:'cap:'+k, kind:'cap', id:k, name:v.name, mono:v.mono, def:v.def, badge:'⚙ 需配置', color:'#0b65bb' })),
+  ...Object.entries(SKILL_DEF).map(([k,v]) => ({ key:'sk:'+k, kind:'sk', id:k, name:v.name, mono:v.mono, def:v.def, badge:'⚡ 直接用', color:v.color }))
+];
+/** 连接器 Modal 使用的数据集：把 MCP_DEF 展开为数组 */
+const MCP_LIB_FLAT = Object.entries(MCP_DEF).map(([k,v]) => ({ id:k, name:v.name, mono:v.mono, color:v.color, tools:v.tools, type:v.type, def:`${v.type} · ${v.tools} 个工具` }));
+/* =============== Modal 状态 =============== */
+let skillModalTab = 'all';
+let skillModalPicked = new Set();   // 存 SKILL_LIB_FLAT.key
+let mcpModalPicked = new Set();     // 存 MCP_LIB_FLAT.id
+/* =============== 通用 UI 状态 =============== */
 let selectedMcps = new Set();      // 连接器多选（checkbox）
 let outputs = [], seq = 0, activeId = null;
 /* 保存为模板选项状态 */
@@ -568,10 +617,10 @@ function initOutputs(){
     outputs = (keys.length?keys:['concentrationRanking']).map(k=>normalizeOutput({type:k}));
     if (tpl && tplName) {
       document.getElementById('taskName').value = tplName + ' · 复制版';
-      bannerMsg = { type:'tpl', title:'已基于模板预填', detail:`模板名：${tplName}，共预填 ${outputs.length} 项成果。保存时可勾选「保存为模板」共享给团队。` };
+      bannerMsg = { type:'tpl', title:'已基于模板预填', detail:`模板名：${tplName}，共预填 ${outputs.length} 项技能。保存时可勾选「保存为模板」共享给团队。` };
     } else {
-      const countLabel = capNames.length ? `（${capNames.slice(0,3).join('、')}${capNames.length>3?' 等 ':''}${capNames.length} 项能力）` : '';
-      bannerMsg = { type:'caps', title:'已按所选能力预填配置', detail:`来自「从模板/能力添加任务」${countLabel}。可在下方继续增删成果项。` };
+      const countLabel = capNames.length ? `（${capNames.slice(0,3).join('、')}${capNames.length>3?' 等 ':''}${capNames.length} 项技能·需配置）` : '';
+      bannerMsg = { type:'caps', title:'已按所选技能预填配置', detail:`来自「从模板/技能添加任务」${countLabel}。可在下方继续增删技能项。` };
     }
   } else {
     outputs = [normalizeOutput({type:'concentrationRanking'})];
@@ -617,26 +666,64 @@ function renderOriginBanner(banner){
 }
 /**
  * 返回某个输出项的显示元数据（名称 / monogram / 颜色 / 类型标签）
+ *  - 对用户统一展示为「技能」概念，用需配置/直接用加以区分
  */
 function outputMeta(o){
-  if (o.kind==='skill') return { name:o.name, mono:o.mono, color:o.color, def:o.def, kindLabel:'技能', kindClass:'sk' };
+  if (o.kind==='skill') return { name:o.name, mono:o.mono, color:o.color, def:o.def, kindLabel:'技能·直接用', kindClass:'sk' };
   if (o.kind==='mcp')   return { name:o.name, mono:o.mono, color:o.color, def:o.def, kindLabel:'连接器', kindClass:'mcp' };
-  return { name:CAPS[o.type].name, mono:CAPS[o.type].mono, color:'var(--accent-primary)', def:CAPS[o.type].def, kindLabel:'能力', kindClass:'cap' };
+  return { name:CAPS[o.type].name, mono:CAPS[o.type].mono, color:'var(--accent-primary)', def:CAPS[o.type].def, kindLabel:'技能·需配置', kindClass:'cap' };
 }
-function renderOutputs(){
-  document.getElementById('outputList').innerHTML = outputs.map((o,i)=>{
+/**
+ * 渲染「已选技能 + 连接器」合并 Chips 行：
+ *  ① 首先渲染 outputs 中的所有技能/成果（cap/sk/mcp 三种均可配置，点击切换 CFG）
+ *  ② 再追加 selectedMcps 中的纯授权连接器（不在 outputs 里就不重复；点击不切配置，悬停 ✕ 可取消授权）
+ *
+ *  交互：点击 outputs 类 chip 切换 activeId；点击纯授权 chip 无 active 行为（只是展示）
+ *  空态：outputs 为空时显示空态文字（只提「技能」，因为连接器已选会在下面展示）
+ */
+function renderSelectedChips(){
+  const row = document.getElementById('selectedChipsRow');
+  if (!row) return;
+  const chipsHtml = [];
+  /* 1) outputs：cap/skill/mcp 步骤成果 */
+  outputs.forEach(o=>{
     const m = outputMeta(o);
-    const monoStyle = (o.kind==='skill' || o.kind==='mcp') ? ` style="background:${m.color}15;color:${m.color}"` : '';
-    return `<article class="output-item ${activeId===o.id?'active':''} ${o.kind==='skill'?'sk':(o.kind==='mcp'?'mcp':'')}" onclick="selectOutput('${o.id}')">
-      <span class="output-index">${i+1}</span>
-      <span class="output-mono"${monoStyle}>${m.mono}</span>
-      <span class="output-kind-tag ${m.kindClass}">${m.kindLabel}</span>
-      <span class="output-item-copy"><b>${m.name}</b><small>${m.def}</small></span>
-      ${activeId===o.id?'<span class="editing-badge">正在编辑</span>':''}
-      <button class="output-action" onclick="event.stopPropagation();dupOutput('${o.id}')">复制</button>
-      <button class="output-action danger" onclick="event.stopPropagation();delOutput('${o.id}')">删除</button>
-    </article>`;
-  }).join('');
+    const typeClass = o.kind==='skill' ? 't-sk' : (o.kind==='mcp' ? 't-mcp' : 't-cap');
+    const isActive = activeId===o.id;
+    const bgStyle = (o.kind==='skill' || o.kind==='mcp') ? ` style="background:${m.color}"` : '';
+    const badgeTxt = o.kind==='skill' ? '⚡直接用' : (o.kind==='mcp' ? '步骤·调用' : '⚙需配置');
+    chipsHtml.push(`<span class="sel-chip ${typeClass} ${isActive?'active':''}" onclick="selectOutput('${o.id}')">
+      <span class="sc-mono"${bgStyle}>${m.mono}</span>
+      <b style="font-weight:600;color:var(--text-primary)">${m.name}</b>
+      <span class="sc-badge">${badgeTxt}</span>
+      <span class="sc-close" title="删除此步骤" onclick="event.stopPropagation();delOutput('${o.id}')">✕</span>
+    </span>`);
+  });
+  /* 2) selectedMcps 中的纯授权连接器（不是 outputs 已有 mcp 步骤的才加） */
+  const outputsMcpIds = new Set(outputs.filter(o=>o.kind==='mcp').map(o=>o.type));
+  selectedMcps.forEach(id=>{
+    if (outputsMcpIds.has(id)) return;
+    const d = MCP_DEF[id] || { mono:'M', name:id, color:'#6d3ff0', tools:0, type:'stdio' };
+    chipsHtml.push(`<span class="sel-chip t-mcp" title="连接器授权 · ${d.type||''} · ${d.tools||0} 个工具">
+      <span class="sc-mono" style="background:${d.color}">${d.mono}</span>
+      <b style="font-weight:600;color:var(--text-primary)">${d.name}</b>
+      <span class="sc-badge">授权·${d.type ? d.type.toUpperCase() : 'MCP'}</span>
+      <span class="sc-close" title="取消连接器授权" onclick="event.stopPropagation();removeMcpChip('${id}')">✕</span>
+    </span>`);
+  });
+  if (chipsHtml.length === 0 && selectedMcps.size === 0) {
+    row.classList.add('empty'); row.innerHTML=''; return;
+  }
+  row.classList.remove('empty');
+  row.innerHTML = chipsHtml.join('');
+}
+/**
+ * 渲染输出层：不再渲染大卡片列表，改做两步
+ *  ① 渲染紧凑 Chips 行（renderSelectedChips）
+ *  ② 切换 CFG 配置面板显示（按 activeId）
+ */
+function renderOutputs(){
+  renderSelectedChips();
   document.querySelectorAll('.cfg').forEach(el=>el.style.display='none');
   const active = outputs.find(o=>o.id===activeId);
   if (active) {
@@ -657,7 +744,7 @@ function addSkill(id){ outputs.push(normalizeOutput({kind:'skill', type:id})); a
 function addMcp(id){ outputs.push(normalizeOutput({kind:'mcp', type:id})); activeId=outputs[outputs.length-1].id; renderOutputs(); updateChipsBar(); }
 function selectOutput(id){ activeId=id; renderOutputs(); updateChipsBar(); }
 function dupOutput(id){ const o=outputs.find(x=>x.id===id); if(o){ const c = Object.assign({},o); delete c.id; outputs.push(normalizeOutput(c)); renderOutputs(); updateChipsBar(); } }
-function delOutput(id){ if(outputs.length<=1){ showToast('至少保留一个成果'); return; } outputs=outputs.filter(x=>x.id!==id); if(activeId===id) activeId=outputs[0].id; renderOutputs(); updateChipsBar(); }
+function delOutput(id){ outputs=outputs.filter(x=>x.id!==id); if(activeId===id) activeId=outputs.length?outputs[0].id:null; renderOutputs(); updateChipsBar(); }
 /** 当选中某个技能输出项时，填充右侧配置面板内容 */
 function fillSkillCfg(o){
   const d = SKILL_DEF[o.type] || {};
@@ -820,40 +907,185 @@ function saveAsTemplate(){
 })();
 
 let tTimer=null;
+/**
+ * 显示顶部 Toast 提示条
+ * @param {string} msg 提示文案
+ */
 function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>t.classList.remove('show'),2000); }
 
+/* ===========================================================================
+ * 技能选择 Modal（打开/关闭/Tab/搜索/渲染/多选切换/确认写入 outputs）
+ * =========================================================================== */
 /**
- * 渲染连接器多选卡片（复选，不进 outputs，仅作为任务级免确认授权）
+ * 打开技能选择 Modal：初始化选中态（根据当前 outputs 已选），并渲染
  */
-function renderConnectorList(){
-  const el = document.getElementById('connectorList');
-  if (!el) return;
-  el.innerHTML = MCP_CONNECTORS.map(m=>{
-    const d = MCP_DEF[m.id] || {};
-    const sel = selectedMcps.has(m.id);
-    return `
-      <div class="connector-card ${sel?'selected':''}" onclick="toggleMcpConnector('${m.id}')">
-        <div class="cc-icon" style="background:${d.color}15;color:${d.color}">${d.mono||'M'}</div>
-        <div class="cc-body">
-          <div class="cc-title">${d.name||m.id}</div>
-          <div class="cc-meta">${d.type||''} · ${d.tools||0} 个工具</div>
-        </div>
-        <div class="cc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-      </div>`;
-  }).join('');
+function openSkillModal(){
+  skillModalPicked = new Set(outputs.map(o=>o.kind==='skill' ? ('sk:'+o.type) : ('cap:'+o.type)));
+  document.getElementById('skillModalMask').classList.add('show');
+  document.getElementById('smSearch').value = '';
+  skillModalTab = 'all';
+  document.querySelectorAll('#smTabs button').forEach((b,idx)=>b.classList.toggle('active', idx===0));
+  renderSkillModal();
+}
+/** 关闭技能 Modal（不保留未确认的选择） */
+function closeSkillModal(){ document.getElementById('skillModalMask').classList.remove('show'); }
+/**
+ * 切换技能 Modal 的分类 Tab
+ * @param {'all'|'cap'|'sk'} tab  目标分类
+ * @param {HTMLElement} btnEl      点击的按钮 DOM
+ */
+function setSmTab(tab, btnEl){
+  skillModalTab = tab;
+  document.querySelectorAll('#smTabs button').forEach(b=>b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderSkillModal();
 }
 /**
- * 切换单个连接器的勾选
+ * 渲染技能 Modal 主体：统计数量 + 搜索过滤 + 卡片网格
+ */
+function renderSkillModal(){
+  const kw = (document.getElementById('smSearch').value || '').trim().toLowerCase();
+  const totalAll = SKILL_LIB_FLAT.length;
+  const totalCap = SKILL_LIB_FLAT.filter(s=>s.kind==='cap').length;
+  const totalSk  = SKILL_LIB_FLAT.filter(s=>s.kind==='sk').length;
+  const cntAll = document.getElementById('smCountAll'); if (cntAll) cntAll.textContent = totalAll;
+  const cntCap = document.getElementById('smCountCap'); if (cntCap) cntCap.textContent = totalCap;
+  const cntSk  = document.getElementById('smCountSk');  if (cntSk)  cntSk.textContent = totalSk;
+  const pickedNum = document.getElementById('smPicked'); if (pickedNum) pickedNum.textContent = `已选 ${skillModalPicked.size} 项`;
+  const list = SKILL_LIB_FLAT.filter(s=>{
+    if (skillModalTab==='cap' && s.kind!=='cap') return false;
+    if (skillModalTab==='sk'  && s.kind!=='sk')  return false;
+    if (kw && !(s.name.toLowerCase().includes(kw) || s.def.toLowerCase().includes(kw) || s.id.toLowerCase().includes(kw))) return false;
+    return true;
+  });
+  const grid = document.getElementById('smGrid');
+  if (!grid) return;
+  grid.innerHTML = list.length ? list.map(s=>{
+    const sel = skillModalPicked.has(s.key);
+    const tagClass = s.kind==='cap' ? 'tag-cap' : 'tag-sk';
+    return `<div class="mc-card ${tagClass} ${sel?'selected':''}" onclick="toggleSkillCard('${s.key}')">
+      <div class="mc-ic" style="background:${s.color}">${s.mono}</div>
+      <div class="mc-body">
+        <div class="mc-title">${s.name}</div>
+        <div class="mc-sub">${s.def}</div>
+      </div>
+      <span class="mc-tag">${s.badge}</span>
+      <span class="mc-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+    </div>`;
+  }).join('') : `<div style="grid-column:1 / -1;padding:30px;text-align:center;color:var(--text-muted);font-size:13px;">没有匹配的技能</div>`;
+}
+/**
+ * 切换技能 Modal 中单个卡片的选中态
+ * @param {string} key 与 SKILL_LIB_FLAT.key 对应
+ */
+function toggleSkillCard(key){
+  if (skillModalPicked.has(key)) skillModalPicked.delete(key);
+  else skillModalPicked.add(key);
+  renderSkillModal();
+}
+/**
+ * 确认技能 Modal：把已选项批量写入 outputs（去重），并自动选中最后一个
+ */
+function confirmSkillModal(){
+  let added = 0;
+  skillModalPicked.forEach(key=>{
+    const [kind, id] = [key.split(':')[0], key.split(':').slice(1).join(':')];
+    const exist = outputs.find(o=> (o.kind==='skill'?('sk:'+o.type):('cap:'+o.type)) === key);
+    if (exist) return;
+    if (kind==='cap') outputs.push(normalizeOutput({type:id}));
+    else              outputs.push(normalizeOutput({kind:'skill', type:id}));
+    added++;
+  });
+  // 删除已取消选中的项（只处理 cap / skill 类；mcp 类不处理）
+  const remain = [];
+  outputs.forEach(o=>{
+    if (o.kind==='mcp') { remain.push(o); return; }
+    const key = o.kind==='skill' ? ('sk:'+o.type) : ('cap:'+o.type);
+    if (skillModalPicked.has(key)) remain.push(o);
+  });
+  outputs = remain;
+  if (!outputs.find(o=>o.id===activeId) && outputs.length) activeId = outputs[outputs.length-1].id;
+  closeSkillModal();
+  renderOutputs(); updateChipsBar();
+  if (added>0) showToast(`已更新技能（新增 ${added} 项，已同步到 outputs）`);
+  else showToast('已更新技能');
+}
+
+/* ===========================================================================
+ * 连接器选择 Modal（打开/关闭/搜索/渲染/多选切换/确认写入 selectedMcps）
+ * =========================================================================== */
+/**
+ * 打开连接器选择 Modal：初始化选中态（根据当前 selectedMcps 已选），并渲染
+ */
+function openMcpModal(){
+  mcpModalPicked = new Set(selectedMcps);
+  document.getElementById('mcpModalMask').classList.add('show');
+  document.getElementById('mmSearch').value = '';
+  renderMcpModal();
+}
+/** 关闭连接器 Modal（不保留未确认的选择） */
+function closeMcpModal(){ document.getElementById('mcpModalMask').classList.remove('show'); }
+/**
+ * 渲染连接器 Modal 主体：已选数量统计 + 搜索过滤 + 卡片网格
+ */
+function renderMcpModal(){
+  const kw = (document.getElementById('mmSearch').value || '').trim().toLowerCase();
+  const pickedNum = document.getElementById('mmPicked'); if (pickedNum) pickedNum.textContent = `已选 ${mcpModalPicked.size} 个`;
+  const list = MCP_LIB_FLAT.filter(m=>{
+    if (kw && !(m.name.toLowerCase().includes(kw) || m.id.toLowerCase().includes(kw) || m.type.includes(kw))) return false;
+    return true;
+  });
+  const grid = document.getElementById('mmGrid');
+  if (!grid) return;
+  grid.innerHTML = list.length ? list.map(m=>{
+    const sel = mcpModalPicked.has(m.id);
+    return `<div class="mc-card tag-mcp ${sel?'selected':''}" onclick="toggleMcpCard('${m.id}')">
+      <div class="mc-ic" style="background:${m.color}">${m.mono}</div>
+      <div class="mc-body">
+        <div class="mc-title">${m.name}</div>
+        <div class="mc-sub">${m.def}</div>
+      </div>
+      <span class="mc-tag">${m.type.toUpperCase()}</span>
+      <span class="mc-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+    </div>`;
+  }).join('') : `<div style="grid-column:1 / -1;padding:30px;text-align:center;color:var(--text-muted);font-size:13px;">没有匹配的连接器</div>`;
+}
+/**
+ * 切换连接器 Modal 中单个卡片的选中态
+ * @param {string} id 与 MCP_LIB_FLAT.id 对应
+ */
+function toggleMcpCard(id){
+  if (mcpModalPicked.has(id)) mcpModalPicked.delete(id);
+  else mcpModalPicked.add(id);
+  renderMcpModal();
+}
+/**
+ * 确认连接器 Modal：把已选项同步到 selectedMcps（任务级连接器授权），并与原有连接器卡片复选逻辑联动
+ */
+function confirmMcpModal(){
+  const before = selectedMcps.size;
+  selectedMcps = new Set(mcpModalPicked);
+  closeMcpModal();
+  renderConnectorChips(); updateChipsBar();
+  showToast(before===selectedMcps.size ? '已更新连接器' : `已更新连接器（${selectedMcps.size} 个已授权）`);
+}
+
+/**
+ * 连接器 chips 渲染已合并到 renderSelectedChips：保留此函数作为兼容入口，
+ * 内部直接调 renderOutputs（因为 renderOutputs 会调用 renderSelectedChips）
+ */
+function renderConnectorChips(){ renderOutputs(); updateChipsBar(); }
+/**
+ * 从已选连接器中移除单个（chips 上点 × 调用）
  * @param {string} id 连接器 id（与 MCP_DEF.key 同）
  */
-function toggleMcpConnector(id){
-  if (selectedMcps.has(id)) selectedMcps.delete(id);
-  else selectedMcps.add(id);
-  renderConnectorList();
-  updateChipsBar();
+function removeMcpChip(id){
+  selectedMcps.delete(id);
+  renderOutputs(); updateChipsBar();
+  showToast('已取消连接器授权：' + (MCP_DEF[id]?.name || id));
 }
 /**
- * 渲染提示词框底栏右侧 chips（能力/技能/连接器的已选计数 chip）
+ * 渲染提示词框底栏右侧 chips（技能·需配置/技能·直接用/连接器的已选计数 chip）
  */
 function updateChipsBar(){
   const bar = document.getElementById('chipsBar');
@@ -862,15 +1094,15 @@ function updateChipsBar(){
   const skCount  = outputs.filter(o=>o.kind==='skill').length;
   const mcpOutCount = outputs.filter(o=>o.kind==='mcp').length;
   const mcpsCount = selectedMcps.size;
-  const capChipHTML = capCount>0 ? `<span class="cap-tag" style="background:rgba(11,101,187,.10);color:#0b65bb;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px"><span class="seg-count" style="background:rgba(11,101,187,.18);color:#0b65bb;border-radius:999px;padding:0 6px">${capCount}</span>能力</span>` : '';
-  const skChipHTML = skCount>0 ? `<span class="cap-tag" style="background:rgba(29,140,82,.10);color:#1d8c52;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px"><span class="seg-count" style="background:rgba(29,140,82,.18);color:#1d8c52;border-radius:999px;padding:0 6px">${skCount}</span>技能</span>` : '';
+  const capChipHTML = capCount>0 ? `<span class="cap-tag" style="background:rgba(11,101,187,.10);color:#0b65bb;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px"><span class="seg-count" style="background:rgba(11,101,187,.18);color:#0b65bb;border-radius:999px;padding:0 6px">${capCount}</span>技能·需配置</span>` : '';
+  const skChipHTML = skCount>0 ? `<span class="cap-tag" style="background:rgba(29,140,82,.10);color:#1d8c52;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px"><span class="seg-count" style="background:rgba(29,140,82,.18);color:#1d8c52;border-radius:999px;padding:0 6px">${skCount}</span>技能·直接用</span>` : '';
   const mcpChipHTML = (mcpOutCount+mcpsCount)>0 ? `<span class="cap-tag" style="background:rgba(109,63,240,.10);color:#6d3ff0;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px"><span class="seg-count" style="background:rgba(109,63,240,.18);color:#6d3ff0;border-radius:999px;padding:0 6px">${mcpOutCount+mcpsCount}</span>连接器</span>` : '';
   bar.innerHTML = capChipHTML + skChipHTML + mcpChipHTML;
-  const skCntEl = document.getElementById('ptSkillCount'); if (skCntEl) skCntEl.textContent = skCount;
-  const capCntEl = document.getElementById('ptCapCount'); if (capCntEl) capCntEl.textContent = capCount;
+  const skCntEl = document.getElementById('ptSkillCount'); if (skCntEl) skCntEl.textContent = skCount ? skCount + ' 直' : '0 直';
+  const capCntEl = document.getElementById('ptCapCount'); if (capCntEl) capCntEl.textContent = capCount ? capCount + ' 需' : '0 需';
 }
 /**
- * 在 initOutputs 后把 URL 参数中的 mcps= 同步更新到 selectedMcps 多选框
+ * 在 initOutputs 后把 URL 参数中的 mcps= 同步更新到 selectedMcps
  */
 function syncSelectedMcpsFromURL(){
   const p = new URLSearchParams(location.search);
@@ -882,7 +1114,7 @@ function syncSelectedMcpsFromURL(){
 
 initOutputs();
 syncSelectedMcpsFromURL();
-renderConnectorList();
+renderConnectorChips();
 renderOutputs();
 updateChipsBar();
 </script>

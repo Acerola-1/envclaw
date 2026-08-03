@@ -34,7 +34,7 @@
 |------|------|------|------|
 | 1 | 品牌区 | 真实系统 Logo 图标 + 文字「UniEcoClaw」+ 副标「数智环保 · UniEcoClaw」 | 不可点击；所有页面 HTML 必须完全一致 |
 | 2 | **主按钮（新建任务）** | 一个高对比度的「新建任务」按钮，链接到 `duty-chat.html` | **永远作为侧栏第一个可操作项**，作为业务用户进入系统的默认起点 |
-| 3 | 主导航（4 项） | ①自动化 / ②任务模板库 / ③能力·技能·连接器 / ④更多（折叠） | 与当前页面匹配时高亮 active；对话首页的 4 项均不 active |
+| 3 | 主导航（4 项） | ①自动化 / ②任务模板库 / ③平台·技能·连接器 / ④更多（折叠） | 与当前页面匹配时高亮 active；对话首页的 4 项均不 active |
 | 4 | 最近对话 | 折叠式「最近对话」5 条 + 「查看更多 (N)」按钮 | 折叠状态存 `localStorage.unieco_recent_collapsed` |
 | 5 | 用户信息（底部） | 头像 + 姓名 + 通知铃铛 + 设置齿轮；**固定于侧栏底部**（非中间） | 所有页面完全同一段 HTML，禁止漂移到中间 |
 
@@ -43,7 +43,7 @@
 - **对话入口**（`duty-chat.html`、`chat-create-task.html`）：4 项主导航都不点亮，主按钮「新建任务」是视觉焦点
 - **自动化 3 页**（`duty-tasks.html`、`duty-task-detail.html`、`duty-create.html`）：「自动化」active
 - **模板库 3 页**（`templates-library.html`、`template-editor.html`、`template-share.html`）：「任务模板库」active
-- **能力·技能·连接器 2 页**（`duty-capabilities.html`、`platform-onboarding.html`）：「能力·技能·连接器」active
+- **平台·技能·连接器 2 页**（`duty-capabilities.html`、`platform-onboarding.html`）：「平台·技能·连接器」active
 
 ---
 
@@ -58,10 +58,10 @@ UniEcoClaw
 │
 ├── 自动化（duty-tasks.html）
 │   ├── 定时任务列表（默认二级 Tab）
-│   │   ├── 新建任务 / 从模板·能力·技能·连接器添加（顶部入口 → duty-picker.html）
+│   │   ├── 新建任务 / 从模板·技能·连接器添加（顶部入口 → duty-picker.html）
 │   │   ├── 任务详情（duty-task-detail.html）
 │   │   └── 创建任务（duty-create.html）
-│   │       └── 融合式大提示词 + 技能 / 能力组合 / 连接器多选
+│   │       └── 融合式大提示词 + 技能(需配置/直接用) / 连接器多选
 │   │
 │   └── 运行记录（二级 Tab，默认全折叠）
 │       └── L1 任务 → L2 时间点 → L3 执行详情（三层渐进展开）
@@ -71,11 +71,10 @@ UniEcoClaw
 │   ├── 模板编辑器（template-editor.html）
 │   └── 模板分享 / 导入（template-share.html）
 │
-└── 能力·技能·连接器（duty-capabilities.html）
+└── 平台·技能·连接器（duty-capabilities.html）
     ├── 平台（方形卡片网格 · 右上角：添加平台）
     │   └── 平台接入向导（platform-onboarding.html）
-    ├── 能力（右上角：无按钮 · 12 项能力 + 详情抽屉）
-    ├── 技能（右上角：导入技能 · 启用/禁用/删除(仅本地)）
+    ├── 技能（右上角：导入技能 · 两种形态徽章：⚙需配置 / ⚡直接用）
     └── 连接器（右上角：添加连接器 · stdio/HTTP · 工具数/测试）
 ```
 
@@ -88,13 +87,13 @@ UniEcoClaw
 | 3 | `chat-create-task.html` | 对话→任务闭环演示 | 新建任务 | L1 | 点击「下一步」演示从对话抽取参数 → 配置 → 执行 → 成果的完整流程 |
 | 4 | `duty-tasks.html` | 自动化主控（定时任务 + 运行记录） | 自动化 | L1 | 双 Tab：定时任务卡片网格 / 三层渐进式运行记录 |
 | 5 | `duty-task-detail.html` | 任务详情 | 自动化 | L2 | 配置、运行日志、成果预览；编辑回跳 `duty-create.html?edit=...` |
-| 6 | `duty-picker.html` | 从模板·能力·技能·连接器选（4 Tab 选择器） | 自动化 → 新建任务 | L2 | 选模板 / 组合能力 / 选技能 / 选连接器 → 跳 create 预填 |
-| 7 | `duty-create.html` | 创建值守任务（融合式大提示词） | 自动化 | L2 | 顶部 4 入口卡 → 大提示词框 + 底栏（模型/技能/权限/能力组合）→ 连接器多选区 → 调度频率 → 保存为模板 / 创建任务 |
+| 6 | `duty-picker.html` | 从模板·技能·连接器选（3 Tab 选择器） | 自动化 → 新建任务 | L2 | 选模板 / 选技能(⚙需配置 / ⚡直接用，统一 Tab) / 选连接器 → 跳 create 预填 |
+| 7 | `duty-create.html` | 创建值守任务（融合式大提示词） | 自动化 | L2 | 顶部 3 入口卡 → 大提示词框 + 底栏（模型/技能双计数/权限）→ 连接器多选区 → 调度频率 → 保存为模板 / 创建任务 |
 | 8 | `templates-library.html` | 任务模板库 | 任务模板库 | L1 | 无顶部 3 统计卡；分组：全部 / 系统 / 我的 / 外部导入（方形卡片网格展示，编辑点卡片进入） |
 | 9 | `template-editor.html` | 模板编辑器 | 任务模板库 | L2 | 新建 / 编辑 / 克隆 / 从 create 保存为模板 |
 | 10 | `template-share.html` | 模板分享与导入 | 任务模板库 | L2 | 左导出（tar.gz 不含凭证）/ 右导入（拖拽、冲突策略） |
-| 11 | `duty-capabilities.html` | 能力·技能·连接器（4 合 1） | 能力·技能·连接器 | L1 | 平台方形卡片 + 能力网格+详情抽屉 + 技能列表 + 连接器列表；右上角按钮严格按 Tab 动态切换 |
-| 12 | `platform-onboarding.html` | 平台接入向导 | 能力·技能·连接器 | L2 | 平台信息 → 认证 → 能力映射 → 测试确认（4 步） |
+| 11 | `duty-capabilities.html` | 平台·技能·连接器（3 合 1） | 平台·技能·连接器 | L1 | 平台方形卡片 + 技能网格(⚙需配置/⚡直接用)+详情抽屉 + 连接器列表；右上角按钮严格按 Tab 动态切换 |
+| 12 | `platform-onboarding.html` | 平台接入向导 | 平台·技能·连接器 | L2 | 平台信息 → 认证 → 技能·需配置映射 → 测试确认（4 步） |
 
 ---
 
@@ -188,7 +187,7 @@ UniEcoClaw
 
 **UI 结构**：
 - 页面右上角 page-actions：
-  - 左侧：「从模板 / 能力 / 技能 / 连接器添加」按钮 → 跳 `duty-picker.html`
+  - 左侧：「从模板 / 技能添加任务」按钮 → 跳 `duty-picker.html`
   - 右侧：「创建任务」按钮 → 跳 `duty-create.html`
 - 筛选条：全部 / 运行中 / 暂停 / 失败 + 搜索（不包含模板筛选）
 - 卡片网格：每个卡片 = 任务名 + 调度频率标签 + 上次执行时间 + 状态色带 + **底部 4 按钮横排**：编辑 / 立即运行 / 暂停 / 删除
@@ -232,27 +231,26 @@ UniEcoClaw
 
 ---
 
-### 4.6 选择器：从模板·能力·技能·连接器选（duty-picker.html）
+### 4.6 选择器：从模板·技能·连接器选（duty-picker.html）
 
-**定位**：`create` 流程的前置选择页，用来「组合式复用已有资产」，降低空配置门槛。
+**定位**：`create` 流程的前置选择页，用来「组合式复用已有资产」，降低空配置门槛。**原「能力/技能」两个 Tab 已合并为统一「技能」Tab，用两种徽章区分用户视角的交互差异。**
 
-**顶部 Tab（4 个，底部操作栏根据 Tab 切换文案）**：
+**顶部 Tab（3 个，底部操作栏根据 Tab 切换文案）**：
 
 | # | Tab | 多选？ | 底部主按钮 | 特殊 UI 约束 |
 |---|-----|--------|------------|--------------|
 | 1 | 选模板 | 单选 | 使用此模板创建 → duty-create | 分组 Tab：全部 / 系统 / 我的 / 外部导入；来源标签 T（系统）/ M（我的）/ I（外部导入）**用单字母彩色圆角方块**，不用 emoji |
-| 2 | 选能力 | 多选（推荐 ≤ 6） | 使用选中的能力创建 | 按平台分组；卡片**删除彩色小 mono 图标**避免与名称（如「一张图」）重叠；仅保留平台名标签；能力卡片不再含 emoji / 彩色小图 |
-| 3 | 选技能 | 多选 | 使用选中的技能创建 | 卡片结构三栏：顶栏左「技能名」右「N 次」胶囊标签；中间描述两行截断；底栏输出标签 + 分类标签；样式对齐「pkr-skill-card」 |
-| 4 | 选连接器 | 多选 | 使用选中的连接器创建 | 卡片结构三栏：顶栏左「连接器名」右「stdio/HTTP」颜色徽章；中间描述两行；底栏「N 个工具」+ 分类标签；样式对齐「pkr-mcp-card」 |
+| 2 | 选技能 | 多选（推荐 ≤ 6） | 使用选中的技能创建 | **统一 Tab，卡片分两种形态徽章：**<br>· 蓝徽章「⚙ 需配置」：原 4 项平台能力（一张图/浓度排名/小时播报/监测数据等），选后需在 create 页填参数<br>· 绿徽章「⚡ 直接用」：原 Skill 脚本，无需配置参数，Agent 自动提取上下文<br>卡片删除彩色小 mono 图标，避免与名称重叠；样式对齐 `pkr-skill-card` |
+| 3 | 选连接器 | 多选 | 使用选中的连接器创建 | 卡片结构三栏：顶栏左「连接器名」右「stdio/HTTP」颜色徽章；中间描述两行；底栏「N 个工具」+ 分类标签；样式对齐「pkr-mcp-card」 |
 
-**跨页参数协议（关键，实现时必须对齐）**：
+**跨页参数协议（关键，实现时必须对齐。内部仍按 kind 分流到 caps/skills，对用户透明）**：
 
 ```
 duty-create.html
   ?from=picker
-  &caps=id1,id2                           // 能力 key 数组
+  &caps=id1,id2                           // 需配置类技能 key 数组（原能力）
   &cap_names=名1|名2                      // URL 编码
-  &skills=sk_01,sk_05
+  &skills=sk_01,sk_05                     // 直接用类技能 ID 数组（原技能）
   &skill_names=日报技能|PDF技能
   &mcps=mcp_fs,mcp_lark
   &mcp_names=本地文件系统|飞书IM
@@ -260,28 +258,30 @@ duty-create.html
 ```
 
 Picker 初始化：
-- hash `#tab=tmpl|caps|skills|mcps` 直接打开对应 Tab，通过 `localStorage.unieco_picker_tab` 记忆上次选择
+- hash `#tab=tmpl|skills|mcps` 直接打开对应 Tab，通过 `localStorage.unieco_picker_tab` 记忆上次选择
+- 兼容旧 hash `#tab=caps` → 自动重定向到 `#tab=skills`（避免已有外链失效）
 
 ---
 
 ### 4.7 创建值守任务（duty-create.html）— **融合式大提示词新布局**
 
-**定位**：把「技能 / 连接器 / 能力组合」与「自然语言提示词」放在同一画布上，效仿 Workbuddy 「大提示词框 + 底栏选择器 + 连接器多选」三层次结构，避免用户觉得「技能和连接器是摆设，没有提示词就干不了活」。
+**定位**：把「技能(两种形态统一概念) / 连接器」与「自然语言提示词」放在同一画布上，效仿 Workbuddy 「大提示词框 + 底栏选择器 + 连接器多选」三层次结构，避免用户觉得「技能和连接器是摆设，没有提示词就干不了活」。**用户视角只有「技能」一个概念，但芯片和标签用「技能·需配置 / 技能·直接用」区分交互。**
 
 **UI 自上而下 6 段**：
 
-1. **顶部 4 张快捷入口卡**（补漏：若用户没走 picker，也能点卡片跳 picker 对应 Tab 预填）：
-   - 从模板选 / 选能力组合 / 从技能添加 / 从连接器添加
+1. **顶部 3 张快捷入口卡**（补漏：若用户没走 picker，也能点卡片跳 picker 对应 Tab 预填）：
+   - 从模板选（最推荐徽章）
+   - 从技能添加（标注「2 种形态」徽章，描述中说明「⚙ 需配置 vs ⚡ 直接用」的差异）
+   - 从连接器添加
 2. **任务名输入**
 3. **大提示词框块**（最核心，视觉占比最大）：
-   - 标签「提示词」+ 副注「描述任务目标，AI 将按目标调用下方技能、连接器与能力」
+   - 标签「提示词」+ 副注「描述任务目标，AI 将按目标调用下方技能、连接器与工具」
    - 多行 textarea（高度 ≥ 160px）
    - **框底工具行（prompt-toolbar）**，从左到右：
      - 模型选择：当前 Auto（不可独立配置模型的占位，点击 Toast 示意）
-     - 技能选择：点击 → 跳 picker `#tab=skills`；右侧绿胶囊显示已选 N 个
-     - 能力组合：点击 → 跳 picker `#tab=caps`；右侧蓝胶囊显示已选 N 个
+     - **技能选择（统一入口）**：点击 → 跳 picker `#tab=skills`；右侧**双计数**胶囊：蓝「N 需」= 需配置类数量、绿「N 直」= 直接用类数量
      - 权限等级：完全访问权限（⚠️ 胶囊标）
-     - 右端 chips 区：已选的技能/能力以小 chip 展示，chip 带 × 可删
+     - 右端 chips 区：**分两类 chip 展示**：蓝「N 技能·需配置」+ 绿「N 技能·直接用」，chip 带 × 可删
 4. **连接器多选块**（复选式卡片网格，2 列）：
    - 标题 + 副注「勾选即授权该连接器在任务中免确认使用」
    - 右上链接「到连接器库选择 →」→ picker `#tab=mcps`
@@ -331,7 +331,7 @@ Picker 初始化：
 
 **UI 4 段**：
 1. 基本信息：名称、描述、所属分组、标签
-2. 能力·技能·连接器配置（每项可展开参数面板，布局与 create 页的配置面板保持一致）
+2. 技能·连接器配置（每项可展开参数面板，布局与 create 页的配置面板保持一致；技能分「需配置」「直接用」两类标签）
 3. 调度与推送（默认，派生任务可覆盖）
 4. 角色提示词（代码风 textarea，所有派生任务会统一带）+ 补充说明
 
@@ -352,49 +352,57 @@ Picker 初始化：
 
 ---
 
-### 4.11 能力·技能·连接器（duty-capabilities.html）— **4 Tab 与右上角按钮规范**
+### 4.11 能力·技能·连接器（duty-capabilities.html）— **3 Tab · 技能统一概念**
 
-**定位**：统一管理平台接入、能力库、AI 技能脚本与 MCP 连接器。
+**定位**：统一管理平台接入、技能库与 MCP 连接器。**对最终用户而言"能力"与"技能"是同一件事的不同实现方式**——本页面把它们统一为**技能**一个概念展示，UI 上不出现"能力/硬编码/FuncDef"等内部术语。
 
-**4 Tab 与对应右上角 page-actions 按钮（严格按 Tab 切换，**禁止主操作按钮在「右上角 + 统计条右侧」同时出现**）**：
+**3 Tab 与对应右上角 page-actions 按钮（严格按 Tab 切换，**禁止主操作按钮在「右上角 + 统计条右侧」同时出现**）**：
 
 | Tab | 右上角按钮 | UI 主体 | 说明 |
 |-----|-----------|---------|------|
 | 平台（4） | 「添加平台」（主色按钮）→ platform-onboarding.html | 方形卡片网格（4 列）；数智大气标「内置底座」徽章；其余平台含连接状态 + 卡片右上角图标按钮（编辑/测试/删除，非内置才显示） + 卡片底部「查看能力」主色按钮 | **「添加平台」是平台 Tab 的唯一主操作入口**；卡片底部永远统一为「查看能力」（不再按"已连接/未连接"切换成"配置接入"），避免与顶部"添加平台"语义重复造成按钮撞车 |
-| 能力（12） | **无按钮**（能力为硬编码内置，通常不允许用户加） | 按平台分段头 + 卡片网格；每张卡片「详情」→ 右滑抽屉（见下） / 测试 | 12 项能力：数智大气 4 / 中大平台 4 / 省大数据 3 / 华东平台 3 |
-| 技能（7） | 「导入技能」（**主色按钮**）→ Toast 示意原型 | 分类（全部 / 数智大气 / 通用）+ 搜索；卡片含启用开关 / 来源标签 builtin-local / 使用次数 / 详情 / 删除（仅 local 来源可删） | **技能 Tab 的唯一主操作是右上角"导入技能"，样式与平台/连接器统一为黑色 btn-primary**；统计条仅展示 3 项数字（总数/已启用/已禁用），不放按钮 |
-| 连接器（5） | 「添加连接器」（主色按钮）→ Toast 示意原型 | 卡片：类型标签 stdio/HTTP + 工具数 + 状态 + 测试 / 重试 / 删除 | **连接器 Tab 的唯一主操作是右上角"添加连接器"**；统计条仅展示 4 项数字（总数/已连接/未连接/工具数），不放按钮 |
+| 技能（21） | 「导入技能」（**主色按钮**）→ Toast 示意原型 | 来源筛选（数智大气 8 / 中大平台 4 / 省大数据 3 / 华东平台 3 / 通用 3） + 搜索；卡片含「需配置」/「直接用」两种徽章（**用户视角，不写内部实现术语**） | **技能 Tab 的唯一主操作是右上角"导入技能"，样式与平台/连接器统一为黑色 btn-primary**；统计条 3 项数字（总数/需配置/直接用）——**不放按钮**。点平台卡片底部「查看能力」会跳此 Tab 并按平台自动筛选 |
+| 连接器（5） | 「添加连接器」（主色按钮）→ Toast 示意原型 | 卡片：类型标签 stdio/HTTP + 工具数 + 状态 + 测试 / 重试 / 删除 | **连接器 Tab 的唯一主操作是右上角"添加连接器"**；统计条 4 项数字（总数/已连接/未连接/工具数），不放按钮 |
 
-#### 能力详情抽屉（非透明，仿页面主风格）
+#### 技能两种形态（用户视角）
+
+| 徽章 | 触发动作 | 详情抽屉 | 适用 |
+|------|---------|---------|------|
+| **⚙ 需配置** | 详情（参数抽屉） / 测试（直接跑参数） / 组合任务（跳 picker） | 含参数清单 + 输出清单 + 调用示例 + prompt 模板 | 14 项：CAPS 中的 14 项业务方法（数智大气 4 + 中大平台 4 + 省大数据 3 + 华东平台 3） |
+| **⚡ 直接用** | 详情（简化抽屉） / 立即调用（AI Agent 跑） | 含功能说明 + prompt 模板，**不**显示参数表（标注"由 AI Agent 按上下文自动提取"） | 7 项：SKILLS 中的 7 项脚本（数智大气 4 + 通用 3） |
+
+**设计动机**：底层是「能力 = 客户端硬编码的传统业务方法（FuncDef）」+ 「技能 = AI Agent 调用的 prompt 脚本（SKILL.md）」；但对用户来说「一张图」就是「一张图」，没必要告诉用户是 hardcode 还是 prompt。UI 用「需配置 / 直接用」区分交互差异——选择前者会进入参数表单（适合确定性场景），选择后者交给 AI 自己填（适合开放场景）。`/duty-picker.html` 仍以 `capabilities`/`skills` 为 hash 参数，内部已统一映射到 `#tab=skills`。
+
+#### 技能详情抽屉（非透明，仿页面主风格）
 
 点击「详情」 → 右侧滑出抽屉（`.cdd-panel` 背景白底，代码块用浅灰 `--bg-secondary`，**禁用透明/深色背景**），内容分 6 段：
-1. 顶部：能力名 + 平台标签 + 关闭
-2. 标签：所属分段、数据采集/分析等
-3. 参数清单：名字、类型、必填、默认值
-4. 输出清单：结构 + 类型
+1. 顶部：技能名 + 来源标签 + 关闭
+2. 徽章：需配置 / 直接用 + 使用次数（仅 script 类）
+3. 参数清单：名字、类型、必填、默认值（**仅需配置类显示**；直接用类显示"由 AI Agent 按上下文自动提取参数"）
+4. 输出清单：结构 + 类型（仅需配置类显式）
 5. 调用示例（请求参数 → 预期返回 JSON，代码块浅灰底）
-6. 底部：「组合此能力到任务」→ 跳 picker `#tab=caps` 并 auto-check 该能力（hash `#tab=caps&pick=<capId>`）
+6. 底部：「组合此技能到任务」→ 跳 picker `#tab=caps` 并 auto-check 该技能（**仅需配置类显示**）；直接用类显示「立即调用」
 
 URL 直达：
 ```
 duty-capabilities.html#tab=platforms        // 打开平台 Tab
-duty-capabilities.html#tab=capabilities
-duty-capabilities.html#tab=capabilities&pick=sz_onemap   // 打开能力 Tab 并弹出 sz_onemap 抽屉
 duty-capabilities.html#tab=skills
+duty-capabilities.html#tab=skills&pick=sz_onemap     // 打开技能 Tab 并弹出 sz_onemap 抽屉（自动按 kind 分流）
 duty-capabilities.html#tab=mcps
+duty-capabilities.html#tab=caps&pick=xxx              // 旧 hash（capabilities）兼容，重定向到 skills
 ```
 
 ---
 
 ### 4.12 平台接入向导（platform-onboarding.html）
 
-**定位**：外部平台接入（非数智大气内置底座）。
+**定位**：外部平台接入（非数智大气内置底座）。接入后平台功能会作为「技能·需配置」出现在统一技能库中。
 
 **4 步向导**：
 1. 平台信息：名称、类型（大气/水质/噪声/其他）、官方 URL
 2. 认证配置：OAuth 2.0 / API Key / 账号密码；凭证输入框；HTTPS 校验提示
-3. 能力映射：列出该平台可提供的能力（可增删卡），每项映射到系统分类（数据采集/分析/预警/办公）
-4. 测试确认：连接测试 + 逐项能力验证 + 「完成接入」跳 capabilities `#tab=platforms`
+3. 技能·需配置映射：列出该平台可提供的功能（可增删卡），每项映射到系统分类（数据采集/分析/预警/办公），作为「技能·需配置」入库
+4. 测试确认：连接测试 + 逐项技能验证 + 「完成接入」跳 capabilities `#tab=platforms`
 
 ---
 
@@ -406,8 +414,8 @@ duty-capabilities.html#tab=mcps
 |--------|------------|------|
 | `duty-create.html` | `?edit=<jobId>` | 加载现有任务编辑 |
 | `duty-create.html` | `?from=<tplId>` | 从模板派生任务 |
-| `duty-create.html` | `?from=picker&caps=<ids>&cap_names=<encoded>` | 从 picker 的选能力 Tab 带入 |
-| `duty-create.html` | `?from=picker&skills=<ids>&skill_names=<encoded>` | 从 picker 的技能 Tab 带入 |
+| `duty-create.html` | `?from=picker&caps=<ids>&cap_names=<encoded>` | 从 picker 的技能 Tab 带入（「⚙ 需配置」类，内部参数名保持 caps 以兼容后端） |
+| `duty-create.html` | `?from=picker&skills=<ids>&skill_names=<encoded>` | 从 picker 的技能 Tab 带入（「⚡ 直接用」类） |
 | `duty-create.html` | `?from=picker&mcps=<ids>&mcp_names=<encoded>` | 从 picker 的连接器 Tab 带入 |
 | `duty-create.html` | `?from=chat&prompt=<encoded>` | 从对话建议卡带入 |
 | `template-editor.html` | `?from=create&name=<encoded>&caps=<ids>&skills=<ids>&mcps=<ids>&prompt=<encoded>` | create「保存为模板」 |
@@ -415,8 +423,8 @@ duty-capabilities.html#tab=mcps
 | `template-editor.html` | `?clone=<tplId>` / `?edit=<tplId>` | 克隆 / 编辑模板 |
 | `template-share.html` | `?export=<tplId>` | 导出指定模板 |
 | `duty-task-detail.html` | `?id=<jobId>` | 查看任务详情 |
-| `duty-picker.html` | `#tab=tmpl/caps/skills/mcps` | 打开指定 Tab |
-| `duty-capabilities.html` | `#tab=platforms/capabilities/skills/mcps[&pick=<capId>]` | 打开 Tab + 可选弹出能力详情抽屉 |
+| `duty-picker.html` | `#tab=tmpl/skills/mcps` | 打开指定 Tab（3 Tab；旧 `#tab=caps` 兼容重定向到 skills） |
+| `duty-capabilities.html` | `#tab=platforms/skills/mcps[&pick=<capId>]` | 打开 Tab + 可选弹出技能详情抽屉（旧 `#tab=capabilities` 兼容重定向到 skills） |
 
 ---
 

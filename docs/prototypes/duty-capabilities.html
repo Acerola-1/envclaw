@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UniEcoClaw · 能力库</title>
+<title>UniEcoClaw · 平台·技能·连接器</title>
 <link rel="stylesheet" href="duty-proto.css">
 </head>
 <body>
@@ -22,7 +22,7 @@
           <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
           <a class="sidebar-primary-nav-item " href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
           <a class="sidebar-primary-nav-item " href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
-          <a class="sidebar-primary-nav-item active" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <a class="sidebar-primary-nav-item active" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>平台·技能·连接器</span></a>
           <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
         </div>
       </div>
@@ -52,8 +52,8 @@
     <div class="page">
       <div class="page-header">
         <div>
-          <h1>能力·技能·连接器</h1>
-          <div class="page-sub">平台接入、能力库、AI 技能脚本与 MCP 连接器一站式管理</div>
+          <h1>平台·技能·连接器</h1>
+          <div class="page-sub">平台接入、技能库（含需配置与直接用两种形态）、MCP 连接器一站式管理</div>
         </div>
         <div class="page-actions" id="pageActions">
           <!-- 内容按当前 Tab 动态渲染：平台=加平台 / 能力=空 / 技能=导技能 / 连接器=加连接器 -->
@@ -63,8 +63,7 @@
 
       <div class="seg-switch">
         <button class="seg-btn active" onclick="setCapTab('platforms', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>平台 <span class="seg-count">4</span></button>
-        <button class="seg-btn" onclick="setCapTab('capabilities', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>能力 <span class="seg-count">12</span></button>
-        <button class="seg-btn" onclick="setCapTab('skills', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>技能 <span class="seg-count">7</span></button>
+        <button class="seg-btn" onclick="setCapTab('skills', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>技能 <span class="seg-count">21</span></button>
         <button class="seg-btn" onclick="setCapTab('mcps', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>连接器 <span class="seg-count">5</span></button>
       </div>
 
@@ -97,83 +96,28 @@
         <div class="platforms" id="platList"></div>
       </div>
 
-      <!-- Tab 2: 能力 (capabilities) -->
-      <div class="capability-tab" data-tab="capabilities" style="display:none">
-        <div class="onboard-card" id="onboardCard">
-          <div class="onboard-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="16" y1="3" x2="16" y2="13"/><line x1="8" y1="21" x2="8" y2="3"/><line x1="3" y1="3" x2="21" y2="3"/><path d="M12 13v8"/><path d="M21 13v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8"/></svg>
-          </div>
-          <div class="onboard-content">
-            <div class="onboard-title">这是工具箱</div>
-            <div class="onboard-desc">在这里浏览所有可值守的能力，点击「测试」立即试跑，点击「详情」查看接入方式与参数说明。多个能力可在「创建任务」向导中组合为一个复合任务。</div>
-          </div>
-          <button class="onboard-close" onclick="document.getElementById('onboardCard').style.display='none'" title="关闭">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-
-        <div class="cap-tabs">
-          <button class="cap-tab active" data-cat="all" onclick="setCat('all', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            全部 <span class="cap-tab-num">4</span>
-          </button>
-          <button class="cap-tab" data-cat="collection" onclick="setCat('collection', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-            数据采集 <span class="cap-tab-num">1</span>
-          </button>
-          <button class="cap-tab" data-cat="analysis" onclick="setCat('analysis', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-            数据分析 <span class="cap-tab-num">3</span>
-          </button>
-          <button class="cap-tab" data-cat="alert" onclick="setCat('alert', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            预警 <span class="cap-tab-num">0</span>
-          </button>
-          <button class="cap-tab" data-cat="office" onclick="setCat('office', this)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            办公 <span class="cap-tab-num">0</span>
-          </button>
-          <div class="cap-tabs-right">
-            <div class="search-input">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input id="capSearch" placeholder="搜索能力..." oninput="renderCaps()">
-            </div>
-          </div>
-        </div>
-
-        <div class="cap-source-row" id="capSourceRow">
-          <div class="cap-source-meta">
-            <div class="cap-source-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></div>
-            <div>
-              <div class="cap-source-name">数智大气 <span class="builtin-chip">内置</span></div>
-              <div class="cap-source-sub">大气环境监测底座 · 由系统统一维护，能力持续扩展中</div>
-            </div>
-          </div>
-          <a class="btn btn-default btn-sm" href="duty-capabilities.html#tab=platforms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>查看数据平台</a>
-        </div>
-
-        <div class="cap-grid" id="capGrid"></div>
-      </div>
-
-      <!-- Tab 3: 技能 (skills) -->
+      <!-- Tab 2: 技能 (skills) - 统一展示能力与技能（对用户都叫技能） -->
       <div class="capability-tab" data-tab="skills" style="display:none">
         <div class="onboard-card">
           <div class="onboard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg></div>
           <div class="onboard-content">
-            <div class="onboard-title">AI 技能脚本</div>
-            <div class="onboard-desc">技能是基于 prompt 模板 + 上下文注入的可复用脚本，在创建任务时被 AI Agent 调用。数智大气平台的 4 项内置能力均以技能形式实现，可启用/禁用或查看详情。</div>
+            <div class="onboard-title">技能库</div>
+            <div class="onboard-desc">在创建任务时选择技能，AI Agent 会按你选定的技能组合并自动执行。其中部分技能需要先配置参数（带「需配置」徽章），另一部分可由 AI 直接调用（带「直接用」徽章）。</div>
           </div>
         </div>
 
         <div class="plat-stats">
-          <div class="plat-stat"><div class="plat-stat-label">技能总数</div><div class="plat-stat-value"><span class="plat-stat-num">7</span></div></div>
-          <div class="plat-stat connected"><div class="plat-stat-label"><span class="pill-dot" style="background:var(--success)"></span>已启用</div><div class="plat-stat-value" style="color:var(--success)"><span class="plat-stat-num">6</span></div></div>
-          <div class="plat-stat disconnected"><div class="plat-stat-label"><span class="pill-dot" style="background:var(--text-muted)"></span>已禁用</div><div class="plat-stat-value" style="color:var(--text-muted)"><span class="plat-stat-num">1</span></div></div>
+          <div class="plat-stat"><div class="plat-stat-label">技能总数</div><div class="plat-stat-value"><span class="plat-stat-num" id="skillTotalNum">21</span></div></div>
+          <div class="plat-stat connected"><div class="plat-stat-label"><span class="pill-dot" style="background:var(--accent-primary)"></span>需配置</div><div class="plat-stat-value" style="color:var(--accent-primary)"><span class="plat-stat-num" id="skillConfigNum">14</span></div></div>
+          <div class="plat-stat connected"><div class="plat-stat-label"><span class="pill-dot" style="background:var(--success)"></span>直接用</div><div class="plat-stat-value" style="color:var(--success)"><span class="plat-stat-num" id="skillDirectNum">7</span></div></div>
         </div>
 
         <div class="cap-tabs">
-          <button class="cap-tab active" data-skillcat="all" onclick="setSkillCat('all', this)">全部 <span class="cap-tab-num">7</span></button>
-          <button class="cap-tab" data-skillcat="mapairs" onclick="setSkillCat('mapairs', this)">数智大气 <span class="cap-tab-num">4</span></button>
+          <button class="cap-tab active" data-skillcat="all" onclick="setSkillCat('all', this)">全部 <span class="cap-tab-num">21</span></button>
+          <button class="cap-tab" data-skillcat="mapairs" onclick="setSkillCat('mapairs', this)">数智大气 <span class="cap-tab-num">8</span></button>
+          <button class="cap-tab" data-skillcat="zd" onclick="setSkillCat('zd', this)">中大平台 <span class="cap-tab-num">4</span></button>
+          <button class="cap-tab" data-skillcat="hnsjk" onclick="setSkillCat('hnsjk', this)">省大数据 <span class="cap-tab-num">3</span></button>
+          <button class="cap-tab" data-skillcat="hdjk" onclick="setSkillCat('hdjk', this)">华东平台 <span class="cap-tab-num">3</span></button>
           <button class="cap-tab" data-skillcat="general" onclick="setSkillCat('general', this)">通用 <span class="cap-tab-num">3</span></button>
           <div class="cap-tabs-right">
             <div class="search-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="skillSearch" placeholder="搜索 技能..." oninput="renderSkills()"></div>
@@ -506,7 +450,6 @@ const CAPS = [
 ];
 
 let currentCat = 'all';
-
 // ============ 技能 数据（源自 packages/skills/ 目录扫描，字段对齐 SkillList.vue） ============
 // source: 'builtin' = 系统内置(不可删)，'local' = 用户导入(可删)，对齐后端 deleteSkill 逻辑
 const SKILLS = [
@@ -524,6 +467,33 @@ const SKILLS = [
     desc: '通过当前 Profile 的 API-key 图片提供商生成或编辑图片，支持 DALL-E / Stable Diffusion 等。' },
   { id: 'pingdingshan-custom-alert', name: '平顶山定制预警', cat: 'general', enabled: true, useCount: 3, source: 'local',
     desc: '用户导入的本地 技能：当平顶山市 AQI 超 150 时自动生成预警简报并附带一张图截图，推送到企业微信群。' },
+];
+
+
+/**
+ * 统一技能清单：把「能力」(CAPS, 来源 FuncDef) 与「技能」(SKILLS, 来源 prompt 脚本) 合并为一个面向用户的列表
+ * kind 字段为内部实现标识，UI 上不展示此字段值，只用其映射成「需配置 / 直接用」徽章
+ * kind: 'funcdef' = 需要在创建任务时填参数的业务方法
+ *       'script'  = AI Agent 调用的脚本，无需填参数
+ * 注：prompt 字段在 renderSkillDetail 阶段通过 PROMPT_BY_CAP 回填，不在此处提前注入
+ */
+const SKILLS_UNIFIED = [
+  ...CAPS.map(c => ({
+    id: c.id, name: c.name, icon: c.icon, desc: c.desc, tags: c.tags,
+    source: c.platformId === 'szdq' ? 'mapairs' : c.platformId,
+    platformId: c.platformId,
+    kind: 'funcdef',
+    params: c.params, outputs: c.outputs, examples: c.examples,
+    builtin: c.platformId === 'szdq'
+  })),
+  ...SKILLS.map(s => ({
+    id: s.id, name: s.name, desc: s.desc,
+    source: s.cat,
+    kind: 'script',
+    useCount: s.useCount, enabled: s.enabled,
+    builtin: s.source === 'builtin',
+    local: s.source === 'local'
+  }))
 ];
 
 // ============ MCP 数据（源自 studio-mcp-autoinject.ts，字段对齐 McpServerEntry） ============
@@ -556,14 +526,14 @@ function setCapTab(tab, btnEl){
   document.querySelectorAll('.seg-switch .seg-btn').forEach(b => b.classList.remove('active'));
   if (btnEl) btnEl.classList.add('active');
   else {
-    const idx = ['platforms','capabilities','skills','mcps'].indexOf(tab);
+    const idx = ['platforms','skills','mcps'].indexOf(tab);
     const btns = document.querySelectorAll('.seg-switch .seg-btn');
     if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
   }
   document.querySelectorAll('.capability-tab').forEach(div => {
     div.style.display = div.dataset.tab === tab ? 'block' : 'none';
   });
-  // 根据 Tab 动态渲染右上角按钮：平台=加平台 / 能力=空 / 技能=导技能 / 连接器=加连接器
+  // 根据 Tab 动态渲染右上角按钮：平台=加平台 / 技能=导入技能 / 连接器=加连接器
   const act = document.getElementById('pageActions');
   if (act) {
     const addBtn = (cls, href, svgInner, text) => `<a class="btn ${cls}" href="${href}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${svgInner}</svg>${text}</a>`;
@@ -573,15 +543,12 @@ function setCapTab(tab, btnEl){
     };
     if (tab === 'platforms') {
       act.innerHTML = addBtn('btn-primary', 'platform-onboarding.html', ICON.plus, '添加平台');
-    } else if (tab === 'capabilities') {
-      act.innerHTML = '';
     } else if (tab === 'skills') {
       act.innerHTML = `<button class="btn btn-primary" onclick="showToast('导入技能包（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON.import}</svg>导入技能</button>`;
     } else if (tab === 'mcps') {
       act.innerHTML = `<button class="btn btn-primary" onclick="showToast('添加 MCP 服务（原型示意）')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON.plus}</svg>添加连接器</button>`;
     }
   }
-  if (tab === 'capabilities') renderCaps();
   if (tab === 'platforms') renderPlats();
   if (tab === 'skills') renderSkills();
   if (tab === 'mcps') renderMcps();
@@ -747,48 +714,10 @@ function platCardSquare(p){
  * @param {string} pid 平台ID
  */
 function jumpToPlatformCaps(pid){
-  setCapTab('capabilities', null);
-  // 按 platformId 过滤：使用临时分类筛选
-  currentCat = `__plat:${pid}`;
-  const kwEl = document.getElementById('capSearch');
-  if (kwEl) kwEl.value = '';
-  const plat = PLATS.find(p=>p.id===pid);
-  document.querySelectorAll('.cap-tab[data-cat]').forEach(b=>b.classList.remove('active'));
-
-  // 渲染 + 显示 sourceRow
-  const list = CAPS.filter(c=>c.platformId===pid);
-  const grid = document.getElementById('capGrid');
-  const sourceRow = document.getElementById('capSourceRow');
-  if (sourceRow) {
-    sourceRow.style.display = 'flex';
-    const nm = sourceRow.querySelector('.cap-source-name');
-    const sub = sourceRow.querySelector('.cap-source-sub');
-    if (plat && nm) nm.innerHTML = `${plat.name} ${plat.builtin ? '<span class="builtin-chip">内置</span>' : ''}`;
-    if (plat && sub) sub.textContent = plat.sub || '';
-  }
-  if (!grid) return;
-  if (!list.length) {
-    grid.innerHTML = `<div class="cap-empty"><div class="cap-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><div class="cap-empty-title">该平台暂未配置能力</div><div class="cap-empty-hint">可前往<a href="platform-onboarding.html">平台接入</a>扩展能力</div></div>`;
-    return;
-  }
-  grid.innerHTML = list.map(c=>`
-    <div class="cap-card" data-cap="${c.id}">
-      <div class="cap-card-top">
-        <div class="cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON_CAP[c.icon]||ICON_CAP.package}</svg></div>
-        <div class="cap-name-block">
-          <div class="cap-name">${c.name}</div>
-          <div class="cap-platform">${PLAT_NAME_MAP[c.platformId]||''}${c.platformId==='szdq'?' · 内置':''}</div>
-        </div>
-      </div>
-      <div class="cap-desc">${c.desc}</div>
-      <div class="cap-tags">${(c.tags||[]).map(t=>`<span class="cap-tag">${t}</span>`).join('')}</div>
-      <div class="cap-foot">
-        <button class="btn btn-default btn-sm" onclick="openCapDetail('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON_CAP.info}</svg>详情</button>
-        <button class="btn btn-primary btn-sm" onclick="showToast('正在测试: ${c.name}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${ICON_CAP.play}</svg>测试</button>
-        <a class="btn btn-default btn-sm" href="duty-picker.html#tab=caps&pick=${c.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>组合任务</a>
-      </div>
-    </div>`).join('');
-  syncCapTabCounts();
+  setCapTab('skills', null);
+  setSkillCat(pid, null);
+  const tabs = document.querySelector('.capability-tab[data-tab="skills"]');
+  if (tabs) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ============ 技能 渲染（复用 cap-card 网格样式，增加启用/禁用开关） ============
@@ -801,8 +730,15 @@ function setSkillCat(cat, el){
 
 function renderSkills(){
   const kw = (document.getElementById('skillSearch')?.value || '').trim().toLowerCase();
-  let list = currentSkillCat === 'all' ? SKILLS : SKILLS.filter(s => s.cat === currentSkillCat);
-  if (kw) list = list.filter(s => s.name.toLowerCase().includes(kw) || s.desc.toLowerCase().includes(kw) || s.id.toLowerCase().includes(kw));
+  // 筛选：'all' 不过滤；'general' 对应 SKILLS_UNIFIED 里 source='general' 的项；其他对应 platformId 或 cat
+  let list = currentSkillCat === 'all'
+    ? SKILLS_UNIFIED
+    : SKILLS_UNIFIED.filter(s => s.source === currentSkillCat);
+  if (kw) list = list.filter(s =>
+    s.name.toLowerCase().includes(kw) ||
+    (s.desc || '').toLowerCase().includes(kw) ||
+    s.id.toLowerCase().includes(kw)
+  );
 
   const grid = document.getElementById('skillGrid');
   if (!grid) return;
@@ -812,35 +748,62 @@ function renderSkills(){
     return;
   }
 
-  const ICON_SKILL = '<path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>';
   const ICON_INFO = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>';
+  const ICON_PLAY = '<polygon points="5 3 19 12 5 21 5 3"/>';
+  const ICON_BOLT = '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>';
+  const ICON_GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>';
 
   grid.innerHTML = list.map(s => {
-    const sourceLabel = s.source === 'local' ? '我的 · 本地导入' : (s.cat === 'mapairs' ? '数智大气 · 内置' : '通用 · 内置');
-    const sourceTag = s.source === 'local' ? '<span class="cap-tag" style="color:var(--accent-primary);border-color:var(--accent-primary)">本地</span>' : '<span class="cap-tag">内置</span>';
-    const toggleClass = s.enabled ? 'skill-toggle on' : 'skill-toggle';
-    const toggleText = s.enabled ? '已启用' : '已禁用';
-    const deleteBtn = s.source === 'local'
-      ? '<button class="btn btn-default btn-sm" style="color:var(--error)" onclick="deleteSkill(\'' + s.id + '\')" title="删除此本地 技能"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>删除</button>'
-      : '';
-    return '<div class="cap-card">'
+    // 来源标签：funcdef 用 PLAT_NAME_MAP，script 用 cat 名
+    const sourceLabel = s.kind === 'funcdef'
+      ? (PLAT_NAME_MAP[s.platformId] || '其他')
+      : (s.source === 'general' ? '通用' : (PLAT_NAME_MAP[s.source] || s.source));
+    // 形态徽章：用户视角的两种形态（不展示任何内部术语）
+    const kindBadge = s.kind === 'funcdef'
+      ? '<span class="cap-tag" style="background:rgba(var(--accent-primary-rgb),.10);color:var(--accent-primary);font-weight:600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="11" height="11" style="vertical-align:-1px;margin-right:2px">' + ICON_GEAR + '</svg>需配置</span>'
+      : '<span class="cap-tag" style="background:rgba(var(--success-rgb),.10);color:var(--success);font-weight:600"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11" style="vertical-align:-1px;margin-right:2px">' + ICON_BOLT + '</svg>直接用</span>';
+    // 底部操作按钮：按 kind 差异化
+    let footBtns;
+    if (s.kind === 'funcdef') {
+      footBtns = '<button class="btn btn-default btn-sm" onclick="openSkillDetail(\'' + s.id + '\')">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">' + ICON_INFO + '</svg>详情</button>'
+        + '<button class="btn btn-primary btn-sm" onclick="showToast(\'正在测试: ' + s.name + '\')">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">' + ICON_PLAY + '</svg>测试</button>'
+        + '<a class="btn btn-default btn-sm" href="duty-picker.html#tab=caps&pick=' + s.id + '" title="从模板/能力页选中此技能创建任务">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">' + ICON_PLAY + '</svg>组合任务</a>';
+    } else {
+      footBtns = '<button class="btn btn-default btn-sm" onclick="openSkillDetail(\'' + s.id + '\')">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">' + ICON_INFO + '</svg>详情</button>'
+        + '<button class="btn btn-primary btn-sm" onclick="invokeSkill(\'' + s.id + '\')" title="由 AI Agent 直接调用此技能">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">' + ICON_BOLT + '</svg>立即调用</button>';
+    }
+    return '<div class="cap-card" data-skill="' + s.id + '">'
       + '<div class="cap-card-top">'
-      +   '<div class="cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">' + ICON_SKILL + '</svg></div>'
+      +   '<div class="cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">' + (ICON_CAP[s.icon] || ICON_CAP.package) + '</svg></div>'
       +   '<div class="cap-name-block">'
       +     '<div class="cap-name">' + s.name + '</div>'
-      +     '<div class="cap-platform">' + sourceLabel + ' · 使用 ' + s.useCount + ' 次</div>'
+      +     '<div class="cap-platform">' + sourceLabel + (s.builtin ? ' · 内置' : '') + '</div>'
       +   '</div>'
-      +   '<button class="' + toggleClass + '" onclick="toggleSkill(\'' + s.id + '\', this)" title="点击切换启用/禁用"><span class="skill-toggle-dot"></span></button>'
       + '</div>'
-      + '<div class="cap-desc">' + s.desc + '</div>'
-      + '<div class="cap-tags">' + sourceTag + '<span class="cap-tag">ID: ' + s.id + '</span>' + (s.enabled ? '' : '<span class="cap-tag" style="color:var(--text-muted)">已禁用</span>') + '</div>'
-      + '<div class="cap-foot">'
-      +   '<button class="btn btn-default btn-sm" onclick="showToast(\'查看 SKILL.md: ' + s.name + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">' + ICON_INFO + '</svg>详情</button>'
-      +   deleteBtn
-      +   '<span class="skill-toggle-label">' + toggleText + '</span>'
-      + '</div>'
+      + '<div class="cap-desc">' + (s.desc || '') + '</div>'
+      + '<div class="cap-tags">' + kindBadge + (s.tags || []).map(t => '<span class="cap-tag">' + t + '</span>').join('') + '</div>'
+      + '<div class="cap-foot">' + footBtns + '</div>'
       + '</div>';
   }).join('');
+}
+
+/**
+ * 「直接用」类技能的快速调用：toast 示意 AI Agent 在执行（原型阶段不接后端）
+ * @param {string} id 技能 ID
+ */
+function invokeSkill(id){
+  const s = SKILLS_UNIFIED.find(x => x.id === id);
+  if (!s) return;
+  if (s.enabled === false) {
+    showToast('「' + s.name + '」已禁用，请先在详情中启用');
+    return;
+  }
+  showToast('已提交：AI Agent 正在调用「' + s.name + '」');
 }
 
 function toggleSkill(id, btn){
@@ -867,30 +830,35 @@ function deleteSkill(id){
   showToast('已删除: ' + s.name);
 }
 
-/** 同步 Skill 分类 tab 计数（删除/导入后保持数字一致） */
+/**
+ * 同步刷新技能 Tab 的分类筛选数字（基于 SKILLS_UNIFIED）
+ *   来源分布：mapairs=8 / zd=4 / hnsjk=3 / hdjk=3 / general=3，共 21 项
+ */
 function updateSkillTabCounts(){
-  const all = SKILLS.length;
-  const mapairs = SKILLS.filter(s => s.cat === 'mapairs').length;
-  const general = SKILLS.filter(s => s.cat === 'general').length;
-  const segCount = document.querySelector('.seg-btn[data-tab], .seg-btn:last-of-type');
+  const total = SKILLS_UNIFIED.length;
+  const bySource = {};
+  for (const s of SKILLS_UNIFIED) bySource[s.source] = (bySource[s.source] || 0) + 1;
   document.querySelectorAll('[data-skillcat]').forEach(btn => {
     const cat = btn.dataset.skillcat;
     const num = btn.querySelector('.cap-tab-num');
     if (!num) return;
-    num.textContent = cat === 'all' ? all : (cat === 'mapairs' ? mapairs : general);
+    num.textContent = cat === 'all' ? total : (bySource[cat] ?? 0);
   });
-  const segNum = document.querySelectorAll('.seg-switch .seg-btn');
-  if (segNum[2]) { const c = segNum[2].querySelector('.seg-count'); if (c) c.textContent = all; }
+  const segBtn = document.querySelectorAll('.seg-switch .seg-btn')[1];
+  if (segBtn) { const c = segBtn.querySelector('.seg-count'); if (c) c.textContent = total; }
 }
 
+/**
+ * 同步刷新技能 Tab 的统计条（总数 / 需配置 / 直接用）
+ */
 function updateSkillStats(){
-  const total = SKILLS.length;
-  const enabled = SKILLS.filter(s => s.enabled).length;
-  const disabled = total - enabled;
+  const total = SKILLS_UNIFIED.length;
+  const needCfg = SKILLS_UNIFIED.filter(s => s.kind === 'funcdef').length;
+  const direct  = SKILLS_UNIFIED.filter(s => s.kind === 'script').length;
   const nums = document.querySelectorAll('[data-tab="skills"] .plat-stat-num');
   if (nums[0]) nums[0].textContent = total;
-  if (nums[1]) nums[1].textContent = enabled;
-  if (nums[2]) nums[2].textContent = disabled;
+  if (nums[1]) nums[1].textContent = needCfg;
+  if (nums[2]) nums[2].textContent = direct;
 }
 
 // ============ MCP 渲染（复用 platform-card 样式） ============
@@ -970,6 +938,64 @@ const PROMPT_BY_CAP = {
   hdjkCompare: '生成跨区域空气质量对比分析报告，按多区域、多因子、多维度（排名/均值/优良率/重污染天数）输出对比结论与图表。',
   hdjkOverview: '面向联防联控区域生成联合日报：多区域 AQI 优良率、首要污染物、预警热点与预报建议一览。',
 };
+
+/**
+ * 统一技能详情入口：从 SKILLS_UNIFIED 找，按 kind 分流
+ *   - funcdef: 走原 openCapDetail 抽屉（参数 / 输出 / 示例 / prompt 模板齐全）
+ *   - script:  简化版抽屉（功能说明 + prompt 模板 + 调用次数，无参数表）
+ * @param {string} skillId 技能 ID
+ */
+function openSkillDetail(skillId){
+  const s = SKILLS_UNIFIED.find(x => x.id === skillId);
+  if (!s) { showToast('未找到技能: ' + skillId); return; }
+  if (s.kind === 'funcdef') {
+    // 复用原能力详情抽屉（funcdef 类与原 CAPS 字段一一对应）
+    openCapDetail(skillId);
+    return;
+  }
+  // script 类：走简化版
+  const drawer = document.getElementById('capDetailDrawer');
+  if (!drawer) return;
+  const iconEl = document.getElementById('cddIcon');
+  if (iconEl) iconEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="22" height="22">${ICON_CAP.package}</svg>`;
+  const titleEl = document.getElementById('cddTitle');
+  const subEl = document.getElementById('cddSub');
+  if (titleEl) titleEl.textContent = s.name;
+  if (subEl) subEl.textContent = (s.source === 'general' ? '通用' : (PLAT_NAME_MAP[s.source] || s.source)) + ' · 技能ID：' + s.id;
+  // tags：只显示状态徽章（无 params/tags）
+  const tagsEl = document.getElementById('cddTags');
+  if (tagsEl) tagsEl.innerHTML = '<span class="cap-tag" style="background:rgba(var(--success-rgb),.10);color:var(--success);font-weight:600">⚡ 直接用</span>'
+    + '<span class="cap-tag">已使用 ' + (s.useCount||0) + ' 次</span>'
+    + (s.enabled === false ? '<span class="cap-tag" style="color:var(--text-muted)">已禁用</span>' : '');
+  const descEl = document.getElementById('cddDesc');
+  if (descEl) descEl.textContent = s.desc || '';
+  // params：script 类不显示「参数」表，给一个温和说明
+  const pEl = document.getElementById('cddParams');
+  if (pEl) pEl.innerHTML = '<thead><tr><th>参数</th><th>说明</th></tr></thead><tbody><tr><th>—</th><td style="color:var(--text-muted)">此技能由 AI Agent 按上下文自动提取参数，无需手动配置</td></tr></tbody>';
+  // outputs：script 类没有显式定义产出
+  const oEl = document.getElementById('cddOutputs');
+  if (oEl) oEl.innerHTML = '<li style="color:var(--text-muted)">由 AI Agent 在任务上下文中按需产出</li>';
+  // examples：复用 desc
+  const exEl = document.getElementById('cddExamples');
+  if (exEl) exEl.innerHTML = '<li>' + (s.desc || '') + '</li>';
+  // prompt：来自原 SKILL.md
+  const prEl = document.getElementById('cddPrompt');
+  if (prEl) prEl.textContent = s.desc || '—(无)';
+  // go picker / test：script 类隐藏「组合任务」按钮，文案改为「立即调用」
+  const gp = document.getElementById('cddGoPicker');
+  if (gp) { gp.style.display = 'none'; }
+  const tbtn = document.getElementById('cddTest');
+  if (tbtn) {
+    tbtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>立即调用';
+    tbtn.onclick = () => invokeSkill(skillId);
+  }
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden','false');
+  const h = location.hash;
+  const base = h.replace(/&?cap=[^&]*/g,'').replace(/^#/,'');
+  history.replaceState(null,'',`duty-capabilities.html#${base?base+'&':''}cap=${encodeURIComponent(s.id)}`);
+  document.body.style.overflow = 'hidden';
+}
 
 /**
  * 打开能力详情抽屉（右侧滑出），并填充 params / outputs / examples / prompt
@@ -1075,24 +1101,24 @@ window.addEventListener('load', function(){
   let initialTab = 'platforms';
   const m = location.hash.match(/tab=(\w+)/);
   if (m) {
-    const valid = ['platforms','capabilities','skills','mcps'];
+    const valid = ['platforms','skills','mcps'];
     if (valid.indexOf(m[1]) >= 0) initialTab = m[1];
   }
-  // picker 页使用 #tab=caps 来跳转，归一化成 capabilities
-  if (/tab=caps(&|$)/.test(location.hash)) initialTab = 'capabilities';
+  // picker 页使用 #tab=caps 来跳转，归一化成 skills（统一技能 Tab）
+  if (/tab=caps(&|$)/.test(location.hash)) initialTab = 'skills';
 
   updatePlatStats();
   setCapTab(initialTab, null);
   syncCapTabCounts();
 
-  // picker 页的 `pick=capId` 或链接上的 `cap=capId`：自动打开能力详情抽屉
+  // picker 页的 `pick=capId` 或链接上的 `cap=capId`：自动打开技能详情抽屉
   const capM = location.hash.match(/[?&]?(?:pick|cap)=([^&]+)/);
   if (capM) {
     try {
       const id = decodeURIComponent(capM[1]);
-      // 切到能力 Tab（若已在则保持），延时打开抽屉
-      if (initialTab !== 'capabilities') setCapTab('capabilities', null);
-      setTimeout(()=>openCapDetail(id), 50);
+      // 切到技能 Tab（若已在则保持），延时打开抽屉
+      if (initialTab !== 'skills') setCapTab('skills', null);
+      setTimeout(()=>openSkillDetail(id), 50);
     } catch(e){}
   }
 });

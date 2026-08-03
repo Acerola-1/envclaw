@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UniEcoClaw · 从模板 / 能力创建任务</title>
+<title>UniEcoClaw · 从模板/技能/连接器创建任务</title>
 <link rel="stylesheet" href="duty-proto.css">
 </head>
 <body>
@@ -22,7 +22,7 @@
           <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
           <a class="sidebar-primary-nav-item active" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
           <a class="sidebar-primary-nav-item " href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
-          <a class="sidebar-primary-nav-item " href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <a class="sidebar-primary-nav-item " href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>平台·技能·连接器</span></a>
           <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
         </div>
       </div>
@@ -53,8 +53,8 @@
       <div class="page-header">
         <div>
           <a class="crumb-back" href="duty-tasks.html">← 返回值守任务</a>
-          <h1>从模板 / 能力 / 技能 / 连接器创建任务</h1>
-          <div class="page-sub">四种方式挑一种：模板一键复用、能力自由组合、技能脚本直接执行、MCP 连接器选择工具调用</div>
+          <h1>从模板 / 技能 / 连接器创建任务</h1>
+          <div class="page-sub">三种方式挑一种：模板一键复用、技能自由组合（需配置+直接用）、MCP 连接器选择工具调用</div>
         </div>
       </div>
 
@@ -63,13 +63,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           选模板 · 一键复用
         </button>
-        <button class="seg-btn" data-tab="caps" onclick="setPickerTab('caps')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-          选能力 · 组合创建
-        </button>
         <button class="seg-btn" data-tab="skills" onclick="setPickerTab('skills')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
-          选 技能 · 脚本执行
+          选 技能 · 自由组合
         </button>
         <button class="seg-btn" data-tab="mcps" onclick="setPickerTab('mcps')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>
@@ -114,71 +110,32 @@
         </div>
       </div>
 
-      <!-- ============== Tab 2: 能力 ============== -->
-      <div class="picker-body picker-tab" id="tabCaps">
-        <div class="picker-layout">
-          <aside class="picker-side">
-            <div class="session-section">
-              <div class="session-group-header"><span class="session-group-label">平台</span><span class="session-group-count" id="platCnt">(4)</span></div>
-              <a class="session-item active" onclick="setPlatform('all', this)"><span class="session-item-title">全部能力</span><span class="session-item-time" id="platAllCnt">10</span></a>
-              <a class="session-item" onclick="setPlatform('szdq', this)"><span class="plat-dot" style="background:#1886e7"></span><span class="session-item-title">数智大气</span><span class="session-item-time" id="platSzCnt">3</span></a>
-              <a class="session-item" onclick="setPlatform('zd', this)"><span class="plat-dot" style="background:#30c782"></span><span class="session-item-title">中大平台</span><span class="session-item-time" id="platZdCnt">4</span></a>
-              <a class="session-item" onclick="setPlatform('hnsjk', this)"><span class="plat-dot" style="background:#f59e0b"></span><span class="session-item-title">省大数据</span><span class="session-item-time" id="platHnCnt">3</span></a>
-              <a class="session-item" onclick="setPlatform('hdjk', this)"><span class="plat-dot" style="background:#8b5cf6"></span><span class="session-item-title">华东联防</span><span class="session-item-time" id="platHdCnt">2</span></a>
-            </div>
-            <div class="session-section">
-              <div class="session-group-header"><span class="session-group-label">能力类型</span></div>
-              <a class="session-item"><span class="session-item-title">截图</span></a>
-              <a class="session-item"><span class="session-item-title">数据采集</span></a>
-              <a class="session-item"><span class="session-item-title">数据分析</span></a>
-              <a class="session-item"><span class="session-item-title">文件下载</span></a>
-            </div>
-            <div class="session-section" style="margin-top:12px">
-              <a class="hint-link-box" href="duty-capabilities.html" target="_blank">
-                <div class="hlb-title">查看所有能力详情</div>
-                <div class="hlb-desc">跳转到「能力·技能·连接器」页</div>
-              </a>
-            </div>
-          </aside>
-          <main class="picker-main">
-            <div class="picker-toolbar">
-              <div class="picker-toolbar-left">
-                <span class="picker-count-label">可勾选的能力 <b id="totalCapLabel">10</b> 项，支持多选组合</span>
-              </div>
-              <div class="search-input" style="width:280px">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input id="capPickerSearch" placeholder="搜索能力名称 / 标签" oninput="renderCaps()">
-              </div>
-            </div>
-
-            <div id="capSections"></div>
-          </main>
-        </div>
-      </div>
-
-      <!-- ============== Tab 3: 技能 ============== -->
+      <!-- ============== Tab 2: 技能（合并原「能力」+「技能」，对用户统一为技能） ============== -->
       <div class="picker-body picker-tab" id="tabSkills">
         <div class="picker-layout">
           <aside class="picker-side">
             <div class="session-section">
-              <div class="session-group-header"><span class="session-group-label">技能 类型</span><span class="session-group-count">(7)</span></div>
-              <a class="session-item active" onclick="setSkillFilter('all', this)"><span class="session-item-title">全部 技能</span><span class="session-item-time" id="skillAllCnt">7</span></a>
-              <a class="session-item" onclick="setSkillFilter('mapairs', this)"><span class="session-item-title">数智大气</span><span class="session-item-time" id="skillMapCnt">4</span></a>
+              <div class="session-group-header"><span class="session-group-label">技能来源</span><span class="session-group-count">(19)</span></div>
+              <a class="session-item active" onclick="setSkillFilter('all', this)"><span class="session-item-title">全部 技能</span><span class="session-item-time" id="skillAllCnt">19</span></a>
+              <a class="session-item" onclick="setSkillFilter('szdq', this)"><span class="plat-dot" style="background:#1886e7"></span><span class="session-item-title">数智大气</span><span class="session-item-time" id="skillSzCnt">7</span></a>
+              <a class="session-item" onclick="setSkillFilter('zd', this)"><span class="plat-dot" style="background:#30c782"></span><span class="session-item-title">中大平台</span><span class="session-item-time" id="skillZdCnt">4</span></a>
+              <a class="session-item" onclick="setSkillFilter('hnsjk', this)"><span class="plat-dot" style="background:#f59e0b"></span><span class="session-item-title">省大数据</span><span class="session-item-time" id="skillHnCnt">3</span></a>
+              <a class="session-item" onclick="setSkillFilter('hdjk', this)"><span class="plat-dot" style="background:#8b5cf6"></span><span class="session-item-title">华东联防</span><span class="session-item-time" id="skillHdCnt">2</span></a>
               <a class="session-item" onclick="setSkillFilter('general', this)"><span class="session-item-title">通用</span><span class="session-item-time" id="skillGenCnt">3</span></a>
             </div>
             <div class="session-section" style="margin-top:12px">
               <a class="hint-link-box" href="duty-capabilities.html#tab=skills" target="_blank">
-                <div class="hlb-title">查看技能 详情</div>
-                <div class="hlb-desc">跳转到「能力·技能·连接器」的 技能 Tab</div>
+                <div class="hlb-title">查看 技能 详情</div>
+                <div class="hlb-desc">跳转到「平台·技能·连接器」的 技能 Tab</div>
               </a>
             </div>
           </aside>
           <main class="picker-main">
             <div class="picker-toolbar">
-            <div class="picker-toolbar-left"><span class="picker-count-label">可勾选的 技能 <b id="totalSkillLabel">7</b> 项，支持多选组合</span></div>
+              <div class="picker-toolbar-left"><span class="picker-count-label">可勾选的 技能 <b id="totalSkillLabel">19</b> 项（含 12 项需配置 + 7 项直接用），支持多选组合</span></div>
               <div class="search-input" style="width:280px">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input id="skillPickerSearch" placeholder="搜索技能 名称 / 标签" oninput="renderSkills()">
+                <input id="skillPickerSearch" placeholder="搜索 技能 名称 / 标签" oninput="renderSkills()">
               </div>
             </div>
             <div id="skillSections" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px"></div>
@@ -199,7 +156,7 @@
             <div class="session-section" style="margin-top:12px">
               <a class="hint-link-box" href="duty-capabilities.html#tab=mcps" target="_blank">
                 <div class="hlb-title">查看连接器详情</div>
-                <div class="hlb-desc">跳转到「能力·技能·连接器」的 MCP Tab</div>
+                <div class="hlb-desc">跳转到「平台·技能·连接器」的 MCP Tab</div>
               </a>
             </div>
           </aside>
@@ -230,21 +187,6 @@
           <div class="picker-bar-right">
             <a class="btn btn-default" href="templates-library.html" target="_blank">前往模板库</a>
             <button class="btn btn-primary" id="btnUseTmpl" disabled onclick="useSelectedTmpl()">使用该模板创建任务 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
-          </div>
-        </div>
-
-        <!-- 能力模式 -->
-        <div class="picker-bar-row" id="barCaps" style="display:none">
-          <div class="picker-bar-left">
-            <span class="bar-empty" id="capsEmpty">至少勾选 1 项能力 — 点击能力卡片左上角复选框</span>
-            <div class="bar-selected" id="capsSelected" style="display:none">
-              <span class="bar-selected-label">已选 <b id="capsCount" style="color:var(--accent-primary)">0</b> 项能力：</span>
-              <div class="bar-chips" id="capsChips"></div>
-            </div>
-          </div>
-          <div class="picker-bar-right">
-            <button class="btn btn-default" onclick="clearAllCaps()">清空选择</button>
-            <button class="btn btn-primary" id="btnUseCaps" disabled onclick="useSelectedCaps()">使用选中的能力创建 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
           </div>
         </div>
 
@@ -293,13 +235,13 @@ const PICKER_TAB_KEY = 'unieco_picker_tab';
  */
 function setPickerTab(tab){
   document.querySelectorAll('#pickerSeg .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  ['tabTmpl','tabCaps','tabSkills','tabMcps'].forEach(id=>{
+  ['tabTmpl','tabSkills','tabMcps'].forEach(id=>{
     const el = document.getElementById(id); if (!el) return;
-    el.classList.toggle('show', id==='tabTmpl' && tab==='tmpl' || id==='tabCaps' && tab==='caps' || id==='tabSkills' && tab==='skills' || id==='tabMcps' && tab==='mcps');
+    el.classList.toggle('show', id==='tabTmpl' && tab==='tmpl' || id==='tabSkills' && tab==='skills' || id==='tabMcps' && tab==='mcps');
   });
-  ['barTmpl','barCaps','barSkills','barMcps'].forEach(id=>{
+  ['barTmpl','barSkills','barMcps'].forEach(id=>{
     const el = document.getElementById(id); if (!el) return;
-    el.style.display = id==='barTmpl' && tab==='tmpl' || id==='barCaps' && tab==='caps' || id==='barSkills' && tab==='skills' || id==='barMcps' && tab==='mcps' ? '' : 'none';
+    el.style.display = id==='barTmpl' && tab==='tmpl' || id==='barSkills' && tab==='skills' || id==='barMcps' && tab==='mcps' ? '' : 'none';
   });
   try { localStorage.setItem(PICKER_TAB_KEY, tab); } catch(e){}
   document.querySelector('.content').scrollTop = 0;
@@ -307,7 +249,7 @@ function setPickerTab(tab){
 /** 页面加载时从 localStorage 恢复 Tab 默认选中项（#hash 优先） */
 (function restorePickerTab(){
   const hash = (location.hash || '').replace('#tab=','').trim();
-  const allowed = ['tmpl','caps','skills','mcps'];
+  const allowed = ['tmpl','skills','mcps'];
   let tab = 'tmpl';
   if (allowed.includes(hash)) tab = hash;
   else {
@@ -321,7 +263,7 @@ function setPickerTab(tab){
   const hashQs = (location.hash || '').indexOf('?');
   const hashParam = hashQs >= 0 ? new URLSearchParams(location.hash.slice(hashQs + 1)) : new URLSearchParams('');
   const pick = hashParam.get('pick') || new URLSearchParams(location.search).get('pick');
-  if (pick && /^sk_/.test(pick)) setPickerTab('skills');
+  if (pick && (/^sk_/.test(pick) || /^(mapPackage|concentrationRanking|hourlyBrief|zd-|hnsjk-|hdjk-)/.test(pick))) setPickerTab('skills');
   else if (pick && /^mcp_/.test(pick)) setPickerTab('mcps');
 })();
 
@@ -464,137 +406,74 @@ function mapTmplCapsToCreateKeys(displayCaps){
   return known.length ? known : ['concentrationRanking'];
 }
 
-/* ====================== Tab 2：能力选择 ====================== */
-/* 能力元数据：参考源码 CreateTask.vue 的 platforms / functions 数据模型 */
-const platforms = [
-  { id:'szdq', name:'数智大气',   desc:'河南省级环保数据主平台，覆盖一图、排名、播报、监测等模块', color:'#1886e7', badge:'内置底座' },
-  { id:'zd',   name:'中大平台',   desc:'地市级中大科技数据中台，支持分钟级数据与报表导出', color:'#30c782', badge:'已连接' },
-  { id:'hnsjk',name:'省大数据局', desc:'河南省大数据局共享平台，含省级城市综合排名、预警汇总', color:'#f59e0b', badge:'共享接入' },
-  { id:'hdjk', name:'华东联防联控', desc:'跨区域联防联控数据共享平台，支持跨省传输对比', color:'#8b5cf6', badge:'共享接入' },
-];
-const capabilities = [
-  { id:'mapPackage',   pid:'szdq', name:'一张图',             tags:['截图','地图'],        mono:'◇', color:'#1886e7', desc:'生成数智大气一张图成果：地图类型、范围、因子、图层、区域标记' },
-  { id:'concentrationRanking', pid:'szdq', name:'浓度排名',   tags:['截图','数据采集','数据分析'], mono:'≋', color:'#1886e7', desc:'按区域/时间/因子查询浓度排名，并截图 + 生成文字分析' },
-  { id:'hourlyBrief',  pid:'szdq', name:'小时播报',           tags:['截图','数据采集'],   mono:'◷', color:'#1886e7', desc:'按行政区查询小时播报数据并截取页面图片' },
-  { id:'zd-realtime',  pid:'zd',   name:'实时点位分钟流',     tags:['数据采集'],          mono:'⇅', color:'#30c782', desc:'从站点提取分钟级 AQI、PM2.5、O3 数据流，结构化输出' },
-  { id:'zd-rank-table',pid:'zd',   name:'综合排名通报表下载', tags:['文件下载'],          mono:'⬇', color:'#30c782', desc:'导航到综合质量排名通报页面，下载 Excel 格式报表' },
-  { id:'zd-hour-export',pid:'zd',  name:'小时监测数据导出',   tags:['数据采集','文件下载'],mono:'▦', color:'#30c782', desc:'按时间范围导出站点级小时监测数据为 CSV/Excel' },
-  { id:'zd-minute-screenshot', pid:'zd', name:'分钟数据截图', tags:['截图'],              mono:'▤', color:'#30c782', desc:'截取分钟数据展示页面当前视图的图片' },
-  { id:'hnsjk-province-rank', pid:'hnsjk', name:'省级城市排名查询', tags:['数据采集','数据分析'],mono:'⌘', color:'#f59e0b', desc:'查询省级城市综合质量排名，含同比环比与趋势' },
-  { id:'hnsjk-hour-data', pid:'hnsjk', name:'省控站点小时数据', tags:['数据采集'],        mono:'◫', color:'#f59e0b', desc:'提取省控站点小时监测数据（PM2.5/PM10/O3 等）' },
-  { id:'hnsjk-alert',   pid:'hnsjk', name:'预警信息汇总导出', tags:['数据采集','数据分析'],mono:'!', color:'#f59e0b', desc:'汇总当前预警信息，按超标站点/级别/持续时间组织' },
-  { id:'hdjk-regional', pid:'hdjk', name:'区域联防联控查询',  tags:['数据采集'],          mono:'⇌', color:'#8b5cf6', desc:'跨区域查询联防联控数据共享与传输贡献信息' },
-  { id:'hdjk-compare',  pid:'hdjk', name:'跨区域对比分析',    tags:['数据分析'],          mono:'⧗', color:'#8b5cf6', desc:'生成跨区域空气质量对比分析报告' },
-];
-let capPlatformFilter = 'all';
-const selectedCapIds = new Set();
+/* ====================== Tab 2：技能选择（合并原「能力」+「技能」Tab，对用户统一为 技能） ====================== */
 /**
- * 切换能力左侧平台分类
- * @param {'all'|'szdq'|'zd'|'hnsjk'|'hdjk'} pid
+ * 技能统一数据源：原 capabilities[12] + skillLib[7] 合并为 19 项
+ *   kind: 'funcdef' = 需配置（传统业务方法，原 capabilities）走 caps= 参数传给 create
+ *         'script'  = 直接用（AI 脚本，原 skillLib）走 skills= 参数传给 create
+ *   source: 'szdq' | 'zd' | 'hnsjk' | 'hdjk' | 'general'
+ */
+const pickerSkills = [
+  // ---- funcdef 类（原 capabilities 12 项，业务方法：选后要填参数） ----
+  { id:'mapPackage',          kind:'funcdef', source:'szdq',  name:'一张图',             tags:['截图','地图'],         mono:'◇', color:'#1886e7', desc:'生成数智大气一张图成果：地图类型、范围、因子、图层、区域标记' },
+  { id:'concentrationRanking',kind:'funcdef', source:'szdq',  name:'浓度排名',           tags:['截图','数据采集','数据分析'], mono:'≋', color:'#1886e7', desc:'按区域/时间/因子查询浓度排名，并截图 + 生成文字分析' },
+  { id:'hourlyBrief',         kind:'funcdef', source:'szdq',  name:'小时播报',           tags:['截图','数据采集'],    mono:'◷', color:'#1886e7', desc:'按行政区查询小时播报数据并截取页面图片' },
+  { id:'zd-realtime',         kind:'funcdef', source:'zd',    name:'实时点位分钟流',     tags:['数据采集'],           mono:'⇅', color:'#30c782', desc:'从站点提取分钟级 AQI、PM2.5、O3 数据流，结构化输出' },
+  { id:'zd-rank-table',       kind:'funcdef', source:'zd',    name:'综合排名通报表下载', tags:['文件下载'],           mono:'⬇', color:'#30c782', desc:'导航到综合质量排名通报页面，下载 Excel 格式报表' },
+  { id:'zd-hour-export',      kind:'funcdef', source:'zd',    name:'小时监测数据导出',   tags:['数据采集','文件下载'],mono:'▦', color:'#30c782', desc:'按时间范围导出站点级小时监测数据为 CSV/Excel' },
+  { id:'zd-minute-screenshot',kind:'funcdef', source:'zd',    name:'分钟数据截图',       tags:['截图'],               mono:'▤', color:'#30c782', desc:'截取分钟数据展示页面当前视图的图片' },
+  { id:'hnsjk-province-rank', kind:'funcdef', source:'hnsjk', name:'省级城市排名查询',   tags:['数据采集','数据分析'],mono:'⌘', color:'#f59e0b', desc:'查询省级城市综合质量排名，含同比环比与趋势' },
+  { id:'hnsjk-hour-data',     kind:'funcdef', source:'hnsjk', name:'省控站点小时数据',   tags:['数据采集'],           mono:'◫', color:'#f59e0b', desc:'提取省控站点小时监测数据（PM2.5/PM10/O3 等）' },
+  { id:'hnsjk-alert',         kind:'funcdef', source:'hnsjk', name:'预警信息汇总导出',   tags:['数据采集','数据分析'],mono:'!', color:'#f59e0b', desc:'汇总当前预警信息，按超标站点/级别/持续时间组织' },
+  { id:'hdjk-regional',       kind:'funcdef', source:'hdjk',  name:'区域联防联控查询',   tags:['数据采集'],           mono:'⇌', color:'#8b5cf6', desc:'跨区域查询联防联控数据共享与传输贡献信息' },
+  { id:'hdjk-compare',        kind:'funcdef', source:'hdjk',  name:'跨区域对比分析',     tags:['数据分析'],           mono:'⧗', color:'#8b5cf6', desc:'生成跨区域空气质量对比分析报告' },
+  // ---- script 类（原 skillLib 7 项，AI 脚本：选后直接调用） ----
+  { id:'sk_01', kind:'script', source:'szdq',    name:'空气质量日报生成',        tags:['大气','日报','一张图'],  color:'#0b65bb', desc:'自动生成一张图 + 日报文本，带首污/超阈值站点检查', runs:86 },
+  { id:'sk_02', kind:'script', source:'szdq',    name:'重污染预警研判',          tags:['大气','预警','研判'],    color:'#d97706', desc:'依据未来 7 天 AQI 预测值，判断是否触发预警等级并给出建议', runs:31 },
+  { id:'sk_03', kind:'script', source:'szdq',    name:'O₃ 8h 污染追踪',          tags:['大气','臭氧','分析'],    color:'#b45309', desc:'追踪 O₃ 8h 超标时段、前体物 NOx/VOCs 相关性', runs:24 },
+  { id:'sk_04', kind:'script', source:'szdq',    name:'扬尘源排查',              tags:['大气','PM10','执法'],    color:'#6d3ff0', desc:'识别 PM10 异常升高时段，并匹配工地清单给出疑似源', runs:19 },
+  { id:'sk_05', kind:'script', source:'general', name:'日报 PDF 导出',           tags:['PDF','导出','推送'],    color:'#1d8c52', desc:'将指定日报内容导出为 PDF 并推送到指定渠道', runs:142 },
+  { id:'sk_06', kind:'script', source:'general', name:'巡检排班',                tags:['排班','执法'],          color:'#0891b2', desc:'根据站点覆盖、人员在岗情况生成执法巡检排班表', runs:78 },
+  { id:'sk_07', kind:'script', source:'general', name:'渠道发布检查',            tags:['验证','发布'],          color:'#be123c', desc:'检查任务产物是否发布到配置的所有渠道，漏发提醒', runs:55 }
+];
+/** source 中文名映射（用于左侧侧栏标签 + 卡片组标题） */
+const SKILL_SOURCE_LABEL = {
+  szdq:'数智大气 技能', zd:'中大平台 技能', hnsjk:'省大数据 技能', hdjk:'华东联防 技能', general:'通用 技能'
+};
+/**
+ * 设置左侧 Skill 分类筛选（全部 / 数智大气 / 中大平台 / 省大数据 / 华东联防 / 通用）
+ * @param {'all'|'szdq'|'zd'|'hnsjk'|'hdjk'|'general'} src
  * @param {HTMLElement} el
  */
-function setPlatform(pid, el){
-  capPlatformFilter = pid;
-  document.querySelectorAll('#tabCaps .picker-side .session-item').forEach(x=>x.classList.remove('active'));
+function setSkillFilter(src,el){
+  curSkillFilter = src;
+  document.querySelectorAll('#tabSkills .picker-side .session-item').forEach(i=>i.classList.remove('active'));
   if (el) el.classList.add('active');
-  renderCaps();
+  renderSkills();
+}
+/** 按搜索词 + 分类过滤 Skill */
+function getFilteredSkills(){
+  const kw = ((document.getElementById('skillPickerSearch')||{}).value||'').trim().toLowerCase();
+  return pickerSkills.filter(s=>{
+    if (curSkillFilter!=='all' && s.source!==curSkillFilter) return false;
+    if (!kw) return true;
+    return s.name.toLowerCase().includes(kw) || (s.tags||[]).join(' ').toLowerCase().includes(kw);
+  });
 }
 /** 渲染能力分组区（按平台分组展示） */
-function renderCaps(){
-  const kw = (document.getElementById('capPickerSearch')?.value || '').trim().toLowerCase();
-  const box = document.getElementById('capSections');
-  const plats = capPlatformFilter === 'all' ? platforms : platforms.filter(p=>p.id===capPlatformFilter);
-  let sections = '';
-  for (const p of plats){
-    let caps = capabilities.filter(c=>c.pid===p.id);
-    if (kw) caps = caps.filter(c => c.name.toLowerCase().includes(kw) || c.tags.some(t=>t.toLowerCase().includes(kw)) || c.desc.toLowerCase().includes(kw));
-    if (!caps.length) continue;
-    sections += `<section class="cap-section">
-      <div class="cap-section-head">
-        <span class="plat-dot-lg" style="background:${p.color}"></span>
-        <div><b>${p.name}</b><small>${p.desc}</small></div>
-        <span class="cap-section-badge">${p.badge}</span>
-      </div>
-      <div class="cap-grid">
-        ${caps.map(c=>{
-          const checked = selectedCapIds.has(c.id);
-          return `<div class="cap-card ${checked?'cap-card-checked':''}" onclick="toggleCap('${c.id}')">
-            <span class="cap-card-check" onclick="event.stopPropagation();toggleCap('${c.id}')">
-              <span class="n-checkbox ${checked?'checked':''}"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span></span>
-            </span>
-            <div class="cap-card-body">
-              <div class="cap-card-title">
-                <b>${c.name}</b>
-                <span class="cap-card-tag" style="background:${c.color}12;color:${c.color}">${platforms.find(pp=>pp.id===c.pid)?.name || '平台'}</span>
-              </div>
-              <p>${c.desc}</p>
-              <div class="cap-card-tags">${c.tags.map(t=>`<span class="cap-tag-chip">${t}</span>`).join('')}</div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </section>`;
-  }
-  if (!sections){
-    sections = `<div class="empty-state">没有匹配的能力<div class="empty-hint">试着切换左侧平台或清空搜索关键字</div></div>`;
-  }
-  box.innerHTML = sections;
-  document.getElementById('totalCapLabel').textContent = capabilities.length;
-  document.getElementById('platAllCnt').textContent = capabilities.length;
-  document.getElementById('platSzCnt').textContent  = capabilities.filter(c=>c.pid==='szdq').length;
-  document.getElementById('platZdCnt').textContent  = capabilities.filter(c=>c.pid==='zd').length;
-  document.getElementById('platHnCnt').textContent  = capabilities.filter(c=>c.pid==='hnsjk').length;
-  document.getElementById('platHdCnt').textContent  = capabilities.filter(c=>c.pid==='hdjk').length;
-  updateCapsBar();
-}
-/**
- * 勾选/取消勾选单个能力
- * @param {string} id
- */
-function toggleCap(id){
-  if (selectedCapIds.has(id)) selectedCapIds.delete(id);
-  else selectedCapIds.add(id);
-  renderCaps();
-}
-/** 清空所有已勾选的能力 */
-function clearAllCaps(){
-  if (selectedCapIds.size===0) return;
-  selectedCapIds.clear();
-  renderCaps();
-  showToast('已清空选择');
-}
-/** 更新底部操作栏（能力模式）状态 */
-function updateCapsBar(){
-  const n = selectedCapIds.size;
-  document.getElementById('capsEmpty').style.display = n>0 ? 'none' : '';
-  const srow = document.getElementById('capsSelected');
-  srow.style.display = n>0 ? '' : 'none';
-  document.getElementById('capsCount').textContent = n;
-  const chips = document.getElementById('capsChips');
-  chips.innerHTML = [...selectedCapIds].map(id=>{
-    const c = capabilities.find(x=>x.id===id); if (!c) return '';
-    return `<span class="cap-selected-chip"><span class="csc-ic" style="background:${c.color}15;color:${c.color}">${c.mono}</span>${c.name}<span class="csc-close" onclick="event.stopPropagation();toggleCap('${id}')">×</span></span>`;
-  }).join('');
-  document.getElementById('btnUseCaps').disabled = n===0;
-}
-/** 跳转到 duty-create.html 并携带勾选能力的 key 数组（duty-create CAPS 中能识别的 4 个 key + 其它） */
-function useSelectedCaps(){
-  if (selectedCapIds.size===0) return;
-  const ids = [...selectedCapIds];
-  window.location.href = 'duty-create.html?from=picker&caps=' + ids.join(',') +
-    '&cap_names=' + encodeURIComponent(ids.map(id=>capabilities.find(c=>c.id===id)?.name||'').filter(Boolean).join('|'));
+/** 按搜索词 + 分类过滤 Skill */
+function getFilteredSkills(){
+  const kw = ((document.getElementById('skillPickerSearch')||{}).value||'').trim().toLowerCase();
+  return pickerSkills.filter(s=>{
+    if (curSkillFilter!=='all' && s.source!==curSkillFilter) return false;
+    if (!kw) return true;
+    return s.name.toLowerCase().includes(kw) || (s.tags||[]).join(' ').toLowerCase().includes(kw);
+  });
 }
 
+
 /* ====================== Tab 3：技能选择 ====================== */
-const skillLib = [
-  { id:'sk_01', name:'空气质量日报生成 技能', group:'mapairs', mono:'A', color:'#0b65bb', desc:'自动生成一张图 + 日报文本，带首污/超阈值站点检查', tags:['大气','日报','一张图'], updated:'2026-07-14', runs:86, inputs:[{name:'城市',required:true},{name:'日期',required:true}], output:'日报 + 一张图' },
-  { id:'sk_02', name:'重污染预警研判 技能', group:'mapairs', mono:'W', color:'#d97706', desc:'依据未来 7 天 AQI 预测值，判断是否触发预警等级并给出建议', tags:['大气','预警','研判'], updated:'2026-07-12', runs:31, inputs:[{name:'城市',required:true}], output:'研判报告 + 建议措施' },
-  { id:'sk_03', name:'O₃ 8h 污染追踪 技能', group:'mapairs', mono:'O', color:'#b45309', desc:'追踪 O₃ 8h 超标时段、前体物 NOx/VOCs 相关性', tags:['大气','臭氧','分析'], updated:'2026-07-10', runs:24, inputs:[{name:'城市',required:true},{name:'追溯 7 天',required:false}], output:'相关性 + 管控建议' },
-  { id:'sk_04', name:'扬尘源排查 技能', group:'mapairs', mono:'D', color:'#6d3ff0', desc:'识别 PM10 异常升高时段，并匹配工地清单给出疑似源', tags:['大气','PM10','执法'], updated:'2026-07-05', runs:19, inputs:[{name:'城市',required:true}], output:'疑似清单' },
-  { id:'sk_05', name:'日报 PDF 导出技能', group:'general', mono:'P', color:'#1d8c52', desc:'将指定日报内容导出为 PDF 并推送到指定渠道', tags:['PDF','导出','推送'], updated:'2026-06-30', runs:142, inputs:[{name:'日报 JSON',required:true}], output:'PDF 文件' },
-  { id:'sk_06', name:'巡检排班 技能', group:'general', mono:'R', color:'#0891b2', desc:'根据站点覆盖、人员在岗情况生成执法巡检排班表', tags:['排班','执法'], updated:'2026-06-22', runs:78, inputs:[{name:'城市',required:true},{name:'巡检日期',required:true}], output:'排班表' },
-  { id:'sk_07', name:'渠道发布检查 技能', group:'general', mono:'V', color:'#be123c', desc:'检查任务产物是否发布到配置的所有渠道，漏发提醒', tags:['验证','发布'], updated:'2026-06-18', runs:55, inputs:[{name:'任务 ID',required:true}], output:'检查报告' }
-];
+
 const selectedSkillIds = new Set();
 const SKILL_CLS = 'cap-card';
 let curSkillFilter = 'all';
@@ -612,8 +491,8 @@ function setSkillFilter(type,el){
 /** 按搜索词 + 分类过滤 Skill */
 function getFilteredSkills(){
   const kw = ((document.getElementById('skillPickerSearch')||{}).value||'').trim().toLowerCase();
-  return skillLib.filter(s=>{
-    if (curSkillFilter!=='all' && s.group!==curSkillFilter) return false;
+  return pickerSkills.filter(s=>{
+    if (curSkillFilter!=='all' && s.source!==curSkillFilter) return false;
     if (!kw) return true;
     return s.name.toLowerCase().includes(kw) || s.tags.join(' ').toLowerCase().includes(kw);
   });
@@ -643,7 +522,7 @@ function updateSkillBar(){
   document.getElementById('skillCount').textContent = n;
   const chips = document.getElementById('skillChips');
   chips.innerHTML = [...selectedSkillIds].map(id=>{
-    const s = skillLib.find(x=>x.id===id); if (!s) return '';
+    const s = pickerSkills.find(x=>x.id===id); if (!s) return '';
     return `<span class="cap-selected-chip"><span class="csc-ic" style="background:${s.color}15;color:${s.color}">${s.mono}</span>${s.name}<span class="csc-close" onclick="event.stopPropagation();toggleSkill('${id}')">×</span></span>`;
   }).join('');
   document.getElementById('btnUseSkills').disabled = n===0;
@@ -652,39 +531,54 @@ function updateSkillBar(){
 function renderSkills(){
   const list = getFilteredSkills();
   document.getElementById('totalSkillLabel').textContent = list.length;
+  const cntAll  = pickerSkills.length;
+  const cntSz   = pickerSkills.filter(s=>s.source==='szdq').length;
+  const cntZd   = pickerSkills.filter(s=>s.source==='zd').length;
+  const cntHn   = pickerSkills.filter(s=>s.source==='hnsjk').length;
+  const cntHd   = pickerSkills.filter(s=>s.source==='hdjk').length;
+  const cntGen  = pickerSkills.filter(s=>s.source==='general').length;
+  const a=document.getElementById('skillAllCnt'); if(a) a.textContent=cntAll;
+  const z=document.getElementById('skillSzCnt');  if(z) z.textContent=cntSz;
+  const zd=document.getElementById('skillZdCnt'); if(zd) zd.textContent=cntZd;
+  const hn=document.getElementById('skillHnCnt');  if(hn) hn.textContent=cntHn;
+  const hd=document.getElementById('skillHdCnt'); if(hd) hd.textContent=cntHd;
+  const ge=document.getElementById('skillGenCnt');if(ge) ge.textContent=cntGen;
+  const SOURCE_ORDER = ['szdq','zd','hnsjk','hdjk','general'];
+  const SOURCE_LABEL = { szdq:'数智大气 技能', zd:'中大平台 技能', hnsjk:'省大数据 技能', hdjk:'华东联防 技能', general:'通用 技能' };
   const byGroup = {};
-  list.forEach(s=>{
-    const key = s.group==='mapairs' ? '数智大气 技能' : '通用 技能';
-    (byGroup[key] = byGroup[key] || []).push(s);
-  });
-  const html = Object.keys(byGroup).map(g=>`
+  list.forEach(s => (byGroup[s.source] = byGroup[s.source] || []).push(s));
+  const html = SOURCE_ORDER.filter(k => byGroup[k]).map(k => `
     <div style="grid-column:1 / -1">
       <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 2px 8px">
-        <div class="cap-section-title" style="margin:0">${g}</div>
-        <div class="cap-section-sub">${byGroup[g].length} 项</div>
+        <div class="cap-section-title" style="margin:0">${SOURCE_LABEL[k]}</div>
+        <div class="cap-section-sub">${byGroup[k].length} 项</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
-        ${byGroup[g].map(s=>{
+        ${byGroup[k].map(s=>{
           const on = selectedSkillIds.has(s.id);
+          const kindBadge = s.kind === 'funcdef'
+            ? `<span class="pkr-tag" style="background:rgba(var(--accent-primary-rgb),.10);color:var(--accent-primary);font-weight:600">⚙ 需配置</span>`
+            : `<span class="pkr-tag" style="background:rgba(var(--success-rgb),.10);color:var(--success);font-weight:600">⚡ 直接用</span>`;
+          const runsHtml = s.runs ? `<div class="pkr-card-runs" title="累计运行次数"><span>${s.runs}</span> 次</div>` : '';
           return `
           <div class="${SKILL_CLS} pkr-skill-card${on?' selected':''}" onclick="toggleSkill('${s.id}')">
             <label class="cap-check pkr-check" onclick="event.stopPropagation();toggleSkill('${s.id}')"><input type="checkbox" ${on?'checked':''}><span class="cap-check-box"></span></label>
             <div class="pkr-card-body">
               <div class="pkr-card-top">
-                <div class="pkr-card-name">${s.name.replace(/技能$/,'').trim()}</div>
-                <div class="pkr-card-runs" title="累计运行次数"><span>${s.runs}</span> 次</div>
+                <div class="pkr-card-name">${s.name}</div>
+                ${runsHtml}
               </div>
               <div class="pkr-card-desc">${s.desc}</div>
               <div class="pkr-card-foot">
-                <span class="pkr-tag pkr-tag-output">${s.output}</span>
-                ${s.tags.map(t=>`<span class="pkr-tag">${t}</span>`).join('')}
+                ${kindBadge}
+                ${(s.tags||[]).map(t=>`<span class="pkr-tag">${t}</span>`).join('')}
               </div>
             </div>
           </div>`;
         }).join('')}
       </div>
     </div>
-  `).join('') || `<div style="grid-column:1 / -1" class="empty-hint">没有找到匹配的技能</div>`;
+  `).join('') || `<div style="grid-column:1 / -1" class="empty-hint">没有找到匹配的 技能</div>`;
   document.getElementById('skillSections').innerHTML = html;
   updateSkillBar();
 }
@@ -692,8 +586,19 @@ function renderSkills(){
 function useSelectedSkills(){
   if (selectedSkillIds.size===0) return;
   const ids = [...selectedSkillIds];
-  window.location.href = 'duty-create.html?from=picker&skills=' + ids.join(',') +
-    '&skill_names=' + encodeURIComponent(ids.map(id=>skillLib.find(s=>s.id===id)?.name||'').filter(Boolean).join('|'));
+  const picked = ids.map(id => pickerSkills.find(s=>s.id===id)).filter(Boolean);
+  const caps   = picked.filter(s => s.kind === 'funcdef');
+  const skills = picked.filter(s => s.kind === 'script');
+  const params = new URLSearchParams({ from:'picker' });
+  if (caps.length) {
+    params.set('caps', caps.map(s=>s.id).join(','));
+    params.set('cap_names', caps.map(s=>s.name).join('|'));
+  }
+  if (skills.length) {
+    params.set('skills', skills.map(s=>s.id).join(','));
+    params.set('skill_names', skills.map(s=>s.name).join('|'));
+  }
+  window.location.href = 'duty-create.html?' + params.toString();
 }
 
 /* ====================== Tab 4：MCP 连接器选择 ====================== */
@@ -810,7 +715,6 @@ function toggleRecentSection(headEl){
 
 /* ====================== 初始渲染 ====================== */
 renderTemplates();
-renderCaps();
 renderSkills();
 renderMcps();
 </script>

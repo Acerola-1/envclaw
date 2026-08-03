@@ -22,7 +22,7 @@
           <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
           <a class="sidebar-primary-nav-item " href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
           <a class="sidebar-primary-nav-item " href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
-          <a class="sidebar-primary-nav-item active" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <a class="sidebar-primary-nav-item active" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>平台·技能·连接器</span></a>
           <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
         </div>
       </div>
@@ -55,7 +55,7 @@
       <div class="page-header" style="margin-bottom:18px">
         <div>
           <h1>添加平台</h1>
-          <div class="page-sub">4 步接入一个新的数据源，接入后可在「创建任务」中作为能力使用</div>
+          <div class="page-sub">4 步接入一个新的数据源，接入后可在「创建任务」中作为技能·需配置使用</div>
         </div>
       </div>
 
@@ -94,7 +94,7 @@
               <option>污染源</option>
               <option>其他</option>
             </select>
-            <div class="chip-config-hint">类型用于能力库的分类标签，选择后可在「数据平台 Hub」按类型筛选</div>
+            <div class="chip-config-hint">类型用于技能库的分类标签，选择后可在「数据平台 Hub」按类型筛选</div>
           </div>
           <div class="form-group">
             <label class="form-label">备注说明(可选)</label>
@@ -154,7 +154,7 @@
             <span class="capability-kicker">STEP 03 · 功能 prompt</span>
             <h2>该平台支持哪些功能?</h2>
           </div>
-          <span class="bound-context">每个功能对应一项能力,prompt 是该能力的「操作手册」</span>
+          <span class="bound-context">每个功能对应一项技能·需配置，prompt 是该技能的「操作手册」</span>
         </div>
         <div class="form-section">
           <div class="feature-list" id="featureList">
@@ -189,13 +189,13 @@
         <div class="capability-heading">
           <div>
             <span class="capability-kicker">STEP 04 · 技能挂载</span>
-            <h2>挂载哪些能力到该平台?</h2>
+            <h2>挂载哪些技能·需配置到该平台?</h2>
           </div>
           <span class="bound-context">已选:<b id="pickedCount">2</b> 项 · 取消勾选即不挂载</span>
         </div>
         <div class="form-section">
           <div class="form-group">
-            <label class="form-label">从能力库选择(可多选)</label>
+            <label class="form-label">从技能库选择(可多选)</label>
             <div class="skill-list">
               <label class="skill-item">
                 <span class="n-checkbox" onclick="togglePick(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span></span>
@@ -234,12 +234,12 @@
                 <span class="skill-tag">系统</span>
               </label>
             </div>
-            <div class="chip-config-hint" style="margin-top:14px">已选技能将出现在「能力库」中,可直接用于创建任务</div>
+            <div class="chip-config-hint" style="margin-top:14px">已选技能将出现在「技能库」中，可直接用于创建任务</div>
           </div>
 
           <div class="preview-box" style="margin-top:18px">
             <div class="preview-label">预览</div>
-            <div class="preview-line">完成接入后,<b>河南省厅监测平台</b>将出现在「数据平台」列表,挂载的 2 项技能将出现在「能力库」。</div>
+            <div class="preview-line">完成接入后，<b>河南省厅监测平台</b>将出现在「数据平台」列表，挂载的 2 项技能将出现在「技能库」。</div>
           </div>
         </div>
       </div>
