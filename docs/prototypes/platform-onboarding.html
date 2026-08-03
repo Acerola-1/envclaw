@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniEcoClaw · 添加平台</title>
+<link rel="stylesheet" href="duty-proto.css">
+</head>
+<body>
+<div class="app">
+    <aside class="session-list">
+    <div class="page-sidebar-top">
+      <div class="page-sidebar-nav">
+        <div class="sidebar-brand">
+          <div class="logo-icon"><img src="logo.png" alt="UniEcoClaw"></div>
+          <div>
+            <div class="logo-text">UniEcoClaw</div>
+            <div class="logo-tag">数智环保 · UniEcoClaw</div>
+          </div>
+        </div>
+        <div class="sidebar-primary-nav">
+          <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
+          <a class="sidebar-primary-nav-item " href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
+          <a class="sidebar-primary-nav-item " href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
+          <a class="sidebar-primary-nav-item active" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
+        </div>
+      </div>
+      </div>
+    <div class="sidebar-fixed-section">
+      <div class="sidebar-fixed-head" onclick="toggleRecentSection(this)"><svg class="sidebar-fold-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="sidebar-fixed-head-label">最近任务</span><span class="sidebar-fixed-head-count">5</span></div>
+      <div class="sidebar-fold-body"><div class="session-sections-scroll" style="padding:0 8px 8px">
+        <a class="session-item"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务·07/28运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/23</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多(2)</button>
+      </div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Acerola</div>
+      </div>
+      <button class="icon-btn" title="通知" onclick="showToast('暂无新通知')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+      <button class="icon-btn" title="设置" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="create-page">
+      <a class="crt-back" href="duty-capabilities.html#tab=platforms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>返回数据平台</a>
+
+      <div class="page-header" style="margin-bottom:18px">
+        <div>
+          <h1>添加平台</h1>
+          <div class="page-sub">4 步接入一个新的数据源，接入后可在「创建任务」中作为能力使用</div>
+        </div>
+      </div>
+
+      <div class="stepper">
+        <div class="step-item active" data-step="1" onclick="goStep(1)"><div class="step-num">1</div><div class="step-label">基本信息</div></div>
+        <div class="step-connector" id="conn1"></div>
+        <div class="step-item" data-step="2" onclick="goStep(2)"><div class="step-num">2</div><div class="step-label">网址与凭据</div></div>
+        <div class="step-connector" id="conn2"></div>
+        <div class="step-item" data-step="3" onclick="goStep(3)"><div class="step-num">3</div><div class="step-label">功能 prompt</div></div>
+        <div class="step-connector" id="conn3"></div>
+        <div class="step-item" data-step="4" onclick="goStep(4)"><div class="step-num">4</div><div class="step-label">技能挂载</div></div>
+      </div>
+
+      <!-- 步骤 1：基本信息 -->
+      <div class="step-panel visible" id="panel1">
+        <div class="capability-heading">
+          <div>
+            <span class="capability-kicker">STEP 01 · 基本信息</span>
+            <h2>先告诉我这个平台叫什么</h2>
+          </div>
+          <span class="bound-context">关联类型:<b>外部数据源</b></span>
+        </div>
+        <div class="form-section">
+          <div class="form-group">
+            <label class="form-label">平台名称 <span class="required-mark">*</span></label>
+            <input class="n-input" id="f1Name" placeholder="例如:河南省厅监测平台 / 国控站数据接口" value="河南省厅监测平台">
+          </div>
+          <div class="form-group">
+            <label class="form-label">平台类型 <span class="required-mark">*</span></label>
+            <select class="n-select" id="f1Type">
+              <option>大气环境</option>
+              <option>水质监测</option>
+              <option selected>空气质量</option>
+              <option>噪声</option>
+              <option>土壤</option>
+              <option>污染源</option>
+              <option>其他</option>
+            </select>
+            <div class="chip-config-hint">类型用于能力库的分类标签，选择后可在「数据平台 Hub」按类型筛选</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注说明(可选)</label>
+            <textarea class="n-input" rows="3" placeholder="例如:本平台由河南省生态环境厅运维,主要提供空气质量实时数据与历史归档"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤 2：网址与凭据 -->
+      <div class="step-panel" id="panel2">
+        <div class="capability-heading">
+          <div>
+            <span class="capability-kicker">STEP 02 · 网址与凭据</span>
+            <h2>怎么访问这个平台?</h2>
+          </div>
+          <span class="bound-context">填写 agent 与平台交互所需的全部信息</span>
+        </div>
+        <div class="form-section">
+          <div class="form-group">
+            <label class="form-label">接口地址 <span class="required-mark">*</span></label>
+            <input class="n-input" placeholder="https://api.example.com/v1" value="https://api.hnep.gov.cn/v2/air">
+            <div class="chip-config-hint">支持 HTTP/HTTPS 地址,agent 将以此为入口开始操作</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">操作提示词 <span class="required-mark">*</span></label>
+            <textarea class="n-input" rows="4" placeholder="描述 agent 如何与该平台交互,例如:打开首页 → 输入账号密码登录 → 进入数据查询 → 勾选监测因子 → 提交并截图">1. 打开首页,使用下方账号密码登录
+2. 进入「数据查询」→「空气质量」模块
+3. 按城市/时间范围筛选,选择需要的监测因子(PM2.5、AQI、O3)
+4. 点击「生成报告」,等待页面渲染完成后截取当前视图
+5. 关闭页面前确认截图已保存到本地</textarea>
+            <div class="chip-config-hint">这段提示词将作为 agent 执行该平台任务时的<a class="hint-link">操作手册</a>,描述得越具体,试错成本越低</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">访问方式</label>
+            <div class="chip-group" id="authGroup">
+              <div class="chip" onclick="selAuth(this)">公开</div>
+              <div class="chip" onclick="selAuth(this)">账号密码</div>
+              <div class="chip active" onclick="selAuth(this)">API Key</div>
+              <div class="chip" onclick="selAuth(this)">OAuth 2.0</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">API Key <span class="required-mark">*</span></label>
+            <div class="save-path-row">
+              <input class="n-input" type="password" value="hnep-xxxx-xxxx-xxxx-7f3a" style="flex:1; font-family: var(--font-code)">
+              <button class="btn btn-default btn-sm">显示</button>
+            </div>
+            <div class="chip-config-hint">凭据加密保存在本地,<code>.env</code> 文件中不会暴露明文</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤 3：功能 prompt -->
+      <div class="step-panel" id="panel3">
+        <div class="capability-heading">
+          <div>
+            <span class="capability-kicker">STEP 03 · 功能 prompt</span>
+            <h2>该平台支持哪些功能?</h2>
+          </div>
+          <span class="bound-context">每个功能对应一项能力,prompt 是该能力的「操作手册」</span>
+        </div>
+        <div class="form-section">
+          <div class="feature-list" id="featureList">
+            <div class="feature-card">
+              <div class="feature-head">
+                <span class="feature-num">1</span>
+                <input class="n-input feature-name" value="城市排名查询">
+                <span class="editing-badge">主要</span>
+                <button class="feature-del" onclick="delFeature(this)" title="删除功能"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+              <textarea class="n-input feature-desc" rows="3" placeholder="描述该功能如何调用,以及返回什么结果...">输入城市名(如「平顶山市」),获取该城市近 24 小时的空气质量排名,按 AQI 由高到低排序,返回结构化数据(城市名、AQI、首要污染物、排名)。</textarea>
+            </div>
+            <div class="feature-card">
+              <div class="feature-head">
+                <span class="feature-num">2</span>
+                <input class="n-input feature-name" value="站点实时数据">
+                <button class="feature-del" onclick="delFeature(this)" title="删除功能"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+              <textarea class="n-input feature-desc" rows="3" placeholder="描述该功能如何调用,以及返回什么结果...">输入站点编码(如「410400001」),返回该站点的实时小时数据,包含 PM2.5、PM10、SO2、NO2、O3、CO、AQI。</textarea>
+            </div>
+          </div>
+          <div class="feature-add-bar">
+            <span>添加新功能</span>
+            <button onclick="addFeature()"><b>＋</b> 功能</button>
+          </div>
+          <div class="chip-config-hint" style="margin-top:14px">建议 2-5 个核心功能。功能描述越具体,agent 调用的准确率越高。</div>
+        </div>
+      </div>
+
+      <!-- 步骤 4：技能挂载 -->
+      <div class="step-panel" id="panel4">
+        <div class="capability-heading">
+          <div>
+            <span class="capability-kicker">STEP 04 · 技能挂载</span>
+            <h2>挂载哪些能力到该平台?</h2>
+          </div>
+          <span class="bound-context">已选:<b id="pickedCount">2</b> 项 · 取消勾选即不挂载</span>
+        </div>
+        <div class="form-section">
+          <div class="form-group">
+            <label class="form-label">从能力库选择(可多选)</label>
+            <div class="skill-list">
+              <label class="skill-item">
+                <span class="n-checkbox" onclick="togglePick(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span></span>
+                <span class="skill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
+                <span class="skill-name">数据采集 · 监测数据</span>
+                <span class="skill-tag">数智大气</span>
+              </label>
+              <label class="skill-item">
+                <span class="n-checkbox checked" onclick="togglePick(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span></span>
+                <span class="skill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2"/></svg></span>
+                <span class="skill-name">数据分析 · 浓度排名</span>
+                <span class="skill-tag">数智大气</span>
+              </label>
+              <label class="skill-item">
+                <span class="n-checkbox checked" onclick="togglePick(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span></span>
+                <span class="skill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
+                <span class="skill-name">数据分析 · 一张图</span>
+                <span class="skill-tag">数智大气</span>
+              </label>
+              <label class="skill-item">
+                <span class="n-checkbox" onclick="togglePick(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span></span>
+                <span class="skill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                <span class="skill-name">数据分析 · 小时播报</span>
+                <span class="skill-tag">数智大气</span>
+              </label>
+              <label class="skill-item">
+                <span class="n-checkbox" onclick="togglePick(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span></span>
+                <span class="skill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+                <span class="skill-name">预警 · 超标告警</span>
+                <span class="skill-tag">系统</span>
+              </label>
+              <label class="skill-item">
+                <span class="n-checkbox" onclick="togglePick(this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span></span>
+                <span class="skill-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>
+                <span class="skill-name">办公 · 周报生成</span>
+                <span class="skill-tag">系统</span>
+              </label>
+            </div>
+            <div class="chip-config-hint" style="margin-top:14px">已选技能将出现在「能力库」中,可直接用于创建任务</div>
+          </div>
+
+          <div class="preview-box" style="margin-top:18px">
+            <div class="preview-label">预览</div>
+            <div class="preview-line">完成接入后,<b>河南省厅监测平台</b>将出现在「数据平台」列表,挂载的 2 项技能将出现在「能力库」。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部操作栏 -->
+      <div class="action-bar">
+        <button class="btn btn-default" id="prevBtn" onclick="goPrev()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>上一步</button>
+        <div class="action-right">
+          <span class="latest-hint" id="stepHint">第 1 步 / 共 4 步</span>
+          <button class="btn btn-default" onclick="showToast('已保存为草稿')">保存草稿</button>
+          <button class="btn btn-primary" id="nextBtn" onclick="goNext()">下一步<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<style>
+.sidebar-user-bar { display: flex; align-items: center; gap: 10px; width: 100%; padding: 4px; }
+.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-primary), #6366f1); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.user-action-btn { width: 32px; height: 32px; border: none; background: transparent; color: var(--text-muted); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; }
+.user-action-btn:hover { color: var(--text-primary); background: var(--bg-secondary); }
+.user-action-btn svg { width: 16px; height: 16px; }
+
+.feature-list { display: flex; flex-direction: column; gap: 12px; }
+.feature-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.feature-card:hover { border-color: var(--border-strong); }
+.feature-head { display: flex; align-items: center; gap: 10px; }
+.feature-num { width: 24px; height: 24px; border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
+.feature-name { flex: 1; font-size: 13.5px; font-weight: 500; }
+.feature-desc { font-size: 12.5px; line-height: 1.6; resize: vertical; min-height: 70px; }
+.feature-del { width: 24px; height: 24px; border: none; background: transparent; color: var(--text-muted); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: .15s; flex-shrink: 0; }
+.feature-del:hover { color: var(--error); background: rgba(var(--error-rgb), .10); }
+.feature-del svg { width: 13px; height: 13px; }
+.feature-add-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 14px; background: var(--bg-secondary); border-radius: var(--radius-md); margin-top: 12px; }
+.feature-add-bar > span { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; }
+.feature-add-bar button { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-card); font-size: 12.5px; color: var(--text-secondary); cursor: pointer; font-family: var(--font-ui); transition: .15s; }
+.feature-add-bar button:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.feature-add-bar button b { color: var(--accent-primary); }
+
+.skill-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.skill-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; transition: .15s; }
+.skill-item:hover { border-color: var(--border-strong); background: var(--bg-card-hover); }
+.skill-item:has(.n-checkbox.checked) { border-color: var(--accent-primary); background: rgba(var(--accent-primary-rgb), .04); }
+.skill-icon { width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; color: var(--accent-primary); flex-shrink: 0; }
+.skill-icon svg { width: 15px; height: 15px; }
+.skill-name { flex: 1; font-size: 13px; font-weight: 500; }
+.skill-tag { font-size: 10.5px; padding: 2px 8px; border-radius: 9px; background: var(--bg-secondary); color: var(--text-muted); border: 1px solid var(--border-color); font-weight: 500; }
+</style>
+
+<script>
+let currentStep = 1;
+let featureCounter = 2;
+
+function goStep(n){
+  if (n < 1 || n > 4) return;
+  currentStep = n;
+  updateStepper();
+  updatePanels();
+  updateActionBar();
+}
+function goNext(){
+  if (currentStep === 1) { if (!validateStep1()) return; }
+  if (currentStep === 2) { if (!validateStep2()) return; }
+  if (currentStep < 4) goStep(currentStep + 1);
+  else finish();
+}
+function goPrev(){ if (currentStep > 1) goStep(currentStep - 1); }
+function finish(){
+  showToast('平台接入成功!正在跳转到数据平台列表...');
+  setTimeout(()=>{ window.location.href = 'duty-capabilities.html#tab=platforms'; }, 1200);
+}
+function validateStep1(){
+  const name = (document.getElementById('f1Name')?.value || '').trim();
+  if (!name) { showToast('请填写平台名称'); return false; }
+  return true;
+}
+function validateStep2(){
+  const api = (document.getElementById('f1Name')?.value || '').trim();
+  return true;
+}
+function updateStepper(){
+  document.querySelectorAll('.step-item').forEach(el => {
+    const s = parseInt(el.dataset.step, 10);
+    el.classList.remove('active', 'done');
+    if (s === currentStep) el.classList.add('active');
+    else if (s < currentStep) el.classList.add('done');
+  });
+  for (let i = 1; i <= 3; i++) {
+    const c = document.getElementById('conn' + i);
+    if (c) c.classList.toggle('done', currentStep > i);
+  }
+}
+function updatePanels(){
+  document.querySelectorAll('.step-panel').forEach(el => el.classList.remove('visible'));
+  document.getElementById('panel' + currentStep).classList.add('visible');
+}
+function updateActionBar(){
+  const prev = document.getElementById('prevBtn');
+  const next = document.getElementById('nextBtn');
+  const hint = document.getElementById('stepHint');
+  prev.disabled = currentStep === 1;
+  hint.textContent = '第 ' + currentStep + ' 步 / 共 4 步';
+  if (currentStep === 4) {
+    next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>完成接入';
+  } else {
+    next.innerHTML = '下一步<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>';
+  }
+}
+
+function selAuth(el){
+  document.querySelectorAll('#authGroup .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+function togglePick(checkbox){
+  checkbox.classList.toggle('checked');
+  updatePicked();
+}
+function updatePicked(){
+  const n = document.querySelectorAll('.skill-item .n-checkbox.checked').length;
+  document.getElementById('pickedCount').textContent = n;
+}
+function addFeature(){
+  featureCounter++;
+  const list = document.getElementById('featureList');
+  const card = document.createElement('div');
+  card.className = 'feature-card';
+  card.innerHTML =
+    '<div class="feature-head">' +
+      '<span class="feature-num">' + featureCounter + '</span>' +
+      '<input class="n-input feature-name" placeholder="功能名称,例如:站点实时数据">' +
+      '<button class="feature-del" onclick="delFeature(this)" title="删除功能"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+    '</div>' +
+    '<textarea class="n-input feature-desc" rows="3" placeholder="描述该功能如何调用,以及返回什么结果..."></textarea>';
+  list.appendChild(card);
+  renumberFeatures();
+  card.querySelector('.feature-name').focus();
+}
+function delFeature(btn){
+  const card = btn.closest('.feature-card');
+  const list = document.getElementById('featureList');
+  if (list.children.length <= 1) { showToast('至少保留 1 个功能'); return; }
+  card.remove();
+  renumberFeatures();
+}
+function renumberFeatures(){
+  let i = 1;
+  document.querySelectorAll('#featureList .feature-num').forEach(n => n.textContent = i++);
+  featureCounter = i - 1;
+}
+
+let tTimer=null;
+function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>t.classList.remove('show'),2000); }
+updateActionBar();
+</script>
+<script>
+/**
+ * 切换侧栏「最近任务」区块的展开/折叠状态，并持久化到 localStorage
+ * @param {HTMLElement} headEl 点击的标题DOM
+ */
+function toggleRecentSection(headEl){
+  if (window.event) window.event.stopPropagation();
+  const section = (headEl && headEl.closest) ? headEl.closest('.sidebar-fixed-section') : document.querySelector('.sidebar-fixed-section');
+  if (!section) return;
+  section.classList.toggle('collapsed');
+  const collapsed = section.classList.contains('collapsed');
+  try { localStorage.setItem('unieco_recent_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+
+/**
+ * 页面加载时从 localStorage 恢复「最近任务」的折叠状态
+ */
+(function restoreRecentFold(){
+  try {
+    const collapsed = localStorage.getItem('unieco_recent_collapsed') === '1';
+    const section = document.querySelector('.sidebar-fixed-section');
+    if (section && collapsed) section.classList.add('collapsed');
+  } catch(e) {}
+})();
+</script>
+
+</body>
+</html>

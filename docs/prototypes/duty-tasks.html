@@ -3,65 +3,160 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>envClaw · 值守任务 / 我的任务</title>
+<title>UniEcoClaw · 值守任务 / 我的任务</title>
 <link rel="stylesheet" href="duty-proto.css">
+<style>
+/* 列表视图分组（tasks 页独有，不迁底座） */
+.job-group { margin-bottom: 22px; }
+.job-group-head { display: flex; align-items: center; gap: 10px; padding: 0 4px 10px; }
+.job-group-title { font-size: 13px; font-weight: 600; color: var(--text-primary); letter-spacing: .2px; display: inline-flex; align-items: center; gap: 6px; }
+.job-group-title .pill-dot { width: 8px; height: 8px; border-radius: 50%; }
+.job-group-count { font-size: 12px; color: var(--text-muted); }
+/* 视图切换条 */
+.view-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.view-bar .search-input { width: 220px; }
+/* 看板视图默认隐藏 */
+.kanban-view { display: none; }
+.kanban-view.show { display: block; }
+.list-view.hidden { display: none; }
+
+/* 二级 tab 切换 */
+.automation-tab { display: none; }
+.automation-tab.show { display: block; }
+
+/* ===== 顶部 4 卡片统计（运行记录，与底座一致）===== */
+/* 注：stat-row / stat-card / stat-icon / stat-body / stat-label / stat-value / stat-trend
+   已在 duty-proto.css 中统一定义。此处仅补充运行记录专属配色，并移除重复定义避免冲突。 */
+.stat-icon.total { background: rgba(var(--accent-primary-rgb), .10); color: var(--accent-primary); }
+.stat-icon.running.rate-style { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
+
+/* ===== 工具条 ===== */
+.toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 12px 14px; }
+.toolbar-group { display: flex; align-items: center; gap: 6px; }
+.toolbar-label { font-size: 12px; color: var(--text-muted); margin-right: 4px; white-space: nowrap; }
+.toolbar-divider { width: 1px; height: 20px; background: var(--border-color); margin: 0 4px; }
+.toolbar select, .toolbar input { font-family: var(--font-ui); font-size: 12.5px; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); cursor: pointer; outline: none; transition: .15s; }
+.toolbar select:hover, .toolbar input:hover { border-color: var(--border-strong); }
+.toolbar select:focus, .toolbar input:focus { border-color: var(--accent-primary); }
+.toolbar-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+/* ===== 列表容器 ===== */
+.report-list { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
+.report-head { display: grid; grid-template-columns: 110px 1fr 100px 100px 110px 100px 60px; gap: 12px; padding: 12px 18px; font-size: 11.5px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-light); background: var(--bg-secondary); }
+.report-row { border-bottom: 1px solid var(--border-light); transition: background .15s; }
+.report-row:last-child { border-bottom: none; }
+.report-row:hover { background: var(--bg-card-hover); }
+.report-row.error { background: rgba(var(--error-rgb), .04); }
+.report-row.error:hover { background: rgba(var(--error-rgb), .08); }
+.report-main { display: grid; grid-template-columns: 110px 1fr 100px 100px 110px 100px 60px; gap: 12px; padding: 14px 18px; align-items: center; cursor: pointer; }
+.report-time { font-size: 12.5px; color: var(--text-secondary); font-family: var(--font-code); }
+.report-time .sub { display: block; font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+.report-name { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.report-name b { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-name .row-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap; }
+.report-name .row-meta .chip-mini { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 9px; background: var(--bg-secondary); border: 1px solid var(--border-color); }
+.report-name .row-meta .chip-mini svg { width: 10px; height: 10px; }
+.report-name .row-meta .chip-mini.success { background: rgba(var(--success-rgb), .12); border-color: rgba(var(--success-rgb), .25); color: var(--success); }
+.report-name .row-meta .chip-mini.error { background: rgba(var(--error-rgb), .12); border-color: rgba(var(--error-rgb), .25); color: var(--error); }
+.report-name .row-meta .chip-mini.deliver { color: var(--text-secondary); }
+.report-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 11px; font-size: 11.5px; font-weight: 500; }
+.report-status .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.report-status.success { background: rgba(var(--success-rgb), .12); color: var(--success); }
+.report-status.failed { background: rgba(var(--error-rgb), .12); color: var(--error); }
+.report-status.running { background: rgba(var(--warning-rgb), .15); color: var(--warning); }
+.report-duration { font-size: 12px; color: var(--text-secondary); font-family: var(--font-code); }
+.report-chips { display: flex; gap: 4px; }
+.report-chips .chip { font-size: 10.5px; padding: 2px 8px; border-radius: 9px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); display: inline-flex; align-items: center; gap: 3px; }
+.report-chips .chip svg { width: 11px; height: 11px; }
+.report-chips .chip.shot { color: var(--accent-primary); }
+.report-chips .chip.data { color: var(--success); }
+.report-trigger { font-size: 12px; color: var(--text-muted); }
+.report-trigger .badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 9px; font-size: 10.5px; font-weight: 500; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); }
+.report-trigger .badge svg { width: 11px; height: 11px; }
+.report-trigger .badge.manual { background: rgba(var(--accent-primary-rgb), .10); color: var(--accent-primary); border-color: rgba(var(--accent-primary-rgb), .25); }
+.report-arrow { display: flex; align-items: center; justify-content: center; }
+.report-arrow svg { width: 14px; height: 14px; color: var(--text-muted); transition: transform .2s; }
+.report-row.open .report-arrow svg { transform: rotate(90deg); }
+
+/* ===== 展开区 ===== */
+.report-detail { display: none; padding: 0 18px 18px; background: var(--bg-secondary); border-top: 1px solid var(--border-light); }
+.report-row.open .report-detail { display: block; }
+.detail-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 16px; margin-top: 12px; }
+.detail-section h4 { font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.detail-section h4 svg { width: 13px; height: 13px; color: var(--text-muted); }
+.detail-section h4 .h-tag { font-size: 10.5px; padding: 1px 7px; border-radius: 9px; background: var(--bg-secondary); color: var(--text-muted); border: 1px solid var(--border-color); font-weight: 500; }
+.detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 24px; font-size: 12.5px; }
+.detail-grid .item { display: flex; gap: 8px; line-height: 1.7; }
+.detail-grid .item .k { color: var(--text-muted); min-width: 64px; }
+.detail-grid .item .v { color: var(--text-primary); font-family: var(--font-code); font-size: 12px; }
+.detail-err { padding: 12px 14px; background: rgba(var(--error-rgb), .06); border: 1px solid rgba(var(--error-rgb), .25); border-radius: var(--radius-sm); font-family: var(--font-code); font-size: 12px; color: var(--error); line-height: 1.6; margin-top: 6px; white-space: pre-wrap; }
+.detail-shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; }
+.detail-shot { aspect-ratio: 16/9; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 5px; color: var(--text-muted); font-size: 11px; cursor: pointer; transition: .15s; }
+.detail-shot:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.detail-shot svg { width: 18px; height: 18px; }
+.detail-data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.detail-data-table th, .detail-data-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border-light); }
+.detail-data-table th { color: var(--text-muted); font-weight: 500; font-size: 11.5px; }
+.detail-data-table td { color: var(--text-secondary); font-family: var(--font-code); }
+.detail-data-table tr:last-child td { border-bottom: none; }
+.detail-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.detail-actions .btn { padding: 6px 12px; font-size: 12px; }
+.detail-log { background: var(--text-primary); color: #d6d6d6; border-radius: var(--radius-sm); padding: 10px 14px; font-family: var(--font-code); font-size: 11.5px; line-height: 1.7; max-height: 180px; overflow-y: auto; }
+.detail-log::-webkit-scrollbar { width: 4px; }
+.detail-log::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 2px; }
+.detail-log .log-ok { color: #7fc987; }
+.detail-log .log-err { color: #f18d8d; }
+.detail-log .log-info { color: #9eb6d8; }
+
+/* 失败提示横幅 */
+.fail-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(var(--error-rgb), .06); border: 1px solid rgba(var(--error-rgb), .25); border-radius: var(--radius-md); margin-bottom: 14px; font-size: 12.5px; color: var(--error); }
+.fail-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+.fail-banner b { color: var(--error); }
+.fail-banner a { color: var(--accent-primary); font-weight: 500; text-decoration: none; margin-left: auto; }
+.fail-banner a:hover { text-decoration: underline; }
+
+@media (max-width: 1180px) { .stat-row { grid-template-columns: repeat(2, 1fr); } .report-head, .report-main { grid-template-columns: 90px 1fr 90px 80px 90px 80px 40px; gap: 8px; } .detail-grid { grid-template-columns: 1fr 1fr; } .detail-shots { grid-template-columns: repeat(2, 1fr); } }
+</style>
 </head>
 <body>
 <div class="app">
-  <!-- 左侧栏（1:1 复刻 ChatPanel: session-list + PageSidebarNav + JobTreeList） -->
-  <aside class="session-list">
+    <aside class="session-list">
     <div class="page-sidebar-top">
       <div class="page-sidebar-nav">
         <div class="sidebar-brand">
-          <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 13 13 13 12"/></svg></div>
+          <div class="logo-icon"><img src="logo.png" alt="UniEcoClaw"></div>
           <div>
-            <div class="logo-text">envClaw</div>
-            <div class="logo-tag">数智环保 · envClaw</div>
+            <div class="logo-text">UniEcoClaw</div>
+            <div class="logo-tag">数智环保 · UniEcoClaw</div>
           </div>
         </div>
-        <div class="mode-switch-tabs">
-          <button class="mode-tab" onclick="location.href='duty-chat.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>智能问数</span></button>
-          <button class="mode-tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>自动化值守</span></button>
+        <div class="sidebar-primary-nav">
+          <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
+          <a class="sidebar-primary-nav-item active" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
+          <a class="sidebar-primary-nav-item " href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
+          <a class="sidebar-primary-nav-item " href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
         </div>
       </div>
-      <div class="sidebar-action-bar">
-        <a class="sidebar-primary-btn" href="duty-create.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
       </div>
+    <div class="sidebar-fixed-section">
+      <div class="sidebar-fixed-head" onclick="toggleRecentSection(this)"><svg class="sidebar-fold-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="sidebar-fixed-head-label">最近任务</span><span class="sidebar-fixed-head-count">5</span></div>
+      <div class="sidebar-fold-body"><div class="session-sections-scroll" style="padding:0 8px 8px">
+        <a class="session-item"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务·07/28运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/23</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多(2)</button>
+      </div></div>
     </div>
-    <div class="session-sections-scroll">
-      <div class="session-section">
-        <div class="session-group-header">
-          <span class="session-group-label">历史对话</span>
-          <span class="session-group-count">(7)</span>
-          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <a class="session-item active"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
-        <a class="session-item"><span class="session-item-title">平顶山值守任务 · 07/28 运行分析</span><span class="session-item-time">10:19</span></a>
-        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
-        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
-        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月23日</span></a>
-        <button class="session-more-btn">查看更多（2）</button>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Acerola</div>
       </div>
-      <div class="session-section">
-        <div class="session-group-header">
-          <span class="session-group-label">定时任务</span>
-          <span class="session-group-count">(1)</span>
-          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="tree-job-group">
-          <div class="tree-job-row" onclick="location.href='duty-tasks.html'">
-            <span class="tree-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
-            <div class="tree-job-info">
-              <span class="tree-job-name">平顶山值守任务</span>
-              <span class="tree-job-status success">已调度</span>
-            </div>
-            <span class="tree-job-settings" onclick="event.stopPropagation();location.href='duty-create.html?edit=a'" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="page-sidebar-bottom">
-      <button class="page-sidebar-menu-btn" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>设置</span></button>
+      <button class="icon-btn" title="通知" onclick="showToast('暂无新通知')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+      <button class="icon-btn" title="设置" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
   </aside>
 
@@ -74,31 +169,160 @@
           <div class="page-sub">无人值守的定时任务，按计划自动运行并推送结果</div>
         </div>
         <div class="page-actions">
+          <a class="btn btn-default" href="duty-picker.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><line x1="10.5" y1="10.5" x2="13.5" y2="10.5"/><line x1="12" y1="9" x2="12" y2="12"/></svg>从模板 / 能力添加任务</a>
           <a class="btn btn-primary" href="duty-create.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>创建任务</a>
         </div>
       </div>
 
-      <!-- 顶部分段切换 -->
-      <div class="seg-switch">
-        <a class="seg-btn active" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>我的任务 <span class="seg-count">4</span></a>
-        <a class="seg-btn" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>能力库 <span class="seg-count">4</span></a>
+      <!-- 二级 tab 切换 -->
+      <div class="seg-switch automation-seg" style="margin-bottom:18px;">
+        <button class="seg-btn active" onclick="setAutomationTab('jobs')"><span style="display:inline-flex;align-items:center;gap:6px;">定时任务<span class="count-tag" style="display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:18px;padding:0 6px;border-radius:9px;background:rgba(var(--accent-primary-rgb),.12);color:var(--accent-primary);font-size:10.5px;font-weight:600;margin-left:2px;">7</span></span></button>
+        <button class="seg-btn" onclick="setAutomationTab('runlog')"><span style="display:inline-flex;align-items:center;gap:6px;">运行记录<span class="count-tag" style="display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:18px;padding:0 6px;border-radius:9px;background:var(--bg-secondary);color:var(--text-secondary);font-size:10.5px;font-weight:600;margin-left:2px;">5762</span></span></button>
       </div>
 
-      <!-- 筛选条（复刻 JobCardList） -->
-      <div class="filter-bar">
-        <div class="filter-pill active" data-f="all" onclick="setFilter('all')">全部 <span class="num" id="cAll">0</span></div>
-        <div class="filter-pill" data-f="running" onclick="setFilter('running')"><span class="dot" style="background:var(--success)"></span>运行中 <span class="num" id="cRunning">0</span></div>
-        <div class="filter-pill" data-f="paused" onclick="setFilter('paused')"><span class="dot" style="background:var(--warning)"></span>已暂停 <span class="num" id="cPaused">0</span></div>
-        <div class="filter-pill" data-f="error" onclick="setFilter('error')"><span class="dot" style="background:var(--error)"></span>异常 <span class="num" id="cError">0</span></div>
-        <div class="filter-bar-right">
+      <!-- 视图 1：定时任务 -->
+      <div class="automation-tab show" data-tab="jobs">
+        <!-- 顶部 4 统计卡（复用底座 stat-row + stat-card，带图标） -->
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-icon running"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+            <div class="stat-body"><span class="stat-label">运行中</span><span class="stat-value" id="sRunning">0</span><span class="stat-trend">实时调度</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon paused"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
+            <div class="stat-body"><span class="stat-label">已暂停</span><span class="stat-value" id="sPaused">0</span><span class="stat-trend">手动暂停</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="stat-body"><span class="stat-label">已结束</span><span class="stat-value" id="sEnded">0</span><span class="stat-trend">归档任务</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon failed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="stat-body"><span class="stat-label">异常</span><span class="stat-value" id="sError">0</span><span class="stat-trend">需处理</span></div>
+          </div>
+        </div>
+
+        <!-- 视图切换条：列表 | 看板 + 搜索 -->
+        <div class="view-bar">
+          <div class="seg-switch" style="margin-bottom:0">
+            <button class="seg-btn active" onclick="switchView('list', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>列表</button>
+            <button class="seg-btn" onclick="switchView('kanban', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="11" rx="1"/></svg>看板</button>
+          </div>
           <div class="search-input">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input id="jobSearch" placeholder="搜索任务名称..." oninput="renderJobs()">
           </div>
         </div>
+
+        <!-- 列表视图 -->
+        <div class="list-view" id="listView">
+          <div id="jobSections"></div>
+        </div>
+
+        <!-- 看板视图（3 列，复用底座 kanban 类） -->
+        <div class="kanban-view" id="kanbanView">
+          <div class="kanban">
+            <div class="kanban-col">
+              <div class="kanban-head">
+                <div class="kanban-head-left"><span class="dot running"></span><span>运行中</span><span class="num" id="cRunning">0</span></div>
+              </div>
+              <div class="kanban-body" id="colRunning"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-head">
+                <div class="kanban-head-left"><span class="dot paused"></span><span>已暂停</span><span class="num" id="cPaused">0</span></div>
+              </div>
+              <div class="kanban-body" id="colPaused"></div>
+            </div>
+            <div class="kanban-col">
+              <div class="kanban-head">
+                <div class="kanban-head-left"><span class="dot done"></span><span>已结束</span><span class="num" id="cDone">0</span></div>
+              </div>
+              <div class="kanban-body" id="colDone"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="card-grid" id="jobGrid"></div>
+      <!-- 视图 2：运行记录（来自 duty-run-report.html） -->
+      <div class="automation-tab" data-tab="runlog" style="display:none">
+        <!-- 顶部 4 统计 -->
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-icon total"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="stat-body">
+              <span class="stat-label">总执行</span>
+              <span class="stat-value" id="sTotal">5762</span>
+              <span class="stat-trend">累计 · 含 108 次手动触发</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="stat-body">
+              <span class="stat-label">成功</span>
+              <span class="stat-value" id="sSuccess">5474</span>
+              <span class="stat-trend up">较上周 +286</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon failed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+            <div class="stat-body">
+              <span class="stat-label">失败</span>
+              <span class="stat-value" id="sFailed">288</span>
+              <span class="stat-trend down">较上周 -52</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            <div class="stat-body">
+              <span class="stat-label">成功率</span>
+              <span class="stat-value">95.0<span class="unit">%</span></span>
+              <span class="stat-trend up">较上周 +1.3%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 工具条：日期 + 状态 + 右侧搜索（移除「任务模板」筛选，统一组件高度/基线对齐） -->
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <span class="toolbar-label">日期</span>
+            <select class="tl-select">
+              <option>本周</option>
+              <option>今日</option>
+              <option>近 7 天</option>
+              <option>近 30 天</option>
+              <option>自定义...</option>
+            </select>
+          </div>
+          <div class="toolbar-divider"></div>
+          <div class="toolbar-group">
+            <span class="toolbar-label">状态</span>
+            <select class="tl-select">
+              <option>全部</option>
+              <option>成功</option>
+              <option>失败</option>
+              <option>运行中</option>
+            </select>
+          </div>
+          <!-- 右侧：搜索框 + 重置按钮，统一样式避免高低不齐 -->
+          <div class="toolbar-right">
+            <div class="tl-search" id="tlSearch">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="runlogSearch" placeholder="搜索任务名 / 错误关键词" oninput="renderRunlog()">
+            </div>
+            <button class="btn btn-default tl-btn" onclick="resetRunlogFilter()">重置</button>
+          </div>
+        </div>
+
+        <!-- 失败提示横幅 -->
+        <div class="fail-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>本周 <b>7</b> 条失败记录，其中 <b>4</b> 条因「污染源超标异常监控」任务钉钉凭证失效集中出现，<a href="duty-tasks.html">前往修复</a></span>
+        </div>
+
+        <!-- 运行记录：三层结构 —— L1 任务分组（默认列表）→ L2 时间列表（点任务展开）→ L3 执行详情（点时间展开） -->
+        <div id="reportList" class="runlog-stack"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -106,72 +330,777 @@
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
 
 <script>
-// 任务 mock（字段对齐 api/hermes/jobs.ts Job）
+// ============ 任务 mock（7 个示例，覆盖 running/paused/ended 三状态，含看板所需 progress/runtime） ============
 const jobs = [
-  { id:'a', name:'平阴县每日城市排名分析任务', state:'running', enabled:true, last_status:'ok', schedule:'0 9 * * *', schedule_display:'每天 09:00', deliver:'wecom', next_run:'今日 09:00', last:'成功', lastCls:'success' },
-  { id:'b', name:'国控点小时数据播报任务', state:'running', enabled:true, last_status:'ok', schedule:'0 * * * *', schedule_display:'每小时', deliver:'wecom', next_run:'10:00', last:'成功', lastCls:'success' },
-  { id:'c', name:'污染源超标异常监控', state:'running', enabled:true, last_status:'error', schedule:'*/15 * * * *', schedule_display:'每 15 分钟', deliver:'dingtalk', next_run:'—', last:'账号凭证失效', lastCls:'error' },
-  { id:'d', name:'周报自动生成', state:'paused', enabled:false, last_status:null, schedule:'0 18 * * 1', schedule_display:'每周一 18:00', deliver:'local', next_run:'—', last:'—', lastCls:'' },
+  { id:'a', name:'平阴县每日城市排名分析任务', state:'running', enabled:true, last_status:'ok', schedule:'0 9 * * *', schedule_display:'每天 09:00', deliver:'wecom', next_run:'今日 09:00', last:'成功', lastCls:'success', runCount:28, progress:62, runtime:'00:01:24', lastRun:'2 分钟前' },
+  { id:'b', name:'国控点小时数据播报任务', state:'running', enabled:true, last_status:'ok', schedule:'0 * * * *', schedule_display:'每小时', deliver:'wecom', next_run:'10:00', last:'成功', lastCls:'success', runCount:168, progress:38, runtime:'00:03:12', lastRun:'5 分钟前' },
+  { id:'e', name:'国控站点 AQI 日报', state:'running', enabled:true, last_status:'ok', schedule:'0 8 * * *', schedule_display:'每天 08:00', deliver:'feishu', next_run:'明日 08:00', last:'成功', lastCls:'success', runCount:65, progress:100, runtime:'00:02:08', lastRun:'今日 08:00' },
+  { id:'f', name:'站点离线告警推送', state:'running', enabled:true, last_status:'ok', schedule:'*/10 * * * *', schedule_display:'每 10 分钟', deliver:'dingtalk', next_run:'10:30', last:'成功', lastCls:'success', runCount:412, progress:75, runtime:'00:00:48', lastRun:'3 分钟前' },
+  { id:'c', name:'污染源超标异常监控', state:'running', enabled:true, last_status:'error', schedule:'*/15 * * * *', schedule_display:'每 15 分钟', deliver:'dingtalk', next_run:'—', last:'账号凭证失效', lastCls:'error', runCount:96, progress:42, runtime:'00:00:18', lastRun:'今日 11:42' },
+  { id:'d', name:'周报自动生成', state:'paused', enabled:false, last_status:null, schedule:'0 18 * * 1', schedule_display:'每周一 18:00', deliver:'local', next_run:'—', last:'—', lastCls:'', runCount:12, progress:0, runtime:null, lastRun:'上周一 18:02' },
+  { id:'g', name:'节假日数据汇总归档', state:'ended', enabled:false, last_status:'ok', schedule:'0 2 1 1 *', schedule_display:'每年 1/1', deliver:'local', next_run:'已结束', last:'已完成', lastCls:'success', runCount:3, progress:100, runtime:'00:00:30', lastRun:'2026-01-01' },
 ];
-const deliverLabel = { wecom:'企业微信', dingtalk:'钉钉', feishu:'飞书', local:'本地', origin:'原路返回' };
-let jobFilter = 'all';
+const deliverLabel = { wecom:'企业微信', dingtalk:'钉钉', feishu:'飞书', local:'本地' };
 
+/** 推导任务状态标签与分类 */
 function statusOf(j){
+  if (j.state==='ended') return ['已结束','done'];
   if (j.state==='paused' || !j.enabled) return ['已暂停','paused'];
   if (j.last_status && j.last_status!=='ok') return ['异常','error'];
   if (j.state==='running') return ['运行中','running'];
   return ['已调度','scheduled'];
 }
+/** 统计各状态数量 */
 function counts(){
   return {
-    all: jobs.length,
-    running: jobs.filter(j=>j.enabled&&j.state!=='paused'&&(j.last_status===null||j.last_status==='ok')).length,
-    paused: jobs.filter(j=>j.state==='paused'||!j.enabled).length,
+    running: jobs.filter(j=>j.enabled&&j.state!=='paused'&&j.state!=='ended').length,
+    paused: jobs.filter(j=>j.state==='paused'||(!j.enabled && j.state!=='ended')).length,
+    ended: jobs.filter(j=>j.state==='ended').length,
     error: jobs.filter(j=>j.last_status&&j.last_status!=='ok').length,
   };
 }
-function setFilter(f){
-  jobFilter=f;
-  document.querySelectorAll('.filter-pill').forEach(p=>{ p.classList.remove('active','running','paused','error'); if(p.dataset.f===f){ p.classList.add('active'); if(f!=='all') p.classList.add(f); }});
-  renderJobs();
+
+// ============ 二级 tab 切换（定时任务 / 运行记录） ============
+function setAutomationTab(tab){
+  document.querySelectorAll('.automation-seg .seg-btn').forEach((b,i)=>{
+    b.classList.toggle('active', (tab==='jobs'&&i===0) || (tab==='runlog'&&i===1));
+  });
+  document.querySelectorAll('.automation-tab').forEach(t=>{
+    const match = t.dataset.tab === tab;
+    t.classList.toggle('show', match);
+    t.style.display = match ? '' : 'none';
+  });
 }
+
+// ============ 列表视图渲染（按状态分组的卡片网格） ============
 function renderJobs(){
   const c = counts();
-  cAll.textContent=c.all; cRunning.textContent=c.running; cPaused.textContent=c.paused; cError.textContent=c.error;
+  sRunning.textContent = c.running; sPaused.textContent = c.paused; sEnded.textContent = c.ended; sError.textContent = c.error;
   const kw = document.getElementById('jobSearch').value.trim().toLowerCase();
-  let list = jobs.filter(j=>{
-    if(jobFilter==='running') return j.enabled&&j.state!=='paused'&&(j.last_status===null||j.last_status==='ok');
-    if(jobFilter==='paused') return j.state==='paused'||!j.enabled;
-    if(jobFilter==='error') return j.last_status&&j.last_status!=='ok';
-    return true;
-  });
-  if(kw) list=list.filter(j=>j.name.toLowerCase().includes(kw));
-  document.getElementById('jobGrid').innerHTML = list.length ? list.map(j=>{
-    const [label,cls]=statusOf(j);
-    const isPaused=j.state==='paused'||!j.enabled;
-    const hasErr=j.last_status&&j.last_status!=='ok';
-    return `<div class="job-card">
-      <div class="card-head"><div class="card-title">${j.name}</div><span class="status-pill ${cls}"><span class="pill-dot"></span>${label}</span></div>
-      <div class="card-body">
-        <div class="info-row"><span class="label">调度频率</span><span class="val mono">${j.schedule_display}</span></div>
-        <div class="info-row"><span class="label">推送渠道</span><span class="val">${deliverLabel[j.deliver]||'—'}</span></div>
-        <div class="info-row"><span class="label">下次运行</span><span class="val ${j.next_run!=='—'?'highlight-time':''}">${j.next_run}</span></div>
-        ${j.last!=='—'?`<div class="info-row"><span class="label">上次运行</span><span class="val ${j.lastCls}">${j.last}</span></div>`:''}
-      </div>
-      <div class="card-actions">
-        ${isPaused
-          ? `<button class="act-btn act-primary" onclick="showToast('任务已恢复')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>恢复</button>`
-          : `<button class="act-btn act-primary" onclick="showToast('任务已触发')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>立即运行</button>`}
-        ${!isPaused&&!hasErr?`<button class="act-btn" onclick="showToast('任务已暂停')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>暂停</button>`:''}
-        <a class="act-btn ${hasErr?'act-danger':''}" href="duty-create.html?edit=${j.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>${hasErr?'修复':'编辑'}</a>
-        <button class="act-btn act-danger" onclick="showToast('删除确认')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>删除</button>
-      </div>
-    </div>`;
-  }).join('') : `<div class="empty-state">没有匹配的任务</div>`;
+  const list = kw ? jobs.filter(j => j.name.toLowerCase().includes(kw)) : jobs;
+  const groups = [
+    { key:'running', label:'运行中', dot:'var(--success)', filter:j=>j.enabled&&j.state!=='paused'&&j.state!=='ended' },
+    { key:'paused', label:'已暂停', dot:'var(--warning)', filter:j=>j.state==='paused'||(!j.enabled && j.state!=='ended') },
+    { key:'ended', label:'已结束', dot:'var(--text-muted)', filter:j=>j.state==='ended' },
+  ];
+  const html = groups.map(g => {
+    const items = list.filter(g.filter);
+    if (items.length === 0) return '';
+    return `<section class="job-group"><div class="job-group-head"><span class="job-group-title"><span class="pill-dot" style="background:${g.dot}"></span>${g.label}</span><span class="job-group-count">${items.length} 个</span></div><div class="card-grid">${items.map(j => cardHtml(j)).join('')}</div></section>`;
+  }).join('');
+  document.getElementById('jobSections').innerHTML = html || `<div class="empty-state">没有匹配的任务<span class="empty-hint">试试调整搜索关键词</span></div>`;
 }
+
+/** 列表视图单张任务卡 —— 按钮数量统一 4 个，仅文字/样式变化，绝不增减按钮 */
+function cardHtml(j){
+  const [label,cls] = statusOf(j);
+  const isPaused = j.state==='paused' || !j.enabled;
+  const hasErr = j.last_status && j.last_status!=='ok';
+  const isEnded = j.state==='ended';
+
+  // ========== 固定 4 个按钮槽位，仅变化文字/颜色/禁用 ==========
+  // 图标常量
+  const iconPlay  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+  const iconPause = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+  const iconEdit  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  const iconTrash = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>';
+  const iconCopy  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const iconRetry = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+
+  // ===== 按钮 1：主操作（立即运行 / 恢复 / 复制为新任务 / 重试异常）=====
+  let btn1Label, btn1Icon, btn1Cls, btn1Action;
+  if (isEnded) {
+    btn1Label = '复制为新任务'; btn1Icon = iconCopy;  btn1Cls = 'act-primary'; btn1Action = `onclick="showToast('已复制为新任务')"`;
+  } else if (isPaused) {
+    btn1Label = '立即运行'; btn1Icon = iconPlay;  btn1Cls = 'act-primary'; btn1Action = `onclick="showToast('任务已恢复并立即触发')"`;
+  } else if (hasErr) {
+    btn1Label = '立即重试'; btn1Icon = iconRetry; btn1Cls = 'act-primary'; btn1Action = `onclick="showToast('已重新触发运行')"`;
+  } else {
+    btn1Label = '立即运行'; btn1Icon = iconPlay;  btn1Cls = 'act-primary'; btn1Action = `onclick="showToast('任务已立即触发')"`;
+  }
+
+  // ===== 按钮 2：次操作（暂停 / 禁用态占位 —— 保持按钮数量永远为 4）=====
+  let btn2Label, btn2Icon, btn2Cls, btn2Action, btn2Disabled = '';
+  if (isEnded) {
+    // 结束状态：展示「查看报告」作为次操作，不减少按钮
+    btn2Label = '查看报告'; btn2Icon = iconEdit;  btn2Cls = ''; btn2Action = '';
+  } else if (isPaused) {
+    // 暂停状态：展示「编辑计划」作为次操作
+    btn2Label = '编辑计划'; btn2Icon = iconEdit;  btn2Cls = ''; btn2Action = '';
+  } else {
+    // 运行中（含异常）：展示「暂停」
+    btn2Label = '暂停'; btn2Icon = iconPause; btn2Cls = ''; btn2Action = `onclick="showToast('任务已暂停')"`;
+  }
+
+  // ===== 按钮 3：编辑（固定存在）—— 异常时标红显示「修复」=====
+  const btn3Label  = hasErr ? '修复' : '编辑';
+  const btn3Cls    = hasErr ? 'act-danger' : '';
+  const btn3Href    = `href="duty-create.html?edit=${j.id}"`;
+
+  // ===== 按钮 4：删除（固定存在，始终红）=====
+  const btn4Cls    = 'act-danger';
+
+  /**
+   * 卡片外层使用 div 避免 <a> 嵌套 <a> 的 HTML 规范违例导致浏览器拆DOM，
+   * 卡片区域点击通过 JS 跳转详情页，编辑按钮保持独立 <a> 正常跳转。
+   */
+  return `<div class="job-card" data-detail="duty-task-detail.html?id=${j.id}" onclick="onJobCardClick(event, this)">
+    <div class="card-head"><div class="card-title">${j.name}</div><span class="status-pill ${cls}"><span class="pill-dot"></span>${label}</span></div>
+    <div class="card-body">
+      <div class="info-row"><span class="label">调度频率</span><span class="val mono">${j.schedule_display}</span></div>
+      <div class="info-row"><span class="label">推送渠道</span><span class="val">${deliverLabel[j.deliver]||'—'}</span></div>
+      <div class="info-row"><span class="label">下次运行</span><span class="val ${(j.next_run!=='—' && j.next_run!=='已结束')?'highlight-time':''}">${j.next_run}</span></div>
+      ${j.last!=='—'?`<div class="info-row"><span class="label">上次运行</span><span class="val ${j.lastCls}">${j.last}</span></div>`:''}
+      <div class="info-row"><span class="label">累计运行</span><span class="val mono">${j.runCount} 次</span></div>
+    </div>
+    <div class="card-actions">
+      <button class="act-btn ${btn1Cls}" ${btn1Action}>${btn1Icon}${btn1Label}</button>
+      <button class="act-btn ${btn2Cls}" ${btn2Action} ${btn2Disabled}>${btn2Icon}${btn2Label}</button>
+      <a class="act-btn ${btn3Cls}" ${btn3Href}>${iconEdit}${btn3Label}</a>
+      <button class="act-btn ${btn4Cls}" onclick="showToast('删除确认')">${iconTrash}删除</button>
+    </div>
+  </div>`;
+}
+
+/**
+ * 任务卡点击事件处理：点击非按钮/链接区域时，跳转到任务详情页
+ * 避免 <a> 嵌套 <a> 导致浏览器拆DOM的规范问题
+ * @param {MouseEvent} e 点击事件对象
+ * @param {HTMLElement} cardEl 任务卡DOM节点
+ */
+function onJobCardClick(e, cardEl){
+  const target = e.target;
+  // 如果点击的是交互元素（按钮/链接/输入框等），不触发卡片跳转，让原生行为执行
+  if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select')) {
+    return;
+  }
+  const url = cardEl.getAttribute('data-detail');
+  if (url) location.href = url;
+}
+
+// ============ 看板视图渲染（3 列：运行中 / 已暂停 / 已结束） ============
+const iconPlay = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+const iconPause = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+const iconEdit = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+const iconClock = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+const iconRefresh = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/></svg>';
+const iconTrash = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>';
+
+/** 看板单张紧凑任务卡 */
+function kanbanCard(j){
+  const [label,cls] = statusOf(j);
+  const isPaused = cls==='paused';
+  const isErr = cls==='error';
+  const isDone = cls==='done';
+  const pillCls = isDone?'done':isPaused?'paused':isErr?'error':'running';
+  const pillText = isDone?'已完成':isPaused?'已暂停':isErr?'异常':'运行中';
+  const progressCls = isDone?'success':isErr?'error':isPaused?'warning':'';
+  let btns = '';
+  if (isPaused) btns = `<button class="tk-icon-btn" title="恢复" onclick="event.stopPropagation();showToast('任务已恢复')">${iconPlay}</button>`;
+  else if (isErr) btns = `<button class="tk-icon-btn" title="立即重试" onclick="event.stopPropagation();showToast('已重试')">${iconRefresh}</button>`;
+  else if (!isDone) btns = `<button class="tk-icon-btn" title="暂停" onclick="event.stopPropagation();showToast('任务已暂停')">${iconPause}</button>`;
+  return `<div class="tk-card" onclick="location.href='duty-task-detail.html?id=${j.id}'">
+    <div class="tk-card-head"><div class="tk-name">${j.name}</div><span class="tk-pill ${pillCls}">${pillText}</span></div>
+    <div class="tk-meta"><span class="item">${iconClock}<span class="val">${j.schedule_display}</span></span><span class="item"><span class="val" style="font-size:11px">·</span><span class="val">${deliverLabel[j.deliver]||'—'}</span></span></div>
+    <div class="tk-progress ${progressCls}"><i style="width:${j.progress}%"></i></div>
+    <div class="tk-progress-text"><span>${isDone?'上次完成':isPaused?'已暂停于':'当前运行'} · ${j.lastRun}</span><span class="pct">${j.runtime ? j.runtime : j.progress + '%'}</span></div>
+    <div class="tk-foot"><div class="tk-foot-left">${btns}<button class="tk-icon-btn" title="编辑" onclick="event.stopPropagation();location.href='duty-create.html?edit=${j.id}'">${iconEdit}</button><button class="tk-icon-btn danger" title="删除" onclick="event.stopPropagation();showToast('删除确认')">${iconTrash}</button></div><div class="tk-foot-right">${j.next_run}</div></div>
+  </div>`;
+}
+
+/** 渲染看板三列 */
+function renderKanban(){
+  const kw = document.getElementById('jobSearch').value.trim().toLowerCase();
+  const list = kw ? jobs.filter(j => j.name.toLowerCase().includes(kw)) : jobs;
+  const running = list.filter(j=>j.enabled&&j.state!=='paused'&&j.state!=='ended');
+  const paused = list.filter(j=>j.state==='paused'||(!j.enabled && j.state!=='ended'));
+  const done = list.filter(j=>j.state==='ended');
+  document.getElementById('colRunning').innerHTML = running.map(kanbanCard).join('') + `<div class="tk-add" onclick="location.href='duty-create.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加任务</div>`;
+  document.getElementById('colPaused').innerHTML = paused.map(kanbanCard).join('') + `<div class="tk-add" onclick="location.href='duty-create.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加任务</div>`;
+  document.getElementById('colDone').innerHTML = done.map(kanbanCard).join('');
+  document.getElementById('cRunning').textContent = running.length;
+  document.getElementById('cPaused').textContent = paused.length;
+  document.getElementById('cDone').textContent = done.length;
+}
+
+/** 视图切换：list / kanban */
+function switchView(view, btn){
+  document.querySelectorAll('.view-bar .seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const listView = document.getElementById('listView');
+  const kanbanView = document.getElementById('kanbanView');
+  if (view==='kanban'){ listView.classList.add('hidden'); kanbanView.classList.add('show'); renderKanban(); }
+  else { listView.classList.remove('hidden'); kanbanView.classList.remove('show'); renderJobs(); }
+}
+
+// ============ 运行记录：三层嵌套数据结构（L1 任务 → L2 时间 → L3 详情） ============
+/**
+ * L1 = 任务（同一任务聚合多条运行历史）
+ *   ├ name, taskId, tpl(调度描述), deliver(推送渠道)
+ *   ├ recent: 最近一次状态（显示在任务行右侧）/ total/ok/fail 统计数
+ *   └ runs[] → L2 = 单次执行（点任务名展开后列出的时间行）
+ *       ├ time, sub, status, duration, trigger, shots, data
+ *       ├ runId, hasFiles, folderPath
+ *       ├ summary{} → 执行摘要
+ *       ├ files[] → 产出文件（PNG/CSV/PDF/XLSX/MD 等）
+ *       ├ error / dataRows[] / shotThumbs[] / logLines[]
+ */
+const runlogTasks = [
+  {
+    taskId:'b', name:'平顶山小时数据播报', tpl:'每小时 · 企业微信推送', deliver:'企业微信',
+    stats:{ total:4, ok:4, fail:0 },
+    recent:{ status:'success', time:'08-02 11:00', sub:'今天' },
+    runs:[
+      { time:'08-02 11:00', sub:'今天', status:'success', duration:'00:01:24', trigger:'定时', runId:'run-20260802-1100-a4f2',
+        shots:1, data:1, hasFiles:true, folderPath:'/Users/acerola/UniEcoClaw/outputs/20260802/1100_PDS_Hourly',
+        summary:{ triggerTime:'08-02 11:00:00', dataRange:'2026-08-02 10:00', source:'数智大气平台', deliver:'企业微信（平顶山运维群）', model:'gpt-4o-mini', tokens:'2,148' },
+        files:[
+          { icon:'img',  name:'浓度排名_平顶山市.png', size:'412 KB', path:'/浓度排名_平顶山市.png' },
+          { icon:'sheet',name:'站点小时数据.csv',     size:'68 KB',  path:'/站点小时数据.csv' },
+        ],
+        shotThumbs:[
+          { title:'浓度排名 · 平顶山', desc:'18市 + 4区县AQI热力排名' },
+        ],
+        dataRows:[
+          ['平顶山市','78','O₃-8h','11 / 18','↓ 4'],
+          ['新华区','82','O₃-8h','—','↑ 2'],
+          ['卫东区','75','NO₂','—','↓ 1'],
+          ['湛河区','71','PM₂.₅','—','— 0'],
+        ],
+        logLines:[
+          {t:'info',m:'start run run-20260802-1100-a4f2'},
+          {t:'info',m:'load capability: hourly_brief'},
+          {t:'info',m:'fetch data: 数智大气 /api/v1/hourly?city=410400'},
+          {t:'ok',  m:'data fetched: 18 cities, 4 districts'},
+          {t:'info',m:'render screenshot: 浓度排名 (PNG 412KB)'},
+          {t:'ok',  m:'deliver.wecom.send → OK 200'},
+          {t:'ok',  m:'run done, status=success, duration=00:01:24'},
+        ]
+      },
+      { time:'08-02 10:00', sub:'今天', status:'success', duration:'00:01:18', trigger:'定时', runId:'run-20260802-1000-b188',
+        shots:1, data:1, hasFiles:true, folderPath:'/Users/acerola/UniEcoClaw/outputs/20260802/1000_PDS_Hourly',
+        summary:{ triggerTime:'08-02 10:00:00', dataRange:'2026-08-02 09:00', source:'数智大气平台', deliver:'企业微信（平顶山运维群）', model:'gpt-4o-mini', tokens:'1,982' },
+        files:[
+          { icon:'img',  name:'浓度排名_平顶山市.png', size:'398 KB', path:'/浓度排名_平顶山市.png' },
+          { icon:'sheet',name:'站点小时数据.csv',     size:'65 KB',  path:'/站点小时数据.csv' },
+        ],
+        shotThumbs:[ { title:'浓度排名 · 平顶山', desc:'18市 + 4区县AQI热力排名' } ],
+        dataRows:[ ['平顶山市','76','O₃-8h','12 / 18','↓ 3'] ],
+        logLines:[
+          {t:'info',m:'start run run-20260802-1000-b188'},
+          {t:'ok',  m:'run done, status=success, duration=00:01:18'},
+        ]
+      },
+      { time:'08-02 08:45', sub:'今天', status:'success', duration:'00:01:32', trigger:'手动', isManual:true, runId:'run-20260802-0845-m33a',
+        shots:1, data:1, hasFiles:true, folderPath:'/Users/acerola/UniEcoClaw/outputs/20260802/0845_PDS_Hourly_Manual',
+        summary:{ triggerTime:'08-02 08:45:12（手动触发）', dataRange:'2026-08-02 08:00', source:'数智大气平台', deliver:'企业微信 + 本地归档', model:'gpt-4o-mini', tokens:'2,304' },
+        files:[
+          { icon:'img',  name:'浓度排名_平顶山市.png', size:'405 KB', path:'/浓度排名_平顶山市.png' },
+          { icon:'sheet',name:'站点小时数据.csv',     size:'67 KB',  path:'/站点小时数据.csv' },
+        ],
+        shotThumbs:[ { title:'浓度排名 · 平顶山', desc:'手动补发：08:00整点数据' } ],
+        dataRows:[ ['平顶山市','74','O₃-8h','13 / 18','↓ 2'] ],
+        logLines:[
+          {t:'info',m:'manual trigger by Acerola'},
+          {t:'info',m:'start run run-20260802-0845-m33a'},
+          {t:'ok',  m:'run done, status=success, duration=00:01:32'},
+        ]
+      },
+      { time:'08-01 22:00', sub:'昨天', status:'success', duration:'00:01:24', trigger:'定时', runId:'run-20260801-2200-c812',
+        shots:1, data:1, hasFiles:true, folderPath:'/Users/acerola/UniEcoClaw/outputs/20260801/2200_PDS_Hourly',
+        summary:{ triggerTime:'08-01 22:00:00', dataRange:'2026-08-01 21:00', source:'数智大气平台', deliver:'企业微信（平顶山运维群）', model:'gpt-4o-mini', tokens:'2,056' },
+        files:[
+          { icon:'img',  name:'浓度排名_平顶山市.png', size:'418 KB', path:'/浓度排名_平顶山市.png' },
+          { icon:'sheet',name:'站点小时数据.csv',     size:'69 KB',  path:'/站点小时数据.csv' },
+        ],
+        shotThumbs:[ { title:'浓度排名 · 平顶山', desc:'夜间峰值监控' } ],
+        dataRows:[ ['平顶山市','68','PM₂.₅','8 / 18','↓ 5'] ],
+        logLines:[
+          {t:'info',m:'start run run-20260801-2200-c812'},
+          {t:'ok',  m:'run done, status=success, duration=00:01:24'},
+        ]
+      },
+    ]
+  },
+  {
+    taskId:'c', name:'污染源超标异常监控', tpl:'每 15 分钟 · 钉钉推送', deliver:'钉钉',
+    stats:{ total:3, ok:0, fail:3 },
+    recent:{ status:'failed', time:'08-02 11:42', sub:'今天' },
+    runs:[
+      { time:'08-02 11:42', sub:'今天', status:'failed', duration:'00:00:18', trigger:'定时', runId:'run-20260802-1142-e91f',
+        shots:0, data:0, hasFiles:false, folderPath:'',
+        summary:{ triggerTime:'08-02 11:42:00', dataRange:'—（推送失败）', source:'数智大气平台', deliver:'钉钉（告警机器人，凭证失效）', model:'gpt-4o-mini', tokens:'—' },
+        error:'钉钉机器人 Webhook 已失效 (HTTP 400):\n错误码: invalidrobot\n请在「设置 → 渠道 → 钉钉」中更新凭证后重试。',
+        logLines:[
+          {t:'info',m:'start run run-20260802-1142-e91f'},
+          {t:'info',m:'load capability: pollution_alert'},
+          {t:'info',m:'fetch data: 数智大气 /api/v1/sources/overdue → 12 个超标站点'},
+          {t:'err', m:'ERROR deliver.dingtalk.send → HTTP 400 invalidrobot'},
+          {t:'err', m:'abort run, status=failed, duration=00:00:18'},
+        ]
+      },
+      { time:'08-02 10:15', sub:'今天', status:'failed', duration:'00:00:22', trigger:'定时', runId:'run-20260802-1015-d44c',
+        shots:0, data:0, hasFiles:false, folderPath:'',
+        summary:{ triggerTime:'08-02 10:15:00', dataRange:'—（推送失败）', source:'数智大气平台', deliver:'钉钉（告警机器人，凭证失效）', model:'gpt-4o-mini', tokens:'—' },
+        error:'钉钉机器人 Webhook 已失效 (HTTP 400):\n错误码: invalidrobot',
+        logLines:[
+          {t:'info',m:'start run run-20260802-1015-d44c'},
+          {t:'err', m:'ERROR deliver.dingtalk.send → HTTP 400 invalidrobot'},
+          {t:'err', m:'abort run, status=failed, duration=00:00:22'},
+        ]
+      },
+      { time:'08-01 14:32', sub:'昨天', status:'failed', duration:'00:00:18', trigger:'定时', runId:'run-20260801-1432-f108',
+        shots:0, data:0, hasFiles:false, folderPath:'',
+        summary:{ triggerTime:'08-01 14:32:00', dataRange:'—（平台 502）', source:'数智大气平台', deliver:'钉钉（告警机器人）', model:'—', tokens:'—' },
+        error:'数据平台连接超时 (30s)\n数智大气 API: /api/v1/sources/overdue → 502 Bad Gateway',
+        logLines:[
+          {t:'info',m:'start run run-20260801-1432-f108'},
+          {t:'err', m:'fetch data timeout (30s): 502 Bad Gateway'},
+          {t:'err', m:'abort run, status=failed, duration=00:00:18'},
+        ]
+      },
+    ]
+  },
+  {
+    taskId:'a', name:'平阴县每日城市排名分析任务', tpl:'每天 09:00 · 企业微信推送', deliver:'企业微信',
+    stats:{ total:1, ok:1, fail:0 },
+    recent:{ status:'success', time:'08-02 09:00', sub:'今天' },
+    runs:[
+      { time:'08-02 09:00', sub:'今天', status:'success', duration:'00:02:08', trigger:'定时', runId:'run-20260802-0900-g761',
+        shots:2, data:1, hasFiles:true, folderPath:'/Users/acerola/UniEcoClaw/outputs/20260802/0900_PYX_DailyRank',
+        summary:{ triggerTime:'08-02 09:00:00', dataRange:'2026-08-01 全天', source:'数智大气平台', deliver:'企业微信（平阴县环保局）', model:'gpt-4o-mini', tokens:'4,812' },
+        files:[
+          { icon:'img',  name:'城市浓度排名.png',   size:'624 KB', path:'/城市浓度排名.png' },
+          { icon:'img',  name:'区县插值热力图.png', size:'812 KB', path:'/区县插值热力图.png' },
+          { icon:'sheet',name:'日排名数据.xlsx',    size:'148 KB', path:'/日排名数据.xlsx' },
+          { icon:'pdf',  name:'分析报告.pdf',       size:'1.2 MB', path:'/分析报告.pdf' },
+        ],
+        shotThumbs:[
+          { title:'浓度排名 · 平顶山市 18 区县', desc:'日综合AQI排名条形图' },
+          { title:'插值图 · 河南省',               desc:'日均值空间插值热力图' },
+        ],
+        dataRows:[
+          ['济南市','62','PM₁₀','3 / 17','↓ 1'],
+          ['平阴县','58','O₃-8h','—','↓ 2'],
+        ],
+        logLines:[
+          {t:'info',m:'start run run-20260802-0900-g761'},
+          {t:'info',m:'load capability: daily_rank_analysis'},
+          {t:'ok',  m:'run done, status=success, duration=00:02:08'},
+        ]
+      },
+    ]
+  },
+  {
+    taskId:'h', name:'国控站点位数据采集', tpl:'每天 09:00 / 14:00 · 本地归档', deliver:'本地',
+    stats:{ total:2, ok:1, fail:0, running:1 },
+    recent:{ status:'running', time:'08-02 09:32', sub:'今天' },
+    runs:[
+      { time:'08-02 09:32', sub:'今天', status:'running', duration:'00:01:42 …', trigger:'定时', runId:'run-20260802-0932-r99a',
+        shots:0, data:0, hasFiles:false, folderPath:'',
+        summary:{ triggerTime:'08-02 09:32:00', dataRange:'采集中…', source:'数智大气平台', deliver:'本地归档（进行中）', model:'—', tokens:'—' },
+        logLines:[
+          {t:'info',m:'start run run-20260802-0932-r99a'},
+          {t:'info',m:'fetching: /api/v1/stations?type=national … (102/1430)'},
+        ]
+      },
+      { time:'08-02 09:18', sub:'今天', status:'success', duration:'00:03:12', trigger:'定时', runId:'run-20260802-0918-s225',
+        shots:1, data:1, hasFiles:true, folderPath:'/Users/acerola/UniEcoClaw/outputs/20260802/0918_National_Stations',
+        summary:{ triggerTime:'08-02 09:18:00', dataRange:'2026-08-02 09:00', source:'数智大气平台 · 国控站点 1430 个', deliver:'本地归档', model:'—（纯采集，无模型调用）', tokens:'0' },
+        files:[
+          { icon:'img',  name:'站点覆盖缩略图.png',   size:'238 KB', path:'/站点覆盖缩略图.png' },
+          { icon:'sheet',name:'国控站点_小时数据.csv', size:'2.4 MB', path:'/国控站点_小时数据.csv' },
+        ],
+        shotThumbs:[ { title:'国控站点覆盖缩略图', desc:'1430 个国控站点位置 + 数据完整度' } ],
+        dataRows:[
+          ['站点 1001A（北京朝阳）','68','O₃-8h','0.015','—'],
+          ['站点 1002A（北京海淀）','65','O₃-8h','0.014','↑ 0.002'],
+        ],
+        logLines:[
+          {t:'info',m:'start run run-20260802-0918-s225'},
+          {t:'ok',  m:'fetched 1430 stations × 24h = 34,320 rows'},
+          {t:'ok',  m:'run done, status=success, duration=00:03:12'},
+        ]
+      },
+    ]
+  },
+  {
+    taskId:'i', name:'数据采集日报汇总', tpl:'每天 07:00 · 本地归档', deliver:'本地',
+    stats:{ total:1, ok:1, fail:0 },
+    recent:{ status:'success', time:'08-02 11:30', sub:'今天' },
+    runs:[
+      { time:'08-02 11:30', sub:'今天', status:'success', duration:'00:00:48', trigger:'定时', runId:'run-20260802-1130-t55b',
+        shots:0, data:3, hasFiles:true, folderPath:'/Users/acerola/UniEcoClaw/outputs/20260802/1130_Daily_Summary',
+        summary:{ triggerTime:'08-02 11:30:00', dataRange:'2026-08-01 全天', source:'多源（数智大气 + 手工录入）', deliver:'本地归档 + 飞书文档同步', model:'gpt-4o-mini', tokens:'1,120' },
+        files:[
+          { icon:'sheet',name:'小时_汇总表.csv', size:'312 KB', path:'/小时_汇总表.csv' },
+          { icon:'sheet',name:'日_汇总表.csv',   size:'96 KB',  path:'/日_汇总表.csv' },
+          { icon:'sheet',name:'区县_明细表.csv', size:'1.1 MB', path:'/区县_明细表.csv' },
+        ],
+        dataRows:[
+          ['平顶山市','1,488 条','99.7%','11.2 MB','—'],
+          ['信阳市','1,488 条','99.9%','10.8 MB','—'],
+        ],
+        logLines:[
+          {t:'info',m:'start run run-20260802-1130-t55b'},
+          {t:'ok',  m:'merged 3 sources → 3 CSV + 1 XLSX'},
+          {t:'ok',  m:'run done, status=success, duration=00:00:48'},
+        ]
+      },
+    ]
+  },
+  {
+    taskId:'d', name:'周报自动生成', tpl:'每周一 18:00 · 本地归档', deliver:'本地',
+    stats:{ total:1, ok:1, fail:0 },
+    recent:{ status:'success', time:'08-01 18:00', sub:'昨天' },
+    runs:[
+      { time:'08-01 18:00', sub:'昨天', status:'success', duration:'00:04:36', trigger:'定时', runId:'run-20260801-1800-w77c',
+        shots:3, data:1, hasFiles:true, folderPath:'/Users/acerola/UniEcoClaw/outputs/20260801/1800_Weekly_Report',
+        summary:{ triggerTime:'08-01 18:00:00', dataRange:'2026-07-26 ~ 2026-08-01（第31周）', source:'数智大气平台', deliver:'本地归档 + 邮件抄送局长', model:'gpt-4o', tokens:'38,620' },
+        files:[
+          { icon:'img',  name:'周趋势.png',         size:'712 KB', path:'/周趋势.png' },
+          { icon:'img',  name:'同环比.png',         size:'654 KB', path:'/同环比.png' },
+          { icon:'img',  name:'雷达图.png',         size:'418 KB', path:'/雷达图.png' },
+          { icon:'sheet',name:'周统计.xlsx',        size:'326 KB', path:'/周统计.xlsx' },
+          { icon:'pdf',  name:'空气质量周报.pdf',   size:'2.8 MB', path:'/空气质量周报.pdf' },
+        ],
+        shotThumbs:[
+          { title:'周趋势（6 项污染物）', desc:'PM2.5/PM10/SO₂/NO₂/CO/O₃-8h 周均值折线' },
+          { title:'同环比对比',           desc:'同比上周/同比去年 双轴柱图' },
+          { title:'6 参数雷达图',         desc:'全省 18 市空气质量雷达对比' },
+        ],
+        dataRows:[
+          ['本周 AQI 均值','72','良','PM₁₀','↓ 6.2%'],
+          ['优良天数','5 / 7 天','—','—','↑ 1 天'],
+          ['重度污染','0 天','—','—','持平'],
+        ],
+        logLines:[
+          {t:'info',m:'start run run-20260801-1800-w77c'},
+          {t:'info',m:'load capability: weekly_report (model=gpt-4o)'},
+          {t:'info',m:'generate 14 sections → 28 pages PDF'},
+          {t:'ok',  m:'email sent → zhang.ju@example.gov.cn OK 250'},
+          {t:'ok',  m:'run done, status=success, duration=00:04:36'},
+        ]
+      },
+    ]
+  },
+];
+
+// 图标常量（文件类型 / 触发方式 / 展开箭头）
+const runlogIcon = {
+  chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  hand :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>',
+  folder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+  open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  shot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  data:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6"  y1="20" x2="6"  y2="14"/></svg>',
+  fImg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  fSheet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>',
+  fPdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15h2a2 2 0 0 1 0 4H9v-6zm6 1v3m0-3a2 2 0 0 1 2 2v1h-2z"/></svg>',
+};
+const runlogStatusMap = {
+  success:{ label:'成功', cls:'success' },
+  failed: { label:'失败', cls:'failed'  },
+  running:{ label:'运行中', cls:'running'},
+};
+const runlogFileIconMap = { img:runlogIcon.fImg, sheet:runlogIcon.fSheet, pdf:runlogIcon.fPdf };
+
+/**
+ * 顶层渲染：按「任务」为单位输出 L1 列表；默认不展开任何任务。
+ * 应用搜索关键词过滤（任务名/错误描述/时间含关键词 → 整条保留）
+ */
+function renderRunlog(){
+  const kw = (document.getElementById('runlogSearch')?.value || '').trim().toLowerCase();
+  const html = runlogTasks
+    .filter(t => {
+      if (!kw) return true;
+      if (t.name.toLowerCase().includes(kw)) return true;
+      return t.runs.some(r =>
+        r.time.includes(kw) ||
+        (r.status==='failed' && (r.error||'').toLowerCase().includes(kw)) ||
+        (r.summary?.deliver||'').toLowerCase().includes(kw)
+      );
+    })
+    .map(t => renderL1Task(t))
+    .join('');
+  document.getElementById('reportList').innerHTML = html ||
+    `<div class="empty-state">没有匹配的运行记录<span class="empty-hint">试试调整搜索关键词或筛选条件</span></div>`;
+}
+
+/**
+ * 渲染 L1：单条任务行（默认不展开，点行展开 L2 时间列表）
+ * @param {object} t 任务聚合对象（含 runs[]）
+ */
+function renderL1Task(t){
+  const s = runlogStatusMap[t.recent.status] || runlogStatusMap.success;
+  const total = t.stats.total;
+  const fail  = t.stats.fail  || 0;
+  const succ  = t.stats.ok    || 0;
+  const run   = t.stats.running || 0;
+  return `<section class="rl-task" data-task-id="${t.taskId}">
+    <div class="rl-task-head" onclick="toggleL1(this)">
+      <span class="rl-chev">${runlogIcon.chev}</span>
+      <div class="rl-task-main">
+        <div class="rl-task-title">${t.name}</div>
+        <div class="rl-task-sub">
+          <span class="rl-dot"></span>${t.tpl}
+          <span class="rl-dot"></span>总执行 <b>${total}</b> 次
+          ${run ? `<span class="rl-chip running">${run} 运行中</span>` : ''}
+          ${fail? `<span class="rl-chip failed">${fail} 失败</span>`  : `<span class="rl-chip success">${succ} 成功</span>`}
+        </div>
+      </div>
+      <div class="rl-task-right">
+        <span class="rl-time-meta">最近 · ${t.recent.time}<span class="rl-sub-time">${t.recent.sub}</span></span>
+        <span class="rl-pill ${s.cls}"><span class="pill-dot"></span>${s.label}</span>
+      </div>
+    </div>
+    <div class="rl-task-body">
+      ${t.runs.map(r => renderL2Run(t, r)).join('')}
+    </div>
+  </section>`;
+}
+
+/**
+ * 渲染 L2：单次执行的时间行（只显示状态 + 时间 + 触发方式，不展开详情）
+ * @param {object} t 所属任务（用于向上查找关联）
+ * @param {object} r 单次执行对象
+ */
+function renderL2Run(t, r){
+  const s = runlogStatusMap[r.status] || runlogStatusMap.success;
+  const trigIcon = r.trigger==='手动' ? runlogIcon.hand : runlogIcon.clock;
+  const hasFileBadge = r.shots + r.data > 0;
+  return `<div class="rl-run" data-run-id="${r.runId}">
+    <div class="rl-run-head" onclick="toggleL2(this)">
+      <span class="rl-chev rl-chev-sm">${runlogIcon.chev}</span>
+      <div class="rl-run-time"><span class="rl-time-main">${r.time}</span><span class="rl-sub-time">${r.sub}</span></div>
+      <span class="rl-pill ${s.cls}"><span class="pill-dot"></span>${s.label}</span>
+      <div class="rl-run-meta">
+        <span class="rl-meta-item" title="耗时">${r.duration}</span>
+        ${hasFileBadge ? `<span class="rl-meta-item">${runlogIcon.shot}${r.shots+r.data} 产出</span>` : ''}
+        <span class="rl-meta-item ${r.isManual?'manual':''}" title="触发方式">${trigIcon}${r.trigger}</span>
+      </div>
+    </div>
+    <div class="rl-run-body">${renderL3Detail(t, r)}</div>
+  </div>`;
+}
+
+/**
+ * 渲染 L3：单次执行详情（摘要 + 文件展示 + 跳转文件夹 + 日志 + 本地对话提问）
+ * @param {object} t 所属任务
+ * @param {object} r 单次执行对象
+ */
+function renderL3Detail(t, r){
+  const sum = r.summary || {};
+  const isFailed = r.status==='failed';
+  const hasFiles = r.files && r.files.length>0;
+  return `<div class="rl-detail">
+    ${isFailed ? `
+      <div class="fail-banner" style="margin-bottom:14px">
+        ${runlogIcon.fSheet.replace('stroke="currentColor"','stroke="currentColor"').replace('<rect x="3" y="3" width="18" height="18" rx="2"/>','<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>')}
+        <span><b>执行失败</b>：${(r.error||'').split('\n')[0]}</span>
+        <a href="duty-tasks.html" onclick="event.stopPropagation()">前往修复</a>
+      </div>
+      <div class="detail-section">
+        <h4>失败详情 <span class="h-tag">${isFailed?'HTTP 4xx/5xx':'执行中断'}</span></h4>
+        <div class="detail-err">${r.error || '未知错误'}</div>
+        <div class="detail-actions">
+          <button class="btn btn-default" onclick="event.stopPropagation();showToast('已重新触发运行')">重试本次</button>
+          <a class="btn btn-primary" href="duty-create.html?edit=${t.taskId}">修复任务配置</a>
+        </div>
+      </div>` : ''}
+
+    <!-- 摘要 -->
+    <div class="detail-section">
+      <h4>任务执行摘要 <span class="h-tag">${r.runId}</span></h4>
+      <div class="detail-grid">
+        <div class="item"><span class="k">触发时间</span><span class="v">${sum.triggerTime||'—'}</span></div>
+        <div class="item"><span class="k">数据时间</span><span class="v">${sum.dataRange||'—'}</span></div>
+        <div class="item"><span class="k">数据来源</span><span class="v">${sum.source||'—'}</span></div>
+        <div class="item"><span class="k">推送渠道</span><span class="v">${sum.deliver||'—'}</span></div>
+        <div class="item"><span class="k">模型</span><span class="v">${sum.model||'—'}</span></div>
+        <div class="item"><span class="k">Token 消耗</span><span class="v">${sum.tokens||'—'}</span></div>
+      </div>
+    </div>
+
+    <!-- 文件展示 + 跳转文件夹 -->
+    ${hasFiles ? `
+    <div class="detail-section">
+      <h4>
+        <span>生成的文件展示</span>
+        <span class="h-tag">${r.files.length} 个文件</span>
+        <span style="flex:1"></span>
+        <button class="btn btn-default btn-sm" onclick="event.stopPropagation();openFolder('${r.folderPath||''}','${t.name}')">
+          ${runlogIcon.folder}打开所在文件夹
+        </button>
+      </h4>
+      <div class="rl-files">
+        ${r.files.map(f=>`
+          <div class="rl-file-card" title="${f.name} · ${f.size}" onclick="event.stopPropagation();showToast('打开：${f.name}')">
+            <span class="rl-file-icon ${f.icon}">${runlogFileIconMap[f.icon]||runlogIcon.fSheet}</span>
+            <div class="rl-file-meta">
+              <span class="rl-file-name">${f.name}</span>
+              <span class="rl-file-size">${f.size}</span>
+            </div>
+            <span class="rl-file-open">${runlogIcon.open}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : `
+    <div class="detail-section">
+      <h4>生成的文件展示 <span class="h-tag">无产出</span></h4>
+      <div class="rl-files-empty">本次执行无文件产出（通常为「运行中」或「纯告警类任务」）</div>
+    </div>`}
+
+    <!-- 截图缩略图（兼容旧结构 detail-shots） -->
+    ${r.shotThumbs && r.shotThumbs.length ? `
+    <div class="detail-section">
+      <h4>截图产物 <span class="h-tag">${r.shotThumbs.length} 张</span></h4>
+      <div class="detail-shots">
+        ${r.shotThumbs.map(s=>`
+          <div class="detail-shot" onclick="event.stopPropagation();showToast('打开截图预览：${s.title}')">
+            ${runlogIcon.shot}<span>${s.title}</span><span style="font-size:10px;opacity:.75;margin-top:2px">${s.desc||''}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>`:''}
+
+    <!-- 提取数据表 -->
+    ${r.dataRows && r.dataRows.length ? `
+    <div class="detail-section">
+      <h4>提取数据 <span class="h-tag">${r.dataRows.length} 行</span></h4>
+      <table class="detail-data-table">
+        <thead><tr><th>对象</th><th>值 1</th><th>值 2</th><th>值 3</th><th>变化</th></tr></thead>
+        <tbody>
+          ${r.dataRows.map(row=>`<tr>${row.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`:''}
+
+    <!-- 执行日志 -->
+    <div class="detail-section">
+      <h4>执行日志 <span class="h-tag">${r.logLines?.length||0} 行</span></h4>
+      <div class="detail-log">
+        ${(r.logLines||[]).map(l=>`<span class="log-${l.t==='err'?'err':l.t==='ok'?'ok':'info'}">[${r.time.split(' ')[0]+' '+r.time.split(' ')[1]}] ${l.m}</span>`).join('')}
+      </div>
+    </div>
+
+    <!-- 针对本地对话提问：点按钮 → 新建会话去 duty-chat.html 携带 runId 预填 -->
+    <div class="detail-section rl-ask">
+      <div class="rl-ask-head">
+        <span class="rl-ask-icon">${runlogIcon.chat}</span>
+        <div>
+          <div class="rl-ask-title">针对本次执行结果提问</div>
+          <div class="rl-ask-sub">将基于本执行日志 + 数据产物作为上下文，开启一个新的本地对话会话</div>
+        </div>
+        <button class="btn btn-primary" onclick="event.stopPropagation();startNewChatAboutRun('${r.runId}','${t.name}','${r.time}')">
+          ${runlogIcon.chat}发起新会话
+        </button>
+      </div>
+      <div class="rl-ask-hint">
+        <span class="rl-hint-chip">示例：本次失败的根因是什么？</span>
+        <span class="rl-hint-chip">示例：把周周报总结成 3 条要点</span>
+        <span class="rl-hint-chip">示例：为什么 08:00 平顶山是 ↑ 2？</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/**
+ * L1 任务行展开/折叠切换
+ * @param {HTMLElement} headEl 被点击的 rl-task-head 节点
+ */
+function toggleL1(headEl){
+  const task = headEl.closest('.rl-task');
+  task.classList.toggle('open');
+}
+/**
+ * L2 单次执行展开/折叠切换
+ * @param {HTMLElement} headEl 被点击的 rl-run-head 节点
+ */
+function toggleL2(headEl){
+  const run = headEl.closest('.rl-run');
+  run.classList.toggle('open');
+}
+
+/**
+ * 点击「打开所在文件夹」：在桌面端调用系统打开；Web 原型中仅 toast 提示，并复制路径到剪贴板（如可用）
+ * @param {string} folderPath 绝对路径
+ * @param {string} taskName   任务名（展示用）
+ */
+function openFolder(folderPath, taskName){
+  if (!folderPath) { showToast('该次执行未产出文件，无文件夹可打开'); return; }
+  try { navigator.clipboard && navigator.clipboard.writeText(folderPath); showToast(`已复制文件夹路径：${folderPath}`); }
+  catch(e){ showToast(`文件夹：${folderPath}`); }
+}
+
+/**
+ * 「发起新会话」：跳转到对话页并携带 run 参数，让对话页把 runId/runTime 预填成上下文
+ * @param {string} runId   执行 ID
+ * @param {string} tname   任务名
+ * @param {string} runTime 执行时间
+ */
+function startNewChatAboutRun(runId, tname, runTime){
+  // 用 encodeURIComponent 避免特殊字符破坏 URL
+  const params = new URLSearchParams({
+    from:'runlog',
+    run_id: runId,
+    task_name: tname,
+    run_time: runTime,
+  });
+  location.href = 'duty-chat.html?' + params.toString();
+}
+
+/**
+ * 重置运行记录筛选：清空搜索框 + 恢复默认筛选
+ */
+function resetRunlogFilter(){
+  const inp = document.getElementById('runlogSearch');
+  if (inp) inp.value = '';
+  document.querySelectorAll('.toolbar select.tl-select').forEach(s => s.selectedIndex = 0);
+  renderRunlog();
+  showToast('已重置筛选条件');
+}
+
+// Toast（保留原实现，避免冲突）
 let tTimer=null;
 function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>t.classList.remove('show'),2000); }
+
+// 初始渲染
 renderJobs();
+renderRunlog();
+
+// 页面加载时根据 hash 决定切哪个 tab
+window.addEventListener('load', ()=>{
+  if(location.hash==='#tab=runlog') setAutomationTab('runlog');
+});
 </script>
+<script>
+/**
+ * 切换侧栏「最近任务」区块的展开/折叠状态，并持久化到 localStorage
+ * @param {HTMLElement} headEl 点击的标题DOM
+ */
+function toggleRecentSection(headEl){
+  if (window.event) window.event.stopPropagation();
+  const section = (headEl && headEl.closest) ? headEl.closest('.sidebar-fixed-section') : document.querySelector('.sidebar-fixed-section');
+  if (!section) return;
+  section.classList.toggle('collapsed');
+  const collapsed = section.classList.contains('collapsed');
+  try { localStorage.setItem('unieco_recent_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+
+/**
+ * 页面加载时从 localStorage 恢复「最近任务」的折叠状态
+ */
+(function restoreRecentFold(){
+  try {
+    const collapsed = localStorage.getItem('unieco_recent_collapsed') === '1';
+    const section = document.querySelector('.sidebar-fixed-section');
+    if (section && collapsed) section.classList.add('collapsed');
+  } catch(e) {}
+})();
+</script>
+
 </body>
 </html>

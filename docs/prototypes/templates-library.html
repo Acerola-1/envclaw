@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniEcoClaw · 常用任务 · 任务模板库</title>
+<link rel="stylesheet" href="duty-proto.css">
+</head>
+<body>
+<div class="app">
+  <!-- 左侧栏：4 顶级入口 -->
+  <aside class="session-list">
+    <div class="page-sidebar-top">
+      <div class="page-sidebar-nav">
+        <div class="sidebar-brand">
+          <div class="logo-icon"><img src="logo.png" alt="UniEcoClaw"></div>
+          <div>
+            <div class="logo-text">UniEcoClaw</div>
+            <div class="logo-tag">数智环保 · UniEcoClaw</div>
+          </div>
+        </div>
+        <div class="sidebar-primary-nav">
+          <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
+          <a class="sidebar-primary-nav-item" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
+          <a class="sidebar-primary-nav-item active" href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
+          <a class="sidebar-primary-nav-item" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
+        </div>
+      </div>
+      </div>
+    <div class="sidebar-fixed-section">
+      <div class="sidebar-fixed-head" onclick="toggleRecentSection(this)"><svg class="sidebar-fold-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="sidebar-fixed-head-label">最近任务</span><span class="sidebar-fixed-head-count">5</span></div>
+      <div class="sidebar-fold-body"><div class="session-sections-scroll" style="padding:0 8px 8px">
+        <a class="session-item active"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务·07/28运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/23</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多(2)</button>
+      </div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Acerola</div>
+      </div>
+      <button class="icon-btn" title="通知" onclick="showToast('暂无新通知')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+      <button class="icon-btn" title="设置" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </aside>
+
+  <!-- 内容区 -->
+  <div class="content">
+    <div class="page">
+      <!-- 页头 -->
+      <div class="page-header">
+        <div>
+          <h1>常用任务 · 模板库</h1>
+          <div class="page-sub">将高频任务沉淀为模板，跨用户、跨环境一键复用</div>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-default" href="template-share.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>分享 / 导入</a>
+          <a class="btn btn-primary" href="template-editor.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建模板</a>
+        </div>
+      </div>
+
+
+      <div style="display:flex;gap:18px;align-items:flex-start">
+        <div style="width:200px;flex-shrink:0">
+          <div class="session-section" style="margin:0 0 14px">
+            <div class="session-group-header">
+              <span class="session-group-label">分组</span>
+              <span class="session-group-count">(6)</span>
+            </div>
+            <a class="session-item active"><span class="session-item-title">全部模板</span><span class="session-item-time">6</span></a>
+            <a class="session-item"><span class="session-item-title">系统预置</span><span class="session-item-time">3</span></a>
+            <a class="session-item"><span class="session-item-title">我的模板</span><span class="session-item-time">2</span></a>
+            <a class="session-item"><span class="session-item-title">外部导入</span><span class="session-item-time">1</span></a>
+            <a class="session-item"><span class="session-item-title">已收藏</span><span class="session-item-time">1</span></a>
+            <a class="session-item"><span class="session-item-title">最近更新</span><span class="session-item-time">4</span></a>
+          </div>
+          <div class="session-section" style="margin:0">
+            <div class="session-group-header">
+              <span class="session-group-label">标签</span>
+            </div>
+            <a class="session-item"><span class="session-item-title">日报周报</span><span class="session-item-time">2</span></a>
+            <a class="session-item"><span class="session-item-title">空气质量</span><span class="session-item-time">2</span></a>
+            <a class="session-item"><span class="session-item-title">水环境</span><span class="session-item-time">1</span></a>
+            <a class="session-item"><span class="session-item-title">考核排名</span><span class="session-item-time">1</span></a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0">
+      <!-- 4 Tab：全部 / 系统 / 我的 / 外部导入 -->
+      <div class="seg-switch" style="margin-top:4px">
+        <button class="seg-btn active" data-tab="all" onclick="setTab('all')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>全部 <span class="seg-count">6</span></button>
+        <button class="seg-btn" data-tab="system" onclick="setTab('system')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>系统 <span class="seg-count">3</span></button>
+        <button class="seg-btn" data-tab="mine" onclick="setTab('mine')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的 <span class="seg-count">2</span></button>
+        <button class="seg-btn" data-tab="imported" onclick="setTab('imported')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>外部导入 <span class="seg-count">1</span></button>
+      </div>
+
+      <!-- 筛选条 -->
+      <div class="filter-bar">
+        <div class="filter-pill active" data-f="all" onclick="setFilter('all')">全部 <span class="num">6</span></div>
+        <div class="filter-pill" data-f="favorite" onclick="setFilter('favorite')"><span class="dot" style="background:var(--warning)"></span>已收藏 <span class="num">1</span></div>
+        <div class="filter-pill" data-f="recent" onclick="setFilter('recent')"><span class="dot" style="background:var(--accent-primary)"></span>最近使用 <span class="num">4</span></div>
+        <div class="filter-pill" data-f="shared" onclick="setFilter('shared')"><span class="dot" style="background:var(--success)"></span>可分享 <span class="num">5</span></div>
+        <div class="filter-bar-right">
+          <div class="search-input">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="tmplSearch" placeholder="搜索模板名称 / 标签..." oninput="renderTemplates()">
+          </div>
+        </div>
+      </div>
+
+      <!-- 卡片网格 -->
+      <div class="card-grid" id="tmplGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+// 模板 mock（系统 3 + 我的 2）
+const templates = [
+  {
+    id:'t1', name:'平顶山日报推送', source:'system', favorite:true,
+    desc:'每日 09:00 推送城市空气质量日报，含排名、首要污染物、超标站点',
+    caps:['一张图','浓度排名','日报文本'], schedule:'每天 09:00', deliver:'企业微信',
+    author:'UniEcoClaw 团队', updated:'2026-07-15', used:12, version:'1.4.0'
+  },
+  {
+    id:'t2', name:'臭氧污染简报', source:'system', favorite:false,
+    desc:'夏秋臭氧高发期每小时推送 O3 浓度、首要污染物、敏感人群提示',
+    caps:['一张图','小时播报','超标预警'], schedule:'每小时', deliver:'钉钉',
+    author:'UniEcoClaw 团队', updated:'2026-06-22', used:8, version:'1.2.0'
+  },
+  {
+    id:'t3', name:'区域月度考核', source:'system', favorite:false,
+    desc:'每月 1 日生成上月区域考核排名表，含同比环比与达标率',
+    caps:['浓度排名','报表','同比环比'], schedule:'每月 1 日 10:00', deliver:'企业微信 + 邮件',
+    author:'UniEcoClaw 团队', updated:'2026-05-30', used:4, version:'1.0.2'
+  },
+  {
+    id:'t4', name:'周报定制（我的）', source:'mine', favorite:false,
+    desc:'每周一 18:00 汇总本周所有值守任务执行情况，生成周报',
+    caps:['日报文本','周报','执行统计'], schedule:'每周一 18:00', deliver:'企业微信',
+    author:'我', updated:'2026-07-28', used:5, version:'0.3.1'
+  },
+  {
+    id:'t5', name:'早晚高峰监测', source:'mine', favorite:false,
+    desc:'工作日 07:30 / 18:00 监测早晚高峰 AQI 与首要污染物变化',
+    caps:['一张图','小时播报','超标预警'], schedule:'工作日 07:30 / 18:00', deliver:'飞书',
+    author:'我', updated:'2026-07-20', used:2, version:'0.1.0'
+  },
+  {
+    id:'t6', name:'省控站点日报同步', source:'imported', favorite:false,
+    desc:'从华东区域环境导入的模板：每天 09:30 同步省控站点小时日报，生成对比分析',
+    caps:['小时监测数据','日报同步','对比分析'], schedule:'每天 09:30', deliver:'邮件 + 企业微信',
+    author:'华东区域环境 · 王工', updated:'2026-07-25', used:3, version:'0.2.4',
+    shareMeta:'来自华东联防联控 · 跨环境导入 07/25'
+  },
+];
+
+const sourceLabel = { system:'系统', mine:'我的', imported:'外部导入', team:'团队' };
+
+let activeTab = 'all';
+let activeFilter = 'all';
+
+function setTab(t){
+  activeTab = t;
+  document.querySelectorAll('.seg-btn[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
+  renderTemplates();
+}
+function setFilter(f){
+  activeFilter = f;
+  document.querySelectorAll('.filter-pill').forEach(p=>{ p.classList.remove('active'); if(p.dataset.f===f) p.classList.add('active'); });
+  renderTemplates();
+}
+function renderTemplates(){
+  const kw = (document.getElementById('tmplSearch').value||'').trim().toLowerCase();
+  let list = templates.filter(t=>{
+    if(activeTab!=='all' && t.source!==activeTab) return false;
+    if(activeFilter==='favorite' && !t.favorite) return false;
+    if(activeFilter==='recent' && t.used<3) return false;
+    if(activeFilter==='shared' && t.source==='mine') return false;
+    return true;
+  });
+  if(kw) list = list.filter(t=>t.name.toLowerCase().includes(kw) || t.caps.some(c=>c.toLowerCase().includes(kw)));
+  const grid = document.getElementById('tmplGrid');
+  if(!list.length){ grid.innerHTML = `<div class="empty-state">没有匹配的模板<div class="empty-hint">试着切换 Tab 或清空筛选条件</div></div>`; return; }
+  grid.innerHTML = list.map(t=>`
+    <div class="job-card">
+      <div class="card-head">
+        <div class="card-title">${t.name}</div>
+        <span class="status-pill ${t.source==='system'?'scheduled':'running'}"><span class="pill-dot"></span>${sourceLabel[t.source]}</span>
+      </div>
+      <div class="card-body">
+        <div class="info-row" style="align-items:flex-start"><span class="label" style="padding-top:2px">说明</span><span class="val" style="white-space:normal;line-height:1.5">${t.desc}</span></div>
+        <div class="info-row"><span class="label">能力</span><span class="val" style="display:flex;gap:4px;flex-wrap:wrap">${t.caps.map(c=>`<span class="cap-tag">${c}</span>`).join('')}</span></div>
+        <div class="info-row"><span class="label">调度</span><span class="val mono">${t.schedule}</span></div>
+        <div class="info-row"><span class="label">推送</span><span class="val">${t.deliver}</span></div>
+        <div class="info-row"><span class="label">作者</span><span class="val">${t.author} · v${t.version}</span></div>
+        <div class="info-row"><span class="label">派生</span><span class="val">已被使用 <b>${t.used}</b> 次 · 更新于 ${t.updated}</span></div>
+      </div>
+      <div class="card-actions">
+        <a class="act-btn" href="template-editor.html?clone=${t.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>查看</a>
+        <a class="act-btn act-primary" href="duty-create.html?from=${t.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>创建任务</a>
+        <button class="act-btn" onclick="showToast('已克隆为新模板')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>克隆</button>
+        ${t.source==='mine' ? `<a class="act-btn" href="template-editor.html?edit=${t.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑</a>` : ''}
+        <button class="act-btn" onclick="showToast('分享链接已复制')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>分享</button>
+        ${t.source==='mine' ? `<button class="act-btn act-danger" onclick="showToast('删除确认')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>删除</button>` : `<button class="act-btn" onclick="showToast('已收藏')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>收藏</button>`}
+      </div>
+    </div>
+  `).join('');
+}
+let tTimer=null;
+function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>t.classList.remove('show'),2000); }
+renderTemplates();
+</script>
+<script>
+/**
+ * 切换侧栏「最近任务」区块的展开/折叠状态，并持久化到 localStorage
+ * @param {HTMLElement} headEl 点击的标题DOM
+ */
+function toggleRecentSection(headEl){
+  if (window.event) window.event.stopPropagation();
+  const section = (headEl && headEl.closest) ? headEl.closest('.sidebar-fixed-section') : document.querySelector('.sidebar-fixed-section');
+  if (!section) return;
+  section.classList.toggle('collapsed');
+  const collapsed = section.classList.contains('collapsed');
+  try { localStorage.setItem('unieco_recent_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+
+/**
+ * 页面加载时从 localStorage 恢复「最近任务」的折叠状态
+ */
+(function restoreRecentFold(){
+  try {
+    const collapsed = localStorage.getItem('unieco_recent_collapsed') === '1';
+    const section = document.querySelector('.sidebar-fixed-section');
+    if (section && collapsed) section.classList.add('collapsed');
+  } catch(e) {}
+})();
+</script>
+
+</body>
+</html>

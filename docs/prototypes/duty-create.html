@@ -3,74 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>envClaw · 创建值守任务</title>
+<title>UniEcoClaw · 创建值守任务</title>
 <link rel="stylesheet" href="duty-proto.css">
 </head>
 <body>
 <div class="app">
-  <!-- 左侧栏（1:1 复刻 ChatPanel: session-list + PageSidebarNav + JobTreeList） -->
-  <aside class="session-list">
+    <aside class="session-list">
     <div class="page-sidebar-top">
       <div class="page-sidebar-nav">
         <div class="sidebar-brand">
-          <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 13 13 13 12"/></svg></div>
+          <div class="logo-icon"><img src="logo.png" alt="UniEcoClaw"></div>
           <div>
-            <div class="logo-text">envClaw</div>
-            <div class="logo-tag">数智环保 · envClaw</div>
+            <div class="logo-text">UniEcoClaw</div>
+            <div class="logo-tag">数智环保 · UniEcoClaw</div>
           </div>
         </div>
-        <div class="mode-switch-tabs">
-          <button class="mode-tab" onclick="location.href='duty-chat.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>智能问数</span></button>
-          <button class="mode-tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>自动化值守</span></button>
+        <div class="sidebar-primary-nav">
+          <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
+          <a class="sidebar-primary-nav-item active" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
+          <a class="sidebar-primary-nav-item " href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
+          <a class="sidebar-primary-nav-item " href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
         </div>
       </div>
-      <div class="sidebar-action-bar">
-        <a class="sidebar-primary-btn" href="duty-create.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
       </div>
+    <div class="sidebar-fixed-section">
+      <div class="sidebar-fixed-head" onclick="toggleRecentSection(this)"><svg class="sidebar-fold-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="sidebar-fixed-head-label">最近任务</span><span class="sidebar-fixed-head-count">5</span></div>
+      <div class="sidebar-fold-body"><div class="session-sections-scroll" style="padding:0 8px 8px">
+        <a class="session-item"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务·07/28运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/23</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多(2)</button>
+      </div></div>
     </div>
-    <div class="session-sections-scroll">
-      <div class="session-section">
-        <div class="session-group-header">
-          <span class="session-group-label">历史对话</span>
-          <span class="session-group-count">(7)</span>
-          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <a class="session-item active"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
-        <a class="session-item"><span class="session-item-title">平顶山值守任务 · 07/28 运行分析</span><span class="session-item-time">10:19</span></a>
-        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
-        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月27日</span></a>
-        <a class="session-item"><span class="session-item-title">[运行结果上下文] # City…</span><span class="session-item-time">7月23日</span></a>
-        <button class="session-more-btn">查看更多（2）</button>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Acerola</div>
       </div>
-      <div class="session-section">
-        <div class="session-group-header">
-          <span class="session-group-label">定时任务</span>
-          <span class="session-group-count">(1)</span>
-          <svg class="group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="tree-job-group">
-          <div class="tree-job-row active">
-            <span class="tree-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
-            <div class="tree-job-info">
-              <span class="tree-job-name">平顶山值守任务</span>
-              <span class="tree-job-status success">已调度</span>
-            </div>
-            <span class="tree-job-settings" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="page-sidebar-bottom">
-      <button class="page-sidebar-menu-btn" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>设置</span></button>
+      <button class="icon-btn" title="通知" onclick="showToast('暂无新通知')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+      <button class="icon-btn" title="设置" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
   </aside>
 
-  <!-- 内容区 -->
   <div class="content">
     <div class="create-page">
       <a class="crt-back" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>返回值守任务</a>
 
-      <!-- 步骤条 -->
       <div class="stepper">
         <div class="step-item active" data-step="1" onclick="goStep(1)"><div class="step-num">1</div><div class="step-label">选择要做什么</div></div>
         <div class="step-connector" id="conn1"></div>
@@ -79,30 +60,135 @@
         <div class="step-item" data-step="3" onclick="goStep(3)"><div class="step-num">3</div><div class="step-label">确认任务</div></div>
       </div>
 
-      <!-- ===== 步骤1：选择要做什么 ===== -->
       <div class="step-panel visible" id="panel1">
         <div class="form-section">
+          <!-- 来源提示条（由 picker / 模板库 / 编辑入口进来时显示） -->
+          <div class="origin-banner" id="originBanner" style="display:none"></div>
+
           <div class="task-identity">
             <label>任务名称</label>
             <input class="n-input" id="taskName" value="平顶山市空气质量值守">
           </div>
+
+          <!-- 提示横幅（仿 workbuddy 顶部） -->
+          <div class="create-tip-banner" id="tipBanner">
+            <div class="ctb-left">
+              <span class="ctb-tag">提示</span>
+              <span class="ctb-text">自动化任务执行时，请勿关闭电脑或退出客户端，否则任务将无法正常执行</span>
+            </div>
+            <button class="ctb-close" onclick="document.getElementById('tipBanner').style.display='none'" title="关闭">×</button>
+          </div>
+
           <div class="capability-heading">
             <div>
-              <span class="capability-kicker">01 · 组合任务成果</span>
-              <h2>这次任务需要交付什么？</h2>
+              <span class="capability-kicker">01 · 定义任务目标</span>
+              <h2>这次任务要做什么？</h2>
             </div>
             <span class="bound-context">关联城市：<b>平顶山市</b></span>
           </div>
-          <div class="output-list" id="outputList"></div>
-          <div class="output-add-bar">
-            <span>添加成果</span>
-            <button onclick="addOutput('mapPackage')"><b>＋</b> 一张图</button>
-            <button onclick="addOutput('concentrationRanking')"><b>＋</b> 浓度排名</button>
-            <button onclick="addOutput('hourlyBrief')"><b>＋</b> 小时播报</button>
-            <button onclick="addOutput('monitoringData')"><b>＋</b> 监测数据</button>
+
+          <!-- 4 种快捷入口卡片（已选内容时自动收起） -->
+          <div class="onboard-card-grid" id="onboardGrid" style="margin: 10px 0 8px;">
+            <div class="onboard-card tpl" onclick="gotoPicker('tmpl')">
+              <div class="obc-head">
+                <span class="obc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+                <span class="obc-badge">最推荐</span>
+              </div>
+              <h3>从模板添加</h3>
+              <p>系统内预置 6+ 份行业模板，一键应用到本次任务，后续可继续细化能力与推送方式。</p>
+              <span class="obc-cta">去选模板 →</span>
+            </div>
+            <div class="onboard-card cap" onclick="gotoPicker('caps')">
+              <div class="obc-head">
+                <span class="obc-ic" style="background:linear-gradient(135deg,#e4f3ff,#c9e4ff);color:#0b65bb;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
+              </div>
+              <h3>从能力添加</h3>
+              <p>在平台能力库中挑选「一张图 / 浓度排名 / 小时播报 / 监测数据」等能力自由组合。</p>
+              <span class="obc-cta">去选能力 →</span>
+            </div>
+            <div class="onboard-card skill" onclick="gotoPicker('skills')">
+              <div class="obc-head">
+                <span class="obc-ic" style="background:linear-gradient(135deg,#e8fbf2,#cff3e0);color:#1d8c52;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg></span>
+              </div>
+              <h3>从技能添加</h3>
+              <p>选择 AI 技能脚本作为任务项，可直接执行「日报生成 / 重污染研判 / O₃ 追踪 / PDF 导出」等。</p>
+              <span class="obc-cta">去选技能 →</span>
+            </div>
+            <div class="onboard-card mcp" onclick="gotoPicker('mcps')">
+              <div class="obc-head">
+                <span class="obc-ic" style="background:linear-gradient(135deg,#f2ebff,#dfd4ff);color:#6d3ff0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg></span>
+              </div>
+              <h3>从连接器添加</h3>
+              <p>选择 MCP 连接器作为任务项，调用「本地文件 / Hermes Agent / 飞书 IM / 对象存储」等工具。</p>
+              <span class="obc-cta">去选连接器 →</span>
+            </div>
           </div>
 
-          <!-- 浓度排名配置 -->
+          <!-- 提示词主输入框 + 底部一行选择（仿 workbuddy 风格） -->
+          <div class="prompt-block">
+            <div class="pb-label">提示词 <span style="color:var(--text-muted);font-weight:400;font-size:12px;margin-left:4px">描述任务目标，AI 将按目标调用下方技能、连接器与能力</span></div>
+            <div class="prompt-box">
+              <textarea id="taskPrompt" placeholder="例如：&#10;针对平顶山市，获取今早 08:00~16:00 的小时监测数据，生成一张空气质量分布插值图，汇总浓度排名，并以日报格式推送到企业微信群；如出现 AQI>150 的情况，额外调用重污染研判技能给出处置建议。"></textarea>
+              <div class="prompt-toolbar">
+                <!-- 模型选择 -->
+                <div class="pt-select" onclick="showToast('切换模型（原型示意）')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+                  <b>Auto</b>
+                  <span class="pt-arrow">▾</span>
+                </div>
+                <!-- 技能选择（点击跳转 picker skills Tab） -->
+                <div class="pt-select" onclick="gotoPicker('skills')" title="从 picker 挑选技能">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
+                  <b>技能</b>
+                  <span id="ptSkillCount" class="seg-count" style="margin-left:4px;background:rgba(29,140,82,.12);color:#1d8c52;padding:1px 7px;border-radius:999px;font-size:11px">0</span>
+                  <span class="pt-arrow">▾</span>
+                </div>
+                <!-- 能力组合（点击跳转 picker caps Tab） -->
+                <div class="pt-select" onclick="gotoPicker('caps')" title="组合平台能力">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  <b>能力组合</b>
+                  <span id="ptCapCount" class="seg-count" style="margin-left:4px;background:rgba(11,101,187,.12);color:#0b65bb;padding:1px 7px;border-radius:999px;font-size:11px">0</span>
+                  <span class="pt-arrow">▾</span>
+                </div>
+                <!-- 权限等级（提示信息） -->
+                <div class="pt-pill warning" onclick="showToast('权限等级（原型示意）')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l7 4v6c0 5-3 9-7 10-4-1-7-5-7-10V6l7-4z"/></svg>
+                  完全访问权限
+                  <span class="pt-arrow" style="color:#f59e0b;font-size:10px;margin-left:2px">⚡</span>
+                </div>
+                <!-- 已选的 chips 展示区 -->
+                <div id="chipsBar" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1;justify-content:flex-end;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 连接器多选区 -->
+          <div class="connector-block">
+            <div class="cb-head">
+              <div>
+                <label>连接器</label>
+                <small>（勾选即授权该连接器在任务中免确认使用）</small>
+              </div>
+              <a style="font-size:12px;color:var(--accent-primary);cursor:pointer" onclick="gotoPicker('mcps')">到连接器库选择 →</a>
+            </div>
+            <div class="connector-list" id="connectorList"></div>
+          </div>
+
+          <!-- 已选的 legacy 4 能力 / 技能 卡片列表，便于用户查看和删除（兼容 step2/step3 已有逻辑） -->
+          <div id="outputWrap" style="margin-top:14px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-primary)">已选成果/技能</div>
+            <div class="output-list" id="outputList"></div>
+            <div class="output-add-bar">
+              <span>添加</span>
+              <button onclick="addOutput('mapPackage')"><b>＋</b> 一张图</button>
+              <button onclick="addOutput('concentrationRanking')"><b>＋</b> 浓度排名</button>
+              <button onclick="addOutput('hourlyBrief')"><b>＋</b> 小时播报</button>
+              <button onclick="addOutput('monitoringData')"><b>＋</b> 监测数据</button>
+              <button onclick="gotoPicker('skills')" style="color:#1d8c52"><b>＋</b> 技能</button>
+              <button onclick="gotoPicker('mcps')" style="color:#6d3ff0"><b>＋</b> 连接器</button>
+            </div>
+          </div>
+
           <section class="ranking-config cfg" id="cfg-concentrationRanking" style="display:none">
             <div class="ranking-config-head">02 · 配置浓度排名</div>
             <div class="ranking-toolbar">
@@ -126,7 +212,6 @@
             <div class="ranking-summary">本次成果：城市排名 · 平顶山市 · 实时 · 官网最新可用时间 · PM₂.₅、O₃、AQI · 页面截图 · 国标类型：默</div>
           </section>
 
-          <!-- 一张图配置 -->
           <section class="ranking-config cfg" id="cfg-mapPackage" style="display:none">
             <div class="ranking-config-head">02 · 配置一张图</div>
             <div class="ranking-toolbar">
@@ -147,7 +232,6 @@
             <div class="ranking-summary">本次一张图：全国 · 监测图 · 首要污染物 · 浅色 · 开启风/海浪 · 保留左侧面板</div>
           </section>
 
-          <!-- 小时播报配置 -->
           <section class="ranking-config cfg" id="cfg-hourlyBrief" style="display:none">
             <div class="ranking-config-head">02 · 配置小时播报</div>
             <div class="ranking-toolbar">
@@ -171,7 +255,6 @@
             <div class="ranking-summary">本次成果：城市 · 平顶山市 · 全部乡镇 · 官网最新可用时点 · AQI、PM₂.₅、O₃ · 页面截图 · 国标类型：默</div>
           </section>
 
-          <!-- 监测数据配置 -->
           <section class="ranking-config cfg" id="cfg-monitoringData" style="display:none">
             <div class="ranking-config-head">02 · 配置监测数据</div>
             <div class="ranking-toolbar">
@@ -198,6 +281,44 @@
             </div>
             <div class="ranking-summary">本次成果：城市 · 平顶山市 · 全部乡镇 · 官网最新小时数据 · AQI、PM₂.₅、O₃ · 页面截图 · 国标类型：默</div>
           </section>
+
+          <!-- 技能配置面板（选中 skill 类 output 时显示） -->
+          <section class="ranking-config cfg" id="cfg-skill" style="display:none">
+            <div class="ranking-config-head">02 · 配置技能脚本任务</div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>技能：</span><b class="skill-cfg-title">—</b> <span class="tag-pill" style="margin-left:6px;color:#1d8c52;background:#e8fbf2;border-color:#bfe9d1">技能 ID：<span class="skill-cfg-id">—</span></span></div>
+              <div class="compact-field"><span>超时：</span><select class="n-select" style="width:140px"><option>300 秒</option><option>600 秒</option><option>1800 秒</option></select></div>
+              <div class="compact-field"><span>失败处理：</span><div class="segmented"><button class="active" onclick="seg(this)">终止</button><button onclick="seg(this)">继续下一项</button></div></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field full" style="flex-direction:column;align-items:flex-start;gap:6px">
+                <span>入参（一行一个；格式 <code>name=value</code> 或 JSON）</span>
+                <textarea class="n-input skill-cfg-inputs" rows="4" placeholder="例如：&#10;city=平顶山市&#10;date=2026-07-16"></textarea>
+              </div>
+            </div>
+            <div class="ranking-summary skill-cfg-preview">—</div>
+          </section>
+
+          <!-- 连接器配置面板（选中 mcp 类 output 时显示） -->
+          <section class="ranking-config cfg" id="cfg-mcp" style="display:none">
+            <div class="ranking-config-head">02 · 配置连接器调用</div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>连接器：</span><b class="mcp-cfg-title">—</b> <span class="tag-pill" style="margin-left:6px;color:#6d3ff0;background:#f2ebff;border-color:#e0d3ff">传输：<span class="mcp-cfg-type">stdio</span></span></div>
+              <div class="compact-field"><span>初始化：</span><div class="segmented"><button class="active" onclick="seg(this)">任务前启动</button><button onclick="seg(this)">常驻连接</button></div></div>
+              <div class="compact-field"><span>超时：</span><select class="n-select" style="width:140px"><option>120 秒</option><option>300 秒</option></select></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>选择工具：</span><select class="n-select mcp-cfg-tool" style="min-width:260px" onchange="onMcpToolChange(this)"></select></div>
+              <div class="compact-field"><span>工具调用次数：</span><input class="n-input" style="width:120px" value="1" type="number" min="1" max="99"></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field full" style="flex-direction:column;align-items:flex-start;gap:6px">
+                <span>工具参数（JSON）</span>
+                <textarea class="n-input mcp-cfg-args" rows="3" placeholder='{ "path": "/data/reports", "recursive": true }'></textarea>
+              </div>
+            </div>
+            <div class="ranking-summary">每次执行按所选工具入参发起调用，失败会按任务级失败处理策略重试或终止。</div>
+          </section>
         </div>
         <div class="action-bar">
           <span></span>
@@ -208,14 +329,12 @@
         </div>
       </div>
 
-      <!-- ===== 步骤2：设置推送方式 ===== -->
       <div class="step-panel" id="panel2">
         <div class="form-section">
           <div class="delivery-intro"><span>03 · 设置交付</span><h2>什么时候运行，发送给谁？</h2></div>
 
           <div class="form-group">
             <label class="form-label">运行时间 <span class="required-mark">*</span></label>
-            <!-- SchedulePicker 复刻 -->
             <div class="schedule-picker">
               <div class="sched-cat-tabs">
                 <button class="sched-cat-btn" onclick="schedCat(this,'interval')">按间隔</button>
@@ -225,7 +344,6 @@
                 <button class="sched-cat-btn" onclick="schedCat(this,'monthly')">每月</button>
                 <button class="sched-cat-btn" onclick="schedCat(this,'custom')">自定义</button>
               </div>
-              <!-- 按间隔 -->
               <div class="sched-cat-panel" data-cat="interval" style="display:none">
                 <div class="sched-sub-label">常用间隔</div>
                 <div class="preset-chip-grid">
@@ -233,31 +351,26 @@
                 </div>
                 <div class="sched-custom-row"><span class="sched-custom-label">自定义</span><div class="sched-custom-inputs"><span>每</span><input type="number" class="sched-num-input" value="5" min="1" max="60"><select class="sched-unit-select"><option>分钟</option><option>小时</option></select></div></div>
               </div>
-              <!-- 每小时 -->
               <div class="sched-cat-panel" data-cat="hourly" style="display:none">
                 <div class="sched-time-row"><span class="sched-time-label">执行分钟</span><div class="sched-time-inputs"><select class="sched-time-select"><option>00</option><option>05</option><option>10</option><option>15</option><option>30</option><option>45</option></select><span>分</span></div></div>
               </div>
-              <!-- 每天 -->
               <div class="sched-cat-panel" data-cat="daily">
                 <div class="sched-time-row"><span class="sched-time-label">执行时间</span><div class="sched-time-inputs"><select class="sched-time-select"><option>00</option><option>08</option><option selected>09</option><option>10</option><option>18</option></select><span>:</span><select class="sched-time-select"><option selected>00</option><option>15</option><option>30</option><option>45</option></select></div></div>
               </div>
-              <!-- 每周 -->
               <div class="sched-cat-panel" data-cat="weekly" style="display:none">
                 <div class="sched-sub-label">选择星期</div>
                 <div class="sched-day-chips"><button class="sched-day-chip active" onclick="dayChip(this)">周一</button><button class="sched-day-chip" onclick="dayChip(this)">周二</button><button class="sched-day-chip" onclick="dayChip(this)">周三</button><button class="sched-day-chip" onclick="dayChip(this)">周四</button><button class="sched-day-chip" onclick="dayChip(this)">周五</button><button class="sched-day-chip" onclick="dayChip(this)">周六</button><button class="sched-day-chip" onclick="dayChip(this)">周日</button></div>
                 <div class="sched-time-row" style="margin-top:12px"><span class="sched-time-label">执行时间</span><div class="sched-time-inputs"><select class="sched-time-select"><option selected>09</option><option>18</option></select><span>:</span><select class="sched-time-select"><option selected>00</option><option>30</option></select></div></div>
               </div>
-              <!-- 每月 -->
               <div class="sched-cat-panel" data-cat="monthly" style="display:none">
                 <div class="sched-monthly-row"><span class="sched-monthly-label">每月</span><select class="sched-dom-select"><option>1 号</option><option>15 号</option><option>28 号</option></select></div>
                 <div class="sched-time-row"><span class="sched-time-label">执行时间</span><div class="sched-time-inputs"><select class="sched-time-select"><option selected>09</option></select><span>:</span><select class="sched-time-select"><option selected>00</option></select></div></div>
               </div>
-              <!-- 自定义 -->
               <div class="sched-cat-panel" data-cat="custom" style="display:none">
                 <div class="sched-custom-row"><span class="sched-custom-label">Cron 表达式</span><input class="sched-cron-input" value="0 9 * * *"></div>
                 <div class="sched-cron-help"><div class="sched-cron-help-title">格式: 分 时 日 月 周</div><div class="sched-cron-help-examples"><div>每 5 分钟: <code>*/5 * * * *</code></div><div>每天 9 点: <code>0 9 * * *</code></div><div>每周一 9 点: <code>0 9 * * 1</code></div></div></div>
               </div>
-              <div class="schedule-preview"><span>⏰</span><span id="schedPreview">每天 09:00 执行</span></div>
+              <div class="schedule-preview"><span class="sched-dot"></span><span id="schedPreview">每天 09:00 执行</span></div>
             </div>
           </div>
 
@@ -289,20 +402,60 @@
         </div>
       </div>
 
-      <!-- ===== 步骤3：确认任务 ===== -->
       <div class="step-panel" id="panel3">
         <div class="preview-box">
-          <div class="confirm-hero"><span>✓</span><div><b>请确认这份值守安排</b></div></div>
+          <div class="confirm-hero"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><div><b>请确认这份值守安排</b></div></div>
           <div class="preview-section"><div class="preview-label">任务名称</div><div class="preview-line"><strong id="cfName">平顶山市空气质量值守</strong></div></div>
           <div class="preview-section"><div class="preview-label">成果清单（<span id="cfCount">1</span> 项）</div><div class="confirm-output-list" id="cfList"></div></div>
           <div class="preview-section"><div class="preview-label">运行与发送</div><div class="preview-line"><strong>频率：</strong>每天 09:00 执行 · <strong>推送至：</strong>本地</div></div>
           <div class="preview-section"><div class="preview-label">系统将自动完成</div><div class="simple-run-plan"><span>获取发布数据</span><i>→</i><span>依次生成 <span id="cfPlanCount">1</span> 项成果</span><i>→</i><span>统一发送给值守人员</span></div></div>
         </div>
+
+        <!-- 保存为模板：可勾选组合后同步保存为模板，方便跨团队复用 -->
+        <div class="save-as-template" id="satBox">
+          <div class="sat-head">
+            <label class="n-checkbox" id="satCheckLabel" onclick="event.preventDefault();toggleSatCheckbox()">
+              <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span>
+                <h3>创建任务时一并保存为模板 <span class="tag-pill" style="margin-left:6px">推荐</span></h3>
+                <small>勾选后，本次配置的能力组合、调度方式、推送渠道会同步保存为模板，其他团队也能一键复用。</small>
+              </span>
+            </label>
+            <button class="sat-toggle" onclick="toggleSatPanel()" id="satToggleBtn">展开填写 ↓</button>
+          </div>
+          <div class="sat-body" id="satBody" style="display:none">
+            <div class="compact-field">
+              <label>模板名称 <span style="color:var(--error)">*</span></label>
+              <input class="n-input" id="satName" placeholder="例如：平顶山日报推送 v2">
+            </div>
+            <div class="compact-field">
+              <label>模板分组</label>
+              <select class="n-select" id="satGroup">
+                <option>我的模板</option>
+                <option>团队分享</option>
+                <option>日报周报</option>
+                <option>考核排名</option>
+                <option>空气质量</option>
+              </select>
+            </div>
+            <div class="compact-field full">
+              <label>模板简介</label>
+              <textarea class="n-input" id="satDesc" rows="2" placeholder="一句话说明该模板的适用场景与产出，便于其他同事搜索。"></textarea>
+            </div>
+            <div class="compact-field full">
+              <label>标签（用空格 / 逗号分隔）</label>
+              <input class="n-input" id="satTags" value="日报 空气质量 企业微信">
+            </div>
+            <div class="sat-hint">保存为模板后可在 <b>任务模板库</b> 中查看、编辑、分享给其他团队或环境。</div>
+          </div>
+        </div>
+
         <div class="action-bar">
           <button class="btn btn-default" onclick="goStep(2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>上一步</button>
           <div class="action-right">
             <a class="btn btn-default" href="duty-tasks.html">取消</a>
-            <button class="btn btn-primary" onclick="submitCreate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>创建任务</button>
+            <button class="btn btn-default" onclick="saveAsTemplate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>仅保存为模板</button>
+            <button class="btn btn-primary" onclick="submitCreate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>创建任务 <span id="cfSatHint" style="display:none;margin-left:4px;font-weight:500;opacity:.9">（+ 保存为模板）</span></button>
           </div>
         </div>
       </div>
@@ -319,53 +472,235 @@ const CAPS = {
   hourlyBrief:         { mono:'◷', name:'小时播报', def:'城市 · 平顶山市 · 页面截图' },
   monitoringData:      { mono:'▦', name:'监测数据', def:'城市 · 平顶山市 · 小时' },
 };
+/** 技能任务项定义（id 与 duty-picker skillLib.id 保持一致） */
+const SKILL_DEF = {
+  sk_01: { mono:'A', name:'空气质量日报生成 技能', def:'平顶山市 · 当日 · 含一张图', color:'#0b65bb' },
+  sk_02: { mono:'W', name:'重污染预警研判 技能', def:'平顶山市 · 未来 7 天预测', color:'#d97706' },
+  sk_03: { mono:'O', name:'O₃ 8h 污染追踪 技能', def:'平顶山市 · 追溯 7 天', color:'#b45309' },
+  sk_04: { mono:'D', name:'扬尘源排查 技能', def:'平顶山市 · PM10 异常识别', color:'#6d3ff0' },
+  sk_05: { mono:'P', name:'日报 PDF 导出 技能', def:'将日报 JSON 导出为 PDF', color:'#1d8c52' },
+  sk_06: { mono:'R', name:'巡检排班 技能', def:'平顶山市 · 今日巡检排班', color:'#0891b2' },
+  sk_07: { mono:'V', name:'渠道发布检查 技能', def:'校验多渠道发布完整性', color:'#be123c' },
+};
+/** MCP 连接器任务项定义（id 与 duty-picker mcpLib.id 保持一致） */
+const MCP_DEF = {
+  mcp_fs:     { mono:'F', name:'本地文件系统 MCP', def:'stdio · 18 个工具', color:'#0891b2', tools:18, type:'stdio' },
+  mcp_hermes: { mono:'H', name:'Hermes Agent MCP', def:'stdio · AI 工具', color:'#0b65bb', tools:12, type:'stdio' },
+  mcp_git:    { mono:'G', name:'Git 仓库 MCP', def:'stdio · 版本控制', color:'#be123c', tools:9, type:'stdio' },
+  mcp_lark:   { mono:'L', name:'飞书 IM MCP', def:'HTTP · 消息与附件', color:'#1d8c52', tools:22, type:'HTTP' },
+  mcp_s3:     { mono:'S', name:'对象存储 S3 MCP', def:'HTTP · 归档下载', color:'#d97706', tools:14, type:'HTTP' },
+};
+/** 连接器多选数据（与上方 MCP_DEF 同 id，独立用于面板复选） */
+const MCP_CONNECTORS = [
+  { id:'mcp_fs' }, { id:'mcp_hermes' }, { id:'mcp_git' }, { id:'mcp_lark' }, { id:'mcp_s3' }
+];
+let selectedMcps = new Set();      // 连接器多选（checkbox）
 let outputs = [], seq = 0, activeId = null;
+/* 保存为模板选项状态 */
+let saveAsTemplateChecked = false;
+const TASK_ORIGIN_BANNER_KEY = 'unieco_create_origin';
 
-// 读取 URL：?caps=a,b  或  ?edit=id
+/**
+ * 输出项类型归一化（兼容 legacy 4 能力 + 新增 skill/mcp）
+ *  - legacy: { kind:'cap', type }
+ *  - skill:  { kind:'skill', type, name?, mono?, color?, def? }
+ *  - mcp:    { kind:'mcp',   type, name?, mono?, color?, def? }
+ */
+function normalizeOutput(raw){
+  if (!raw.id) raw.id = 'o'+(++seq);
+  if (raw.kind==='skill') {
+    const d = SKILL_DEF[raw.type] || {};
+    return Object.assign({ kind:'skill', type:raw.type, name:raw.name||d.name||raw.type, mono:raw.mono||d.mono||'S', color:raw.color||d.color||'#1d8c52', def:raw.def||d.def||'' }, raw);
+  }
+  if (raw.kind==='mcp') {
+    const d = MCP_DEF[raw.type] || {};
+    return Object.assign({ kind:'mcp', type:raw.type, name:raw.name||d.name||raw.type, mono:raw.mono||d.mono||'M', color:raw.color||d.color||'#6d3ff0', def:raw.def||d.def||'' }, raw);
+  }
+  return Object.assign({ kind:'cap', type:raw.type }, raw);
+}
+/**
+ * 跳转到 picker 页面对应 Tab（步1 入口卡片跳转）
+ * @param {'tmpl'|'caps'|'skills'|'mcps'} tab
+ */
+function gotoPicker(tab){
+  const url = 'duty-picker.html#tab=' + tab;
+  try { sessionStorage.setItem('unieco_prefill_taskname', document.getElementById('taskName').value||''); } catch(e){}
+  window.location.href = url;
+}
+
+/**
+ * 初始化 outputs：兼容手动进入 / 从 picker 选模板 / 选能力 / 选技能 / 选连接器 / 从模板库应用 / 编辑入口
+ */
 function initOutputs(){
   const p = new URLSearchParams(location.search);
   const caps = p.get('caps');
+  const skills = p.get('skills');
+  const mcps = p.get('mcps');
+  const tpl = p.get('tpl');
+  const tplName = p.get('name');
+  const from = p.get('from');
+  const capNames = (p.get('cap_names')||'').split('|').filter(Boolean);
+  const skillNames = (p.get('skill_names')||'').split('|').filter(Boolean);
+  const mcpNames = (p.get('mcp_names')||'').split('|').filter(Boolean);
+  let bannerMsg = null;
+  try {
+    const pref = sessionStorage.getItem('unieco_prefill_taskname');
+    if (pref && !document.getElementById('taskName').value) {
+      document.getElementById('taskName').value = pref;
+    }
+  } catch(e){}
   if (p.get('edit')) {
-    // 编辑态示例：预填一个组合任务
-    outputs = [{id:'o'+(++seq),type:'concentrationRanking'},{id:'o'+(++seq),type:'mapPackage'}];
+    outputs = [normalizeOutput({type:'concentrationRanking'}), normalizeOutput({type:'mapPackage'})];
     document.getElementById('taskName').value = '平阴县每日城市排名分析任务';
-  } else if (caps) {
+    bannerMsg = { type:'edit', title:'正在编辑已有任务', detail:'以下为当前任务配置，可直接修改后保存' };
+  } else if (skills && from==='picker') {
+    outputs = skills.split(',').map(id=>normalizeOutput({kind:'skill', type:id}));
+    const label = skillNames.length ? `（${skillNames.slice(0,3).join('、')}${skillNames.length>3?' 等':''}${outputs.length} 项技能）` : '';
+    bannerMsg = { type:'skill', title:'已按所选技能预填', detail:`来自「从技能添加创建任务」${label}。可在下方继续调整入参或增删项。` };
+    if (outputs[0] && skillNames[0]) document.getElementById('taskName').value = skillNames[0].replace(/ 技能$/,'') + ' · 任务';
+  } else if (mcps && from==='picker') {
+    outputs = mcps.split(',').map(id=>normalizeOutput({kind:'mcp', type:id}));
+    const label = mcpNames.length ? `（${mcpNames.slice(0,3).join('、')}${mcpNames.length>3?' 等':''}${outputs.length} 个连接器）` : '';
+    bannerMsg = { type:'mcp', title:'已按所选连接器预填', detail:`来自「从连接器添加创建任务」${label}。可在下方继续配置要调用的工具和参数。` };
+    if (outputs[0] && mcpNames[0]) document.getElementById('taskName').value = mcpNames[0] + ' · 调用任务';
+  } else if (caps && (from==='picker' || tpl)) {
     const keys = caps.split(',').filter(k=>CAPS[k]);
-    outputs = (keys.length?keys:['concentrationRanking']).map(k=>({id:'o'+(++seq),type:k}));
+    outputs = (keys.length?keys:['concentrationRanking']).map(k=>normalizeOutput({type:k}));
+    if (tpl && tplName) {
+      document.getElementById('taskName').value = tplName + ' · 复制版';
+      bannerMsg = { type:'tpl', title:'已基于模板预填', detail:`模板名：${tplName}，共预填 ${outputs.length} 项成果。保存时可勾选「保存为模板」共享给团队。` };
+    } else {
+      const countLabel = capNames.length ? `（${capNames.slice(0,3).join('、')}${capNames.length>3?' 等 ':''}${capNames.length} 项能力）` : '';
+      bannerMsg = { type:'caps', title:'已按所选能力预填配置', detail:`来自「从模板/能力添加任务」${countLabel}。可在下方继续增删成果项。` };
+    }
   } else {
-    outputs = [{id:'o'+(++seq),type:'concentrationRanking'}];
+    outputs = [normalizeOutput({type:'concentrationRanking'})];
   }
   activeId = outputs[0].id;
+  const grid = document.getElementById('onboardGrid');
+  if (grid && (skills || mcps || caps || tpl || p.get('edit'))) {
+    grid.style.opacity = '0.62';
+    grid.style.outline = '1px dashed var(--border-color)';
+    grid.style.pointerEvents = 'none';
+  }
+  if (bannerMsg) {
+    try { sessionStorage.setItem(TASK_ORIGIN_BANNER_KEY, JSON.stringify(bannerMsg)); } catch(e){}
+    renderOriginBanner(bannerMsg);
+  }
+}
+/**
+ * 将 tpl / caps / skill / mcp / edit 五种来源映射为 SVG 图标（不使用 emoji）
+ * @param {'tpl'|'caps'|'skill'|'mcp'|'edit'|string} type
+ * @returns {string} SVG 片段
+ */
+function originBannerIcon(type){
+  if (type==='tpl') return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`;
+  if (type==='caps') return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`;
+  if (type==='skill') return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>`;
+  if (type==='mcp') return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>`;
+  if (type==='edit') return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+}
+/**
+ * 在步骤 1 顶部渲染来源提示条
+ * @param {{type:string,title:string,detail:string}} banner
+ */
+function renderOriginBanner(banner){
+  const bar = document.getElementById('originBanner');
+  if (!bar || !banner) return;
+  bar.style.display = '';
+  bar.innerHTML = `<span class="ob-ic">${originBannerIcon(banner.type)}</span>
+    <div class="ob-body"><b>${banner.title}</b><small>${banner.detail}</small></div>
+    <button class="icon-btn" onclick="document.getElementById('originBanner').style.display='none'" style="color:var(--text-muted);margin-left:auto" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>`;
+}
+/**
+ * 返回某个输出项的显示元数据（名称 / monogram / 颜色 / 类型标签）
+ */
+function outputMeta(o){
+  if (o.kind==='skill') return { name:o.name, mono:o.mono, color:o.color, def:o.def, kindLabel:'技能', kindClass:'sk' };
+  if (o.kind==='mcp')   return { name:o.name, mono:o.mono, color:o.color, def:o.def, kindLabel:'连接器', kindClass:'mcp' };
+  return { name:CAPS[o.type].name, mono:CAPS[o.type].mono, color:'var(--accent-primary)', def:CAPS[o.type].def, kindLabel:'能力', kindClass:'cap' };
 }
 function renderOutputs(){
   document.getElementById('outputList').innerHTML = outputs.map((o,i)=>{
-    const c=CAPS[o.type];
-    return `<article class="output-item ${activeId===o.id?'active':''}" onclick="selectOutput('${o.id}')">
+    const m = outputMeta(o);
+    const monoStyle = (o.kind==='skill' || o.kind==='mcp') ? ` style="background:${m.color}15;color:${m.color}"` : '';
+    return `<article class="output-item ${activeId===o.id?'active':''} ${o.kind==='skill'?'sk':(o.kind==='mcp'?'mcp':'')}" onclick="selectOutput('${o.id}')">
       <span class="output-index">${i+1}</span>
-      <span class="output-item-copy"><b>${c.name}</b><small>${c.def}</small></span>
+      <span class="output-mono"${monoStyle}>${m.mono}</span>
+      <span class="output-kind-tag ${m.kindClass}">${m.kindLabel}</span>
+      <span class="output-item-copy"><b>${m.name}</b><small>${m.def}</small></span>
       ${activeId===o.id?'<span class="editing-badge">正在编辑</span>':''}
       <button class="output-action" onclick="event.stopPropagation();dupOutput('${o.id}')">复制</button>
       <button class="output-action danger" onclick="event.stopPropagation();delOutput('${o.id}')">删除</button>
     </article>`;
   }).join('');
-  // 显示当前选中成果的配置区
   document.querySelectorAll('.cfg').forEach(el=>el.style.display='none');
   const active = outputs.find(o=>o.id===activeId);
-  if (active) { const el=document.getElementById('cfg-'+active.type); if(el) el.style.display=''; }
+  if (active) {
+    if (active.kind==='skill') {
+      const el = document.getElementById('cfg-skill'); if (el) { el.style.display=''; fillSkillCfg(active); }
+    } else if (active.kind==='mcp') {
+      const el = document.getElementById('cfg-mcp'); if (el) { el.style.display=''; fillMcpCfg(active); }
+    } else {
+      const el = document.getElementById('cfg-'+active.type); if (el) el.style.display='';
+    }
+  }
 }
-function addOutput(type){ outputs.push({id:'o'+(++seq),type}); activeId=outputs[outputs.length-1].id; renderOutputs(); }
-function selectOutput(id){ activeId=id; renderOutputs(); }
-function dupOutput(id){ const o=outputs.find(x=>x.id===id); if(o){ outputs.push({id:'o'+(++seq),type:o.type}); renderOutputs(); } }
-function delOutput(id){ if(outputs.length<=1){ showToast('至少保留一个成果'); return; } outputs=outputs.filter(x=>x.id!==id); if(activeId===id) activeId=outputs[0].id; renderOutputs(); }
+/** 步1 快速添加成果（原 4 能力保持兼容） */
+function addOutput(type){ outputs.push(normalizeOutput({type})); activeId=outputs[outputs.length-1].id; renderOutputs(); updateChipsBar(); }
+/** 快速添加一个技能 */
+function addSkill(id){ outputs.push(normalizeOutput({kind:'skill', type:id})); activeId=outputs[outputs.length-1].id; renderOutputs(); updateChipsBar(); }
+/** 快速添加一个连接器 */
+function addMcp(id){ outputs.push(normalizeOutput({kind:'mcp', type:id})); activeId=outputs[outputs.length-1].id; renderOutputs(); updateChipsBar(); }
+function selectOutput(id){ activeId=id; renderOutputs(); updateChipsBar(); }
+function dupOutput(id){ const o=outputs.find(x=>x.id===id); if(o){ const c = Object.assign({},o); delete c.id; outputs.push(normalizeOutput(c)); renderOutputs(); updateChipsBar(); } }
+function delOutput(id){ if(outputs.length<=1){ showToast('至少保留一个成果'); return; } outputs=outputs.filter(x=>x.id!==id); if(activeId===id) activeId=outputs[0].id; renderOutputs(); updateChipsBar(); }
+/** 当选中某个技能输出项时，填充右侧配置面板内容 */
+function fillSkillCfg(o){
+  const d = SKILL_DEF[o.type] || {};
+  const el = document.getElementById('cfg-skill');
+  if (!el) return;
+  el.querySelector('.skill-cfg-title').textContent = d.name || o.type;
+  el.querySelector('.skill-cfg-id').textContent = o.type;
+  const ta = el.querySelector('.skill-cfg-inputs');
+  if (!ta.dataset.touched) {
+    const defVal = o.type==='sk_01' ? '平顶山市; 当日' : (o.type==='sk_05' ? '上一个日报任务的产物 JSON' : (o.type==='sk_06' ? '平顶山市; 当日排班' : '平顶山市'));
+    ta.value = defVal;
+  }
+  el.querySelector('.skill-cfg-preview').textContent = '技能运行时将按顺序解析入参，缺省时自动拉取任务绑定的上下文城市与执行时间。';
+}
+/** 当选中某个连接器输出项时，填充右侧配置面板内容 */
+function fillMcpCfg(o){
+  const d = MCP_DEF[o.type] || {};
+  const el = document.getElementById('cfg-mcp');
+  if (!el) return;
+  el.querySelector('.mcp-cfg-title').textContent = d.name || o.type;
+  el.querySelector('.mcp-cfg-type').textContent = (d.def||'').split(' · ')[0] || 'stdio';
+  const select = el.querySelector('.mcp-cfg-tool');
+  if (!select.dataset.touched) {
+    const sample = {
+      mcp_fs:['list_directory','read_file','write_file','search_text'],
+      mcp_hermes:['chat_completion','run_analysis','list_agents'],
+      mcp_git:['git_status','git_diff','git_log','git_commit'],
+      mcp_lark:['send_message','search_chats','download_file','batch_send'],
+      mcp_s3:['put_object','get_object','list_objects','presign_url'],
+    };
+    select.innerHTML = (sample[o.type]||['tool_001','tool_002']).map(t=>`<option>${t}</option>`).join('');
+    select.dataset.touched = '1';
+  }
+}
+/** 连接器工具下拉修改时记录，避免重新覆盖 */
+function onMcpToolChange(el){ el.dataset.touched='1'; }
 
-// 通用交互
 function seg(btn){ const g=btn.parentElement; g.querySelectorAll('button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
 function chip(el){ el.classList.toggle('active'); }
 function ck(el){ el.classList.toggle('checked'); }
 function dayChip(el){ el.classList.toggle('active'); }
 function segMon(btn,custom){ seg(btn); document.getElementById('monCustomRow').style.display=custom?'':'none'; document.getElementById('monLatest').style.display=custom?'none':''; }
 
-// SchedulePicker 类别切换
 const schedPreviewMap = { interval:'每 5 分钟 执行一次', hourly:'每小时第 00 分执行', daily:'每天 09:00 执行', weekly:'每周一 09:00 执行', monthly:'每月 1 号 09:00 执行', custom:'每天 09:00 执行（0 9 * * *）' };
 function schedCat(btn,cat){
   document.querySelectorAll('.sched-cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
@@ -373,7 +708,6 @@ function schedCat(btn,cat){
   document.getElementById('schedPreview').textContent = schedPreviewMap[cat];
 }
 
-// 步骤导航
 let curStep=1;
 function goStep(s){
   curStep=s;
@@ -387,20 +721,196 @@ function goStep(s){
 }
 function syncStep2(){
   document.getElementById('dnCount').textContent=outputs.length;
-  document.getElementById('dnList').innerHTML=outputs.map((o,i)=>`<span>${i+1}. ${CAPS[o.type].name} · ${CAPS[o.type].def}</span>`).join('');
+  document.getElementById('dnList').innerHTML=outputs.map((o,i)=>{
+    const m = outputMeta(o);
+    return `<span>${i+1}. ${m.name} · ${m.def}</span>`;
+  }).join('');
 }
 function syncStep3(){
   document.getElementById('cfName').textContent=document.getElementById('taskName').value||'未命名任务';
   document.getElementById('cfCount').textContent=outputs.length;
   document.getElementById('cfPlanCount').textContent=outputs.length;
-  document.getElementById('cfList').innerHTML=outputs.map((o,i)=>`<div><span>${i+1}</span><strong>${CAPS[o.type].name} · ${CAPS[o.type].def}</strong></div>`).join('');
+  document.getElementById('cfList').innerHTML=outputs.map((o,i)=>{
+    const m = outputMeta(o);
+    return `<div><span>${i+1}</span><strong>${m.name} · ${m.def}</strong></div>`;
+  }).join('');
+  /* 用当前任务名默认填为模板名（仅当用户未手动修改过） */
+  const satName = document.getElementById('satName');
+  const taskName = document.getElementById('taskName').value || '';
+  if (satName && taskName && !satName.dataset.touched) satName.value = taskName + '（模板）';
 }
-function submitCreate(){ showToast('任务创建成功（含 '+outputs.length+' 项成果）'); setTimeout(()=>{ window.location.href='duty-tasks.html'; },1100); }
+/**
+ * 切换「保存为模板」复选框：勾选时自动展开表单；取消时保留表单但隐藏（下次勾选仍有值）
+ */
+function toggleSatCheckbox(){
+  saveAsTemplateChecked = !saveAsTemplateChecked;
+  const label = document.getElementById('satCheckLabel');
+  const box = label.classList;
+  box.toggle('checked', saveAsTemplateChecked);
+  document.getElementById('cfSatHint').style.display = saveAsTemplateChecked ? '' : 'none';
+  document.getElementById('satBox').classList.toggle('closed', !saveAsTemplateChecked && !isSatBodyOpen());
+  if (saveAsTemplateChecked && !isSatBodyOpen()) toggleSatPanel(true);
+}
+/** 判断 satBody 当前是否展开 */
+function isSatBodyOpen(){ return document.getElementById('satBody').style.display !== 'none'; }
+/**
+ * 展开/收起保存为模板填写表单（纯 UI 折叠，不改变 saveAsTemplateChecked 状态
+ * @param {boolean} [forceOpen] 若传入 true 强制打开；false 强制关闭；不传则切换
+ */
+function toggleSatPanel(forceOpen){
+  const body = document.getElementById('satBody');
+  const btn = document.getElementById('satToggleBtn');
+  const willOpen = (typeof forceOpen === 'boolean') ? forceOpen : !isSatBodyOpen();
+  body.style.display = willOpen ? '' : 'none';
+  btn.textContent = willOpen ? '收起填写 ↑' : '展开填写 ↓';
+}
+/**
+ * 提交创建任务：若勾选「保存为模板」则先保存模板（toast 告知），再跳转任务列表
+ */
+function submitCreate(){
+  if (saveAsTemplateChecked){
+    const name = document.getElementById('satName').value.trim();
+    if (!name){ showToast('请先填写模板名称'); goStep(3); return; }
+    doSaveAsTemplate({ name });
+    showToast('已创建任务 + 保存模板：' + name);
+    setTimeout(()=>{ window.location.href='duty-tasks.html'; },1400);
+    return;
+  }
+  showToast('任务创建成功（含 '+outputs.length+' 项成果）');
+  setTimeout(()=>{ window.location.href='duty-tasks.html'; },1100);
+}
+/**
+ * 将当前配置保存为任务模板（被 2 种场景：
+ *   1) 仅保存为模板按钮 -> 跳转到模板编辑器预填（原行为）
+ *   2) 与 submitCreate 一并勾选 -> 直接返回 true 即可
+ * @param {{name?:string} [opts]
+ * @returns {boolean} 成功返回 true
+ */
+function doSaveAsTemplate(opts){
+  const name = (opts && opts.name) || document.getElementById('satName')?.value?.trim() || document.getElementById('taskName').value || '未命名模板';
+  const caps = outputs.map(o => o.type).join(',');
+  try {
+    const meta = {
+      name,
+      group: document.getElementById('satGroup')?.value || '我的模板',
+      desc:  document.getElementById('satDesc')?.value?.trim() || '（从创建页生成）',
+      tags:  document.getElementById('satTags')?.value?.trim(),
+      caps
+    };
+    sessionStorage.setItem('unieco_last_saved_template', JSON.stringify(meta));
+  } catch(e){}
+  return true;
+}
+/** 将当前组合的能力与调度配置保存为任务模板，跳转到模板编辑器预填 */
+function saveAsTemplate(){
+  const name = document.getElementById('satName')?.value?.trim() || document.getElementById('taskName').value || '未命名模板';
+  const caps = outputs.map(o => o.type).join(',');
+  showToast('正在保存为模板：' + name);
+  setTimeout(()=>{
+    window.location.href = 'template-editor.html?from=create&name=' + encodeURIComponent(name) + '&caps=' + caps +
+      '&desc=' + encodeURIComponent(document.getElementById('satDesc')?.value?.trim() || '') +
+      '&tags=' + encodeURIComponent(document.getElementById('satTags')?.value?.trim() || '') +
+      '&group=' + encodeURIComponent(document.getElementById('satGroup')?.value || '');
+  }, 800);
+}
+/* sat 名称输入一次后标记为 touched，避免 step3 再次同步覆盖 */
+(function bindSatNameTouch(){
+  const el = document.getElementById('satName');
+  if (el) el.addEventListener('input', () => el.dataset.touched = '1');
+})();
 
 let tTimer=null;
 function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>t.classList.remove('show'),2000); }
 
-initOutputs(); renderOutputs();
+/**
+ * 渲染连接器多选卡片（复选，不进 outputs，仅作为任务级免确认授权）
+ */
+function renderConnectorList(){
+  const el = document.getElementById('connectorList');
+  if (!el) return;
+  el.innerHTML = MCP_CONNECTORS.map(m=>{
+    const d = MCP_DEF[m.id] || {};
+    const sel = selectedMcps.has(m.id);
+    return `
+      <div class="connector-card ${sel?'selected':''}" onclick="toggleMcpConnector('${m.id}')">
+        <div class="cc-icon" style="background:${d.color}15;color:${d.color}">${d.mono||'M'}</div>
+        <div class="cc-body">
+          <div class="cc-title">${d.name||m.id}</div>
+          <div class="cc-meta">${d.type||''} · ${d.tools||0} 个工具</div>
+        </div>
+        <div class="cc-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      </div>`;
+  }).join('');
+}
+/**
+ * 切换单个连接器的勾选
+ * @param {string} id 连接器 id（与 MCP_DEF.key 同）
+ */
+function toggleMcpConnector(id){
+  if (selectedMcps.has(id)) selectedMcps.delete(id);
+  else selectedMcps.add(id);
+  renderConnectorList();
+  updateChipsBar();
+}
+/**
+ * 渲染提示词框底栏右侧 chips（能力/技能/连接器的已选计数 chip）
+ */
+function updateChipsBar(){
+  const bar = document.getElementById('chipsBar');
+  if (!bar) return;
+  const capCount = outputs.filter(o=>o.kind==='cap').length;
+  const skCount  = outputs.filter(o=>o.kind==='skill').length;
+  const mcpOutCount = outputs.filter(o=>o.kind==='mcp').length;
+  const mcpsCount = selectedMcps.size;
+  const capChipHTML = capCount>0 ? `<span class="cap-tag" style="background:rgba(11,101,187,.10);color:#0b65bb;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px"><span class="seg-count" style="background:rgba(11,101,187,.18);color:#0b65bb;border-radius:999px;padding:0 6px">${capCount}</span>能力</span>` : '';
+  const skChipHTML = skCount>0 ? `<span class="cap-tag" style="background:rgba(29,140,82,.10);color:#1d8c52;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px"><span class="seg-count" style="background:rgba(29,140,82,.18);color:#1d8c52;border-radius:999px;padding:0 6px">${skCount}</span>技能</span>` : '';
+  const mcpChipHTML = (mcpOutCount+mcpsCount)>0 ? `<span class="cap-tag" style="background:rgba(109,63,240,.10);color:#6d3ff0;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px"><span class="seg-count" style="background:rgba(109,63,240,.18);color:#6d3ff0;border-radius:999px;padding:0 6px">${mcpOutCount+mcpsCount}</span>连接器</span>` : '';
+  bar.innerHTML = capChipHTML + skChipHTML + mcpChipHTML;
+  const skCntEl = document.getElementById('ptSkillCount'); if (skCntEl) skCntEl.textContent = skCount;
+  const capCntEl = document.getElementById('ptCapCount'); if (capCntEl) capCntEl.textContent = capCount;
+}
+/**
+ * 在 initOutputs 后把 URL 参数中的 mcps= 同步更新到 selectedMcps 多选框
+ */
+function syncSelectedMcpsFromURL(){
+  const p = new URLSearchParams(location.search);
+  const mcps = p.get('mcps');
+  if (mcps) {
+    mcps.split(',').forEach(id=>{ if (MCP_DEF[id] && !selectedMcps.has(id)) selectedMcps.add(id); });
+  }
+}
+
+initOutputs();
+syncSelectedMcpsFromURL();
+renderConnectorList();
+renderOutputs();
+updateChipsBar();
 </script>
+<script>
+/**
+ * 切换侧栏「最近任务」区块的展开/折叠状态，并持久化到 localStorage
+ * @param {HTMLElement} headEl 点击的标题DOM
+ */
+function toggleRecentSection(headEl){
+  if (window.event) window.event.stopPropagation();
+  const section = (headEl && headEl.closest) ? headEl.closest('.sidebar-fixed-section') : document.querySelector('.sidebar-fixed-section');
+  if (!section) return;
+  section.classList.toggle('collapsed');
+  const collapsed = section.classList.contains('collapsed');
+  try { localStorage.setItem('unieco_recent_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+
+/**
+ * 页面加载时从 localStorage 恢复「最近任务」的折叠状态
+ */
+(function restoreRecentFold(){
+  try {
+    const collapsed = localStorage.getItem('unieco_recent_collapsed') === '1';
+    const section = document.querySelector('.sidebar-fixed-section');
+    if (section && collapsed) section.classList.add('collapsed');
+  } catch(e) {}
+})();
+</script>
+
 </body>
 </html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniEcoClaw · 对话创建值守任务（完整闭环演示）</title>
+<link rel="stylesheet" href="duty-proto.css">
+</head>
+<body>
+<div class="app">
+  <!-- 左侧栏（brand + 4 顶级入口纵向 + 新建对话 + 历史对话 + 定时任务树 + 设置） -->
+  <aside class="session-list">
+    <div class="page-sidebar-top">
+      <div class="page-sidebar-nav">
+        <div class="sidebar-brand">
+          <div class="logo-icon"><img src="logo.png" alt="UniEcoClaw"></div>
+          <div>
+            <div class="logo-text">UniEcoClaw</div>
+            <div class="logo-tag">数智环保 · UniEcoClaw</div>
+          </div>
+        </div>
+        <div class="sidebar-primary-nav">
+          <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
+          <a class="sidebar-primary-nav-item" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
+          <a class="sidebar-primary-nav-item" href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
+          <a class="sidebar-primary-nav-item" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
+        </div>
+      </div>
+      </div>
+    <div class="sidebar-fixed-section">
+      <div class="sidebar-fixed-head" onclick="toggleRecentSection(this)"><svg class="sidebar-fold-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="sidebar-fixed-head-label">最近任务</span><span class="sidebar-fixed-head-count">5</span></div>
+      <div class="sidebar-fold-body"><div class="session-sections-scroll" style="padding:0 8px 8px">
+        <a class="session-item active"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务·07/28运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/23</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多(2)</button>
+      </div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Acerola</div>
+      </div>
+      <button class="icon-btn" title="通知" onclick="showToast('暂无新通知')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+      <button class="icon-btn" title="设置" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </aside>
+
+  <!-- 对话区（chat 样式全部复用底座 duty-proto.css 公共类） -->
+  <div class="chat-shell">
+    <div class="chat-header">
+      <div class="chat-header-title">对话创建值守任务 · 完整闭环演示</div>
+      <button class="chat-header-model" onclick="showToast('切换模型（原型示意）')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v4"/><path d="M12 19v4"/><path d="M1 12h4"/><path d="M19 12h4"/></svg>
+        claude-sonnet-4
+      </button>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+      <div class="chat-inner" id="chatInner">
+        <!-- 演示横幅 -->
+        <div class="demo-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <div><b>原型演示：</b>自动模拟「用户提问 → AI 抽取 → 草稿卡 → 确认创建」全流程；点击右侧"重放"可重新跑一次。</div>
+          <button class="demo-replay" onclick="replay()">重放演示</button>
+        </div>
+        <!-- 消息流 -->
+        <div id="msgMount"></div>
+      </div>
+    </div>
+
+    <div class="composer-zone">
+      <div class="composer">
+        <div class="composer-box">
+          <textarea placeholder="输入需求即可触发 AI 自动抽取…（演示场景：点上方"重放"查看完整流程）" disabled></textarea>
+          <div class="composer-bar">
+            <div class="composer-hint">本页面为 <b>完整闭环演示</b>，输入框已禁用</div>
+            <div class="composer-tools">
+              <button class="icon-btn" disabled title="附件"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="icon-btn" disabled title="语音"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+              <button class="send-btn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ 5 字段预填配置（演示闭环用） ============
+const DEMO = {
+  userText: '帮我创建一个值守任务：每天早上 8 点，查询平顶山市的实时浓度排名（带截图），通过邮件发到 duty@example.com',
+  draft: {
+    name: '平顶山浓度排名邮件日报',
+    caps: [
+      { name: '浓度排名', ico: 'rank' },
+      { name: '一张图截图', ico: 'image' },
+      { name: '邮件发送', ico: 'mail', ext: true },
+    ],
+    frequency: '每天 08:00（工作日）',
+    cron: '0 8 * * 1-5',
+    delivery: '邮件 → duty@example.com',
+  },
+  draftId: 'draft-demo',
+}
+
+// 图标库
+const ICO = {
+  rank:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+  image:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  mail:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+  bell:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  edit:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>',
+  check:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+const chatInner = document.getElementById('chatInner')
+const chatBody = document.getElementById('chatBody')
+const msgMount = document.getElementById('msgMount')
+
+function appendHTML(html) {
+  msgMount.insertAdjacentHTML('beforeend', html)
+  chatBody.scrollTop = chatBody.scrollHeight
+}
+
+// 步骤 1：用户消息
+function step1_user() {
+  appendHTML(`<div class="msg-row user"><div class="bubble">${esc(DEMO.userText)}</div></div>`)
+  const tid = 'typing-1'
+  appendHTML(`<div class="msg-row assistant" id="${tid}"><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div></div>`)
+  setTimeout(() => {
+    document.getElementById(tid)?.remove()
+    step2_assistant()
+  }, 900)
+}
+
+// 步骤 2：AI 回复 + 渲染草稿卡
+function step2_assistant() {
+  appendHTML(`<div class="msg-row assistant"><div class="bubble">明白了。我按你的描述整理了任务草稿：<b>每天 8 点（仅工作日）</b>查询平顶山市的实时浓度排名并附一张图截图，再通过邮件发送到 <b>duty@example.com</b>。其中"邮件发送"超出内置模板，会由 Hermes 自动生成发送脚本并补全 SMTP 配置。\n\n请确认下方配置：</div></div>`)
+  const d = DEMO.draft
+  const capsHTML = d.caps.map(c => `<span class="cap-tag-mini">${ICO[c.ico]}<span>${c.name}</span>${c.ext ? '<span class="src-tag ext" style="margin-left:4px">扩展</span>' : ''}</span>`).join('')
+  appendHTML(`
+  <div class="msg-row assistant">
+    <div class="draft-card" id="${DEMO.draftId}">
+      <div class="draft-head">
+        <div class="draft-title">${ICO.bell}值守任务草稿</div>
+        <span class="draft-state" id="${DEMO.draftId}-state">待确认</span>
+      </div>
+      <div class="draft-body">
+        <div class="draft-grid">
+          <div class="draft-field">
+            <span class="draft-key">任务名称</span>
+            <span class="draft-val">${d.name}</span>
+          </div>
+          <div class="draft-field">
+            <span class="draft-key">执行频率</span>
+            <span class="draft-val">${d.frequency}</span>
+          </div>
+          <div class="draft-field full">
+            <span class="draft-key">能力清单</span>
+            <div class="draft-val draft-val-stack">${capsHTML}</div>
+          </div>
+          <div class="draft-field">
+            <span class="draft-key">Cron 表达式</span>
+            <span class="draft-val mono">${d.cron}</span>
+          </div>
+          <div class="draft-field">
+            <span class="draft-key">推送渠道</span>
+            <span class="draft-val">${d.delivery}<span class="src-tag ext" style="margin-left:8px">扩展 · Hermes 脚本</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="draft-ext-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>首次运行前我会校验 SMTP 服务配置；缺失时会在此提醒你补全。"调整配置" 会跳转到完整 CreateTask 向导。</span>
+      </div>
+      <div class="draft-primary">
+        <button class="btn btn-default" onclick="adjustConfig()">${ICO.edit}调整配置</button>
+        <button class="btn btn-primary" onclick="confirmCreate()" id="${DEMO.draftId}-confirm">${ICO.check}确认创建</button>
+      </div>
+    </div>
+  </div>`)
+}
+
+// "调整配置" → 跳到 CreateTask 向导（带预填）
+function adjustConfig() {
+  showToast('已跳转到 CreateTask 向导（带预填）')
+  setTimeout(() => { location.href = 'duty-create.html?from=chat&seed=dutyDaily' }, 500)
+}
+
+// "确认创建" → 卡片绿色"已创建" + 跳转链接
+function confirmCreate() {
+  const state = document.getElementById(`${DEMO.draftId}-state`)
+  const card = document.getElementById(DEMO.draftId)
+  const primary = card.querySelector('.draft-primary')
+  const ext = card.querySelector('.draft-ext-note')
+
+  state.textContent = '已创建 · 已调度'
+  state.classList.add('created')
+  card.classList.add('is-created')
+  if (ext) ext.remove()
+  if (primary) {
+    primary.outerHTML = `<div class="draft-created-link">${ICO.check}<span>任务 <b>${esc(DEMO.draft.name)}</b> 已创建并进入调度。</span><a href="duty-tasks.html">在值守任务中查看 →</a></div>`
+  }
+
+  // 侧边栏定时任务 +1
+  const jobCount = document.getElementById('jobCount')
+  if (jobCount) jobCount.textContent = '(2)'
+  const jobTree = document.getElementById('jobTree')
+  if (jobTree) jobTree.insertAdjacentHTML('beforeend', `
+    <div class="tree-job-row" onclick="location.href='duty-tasks.html'">
+      <span class="tree-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+      <div class="tree-job-info">
+        <span class="tree-job-name">${esc(DEMO.draft.name)}</span>
+        <span class="tree-job-status success">已调度</span>
+      </div>
+    </div>`)
+
+  appendHTML(`<div class="msg-row assistant"><div class="bubble">已创建「${esc(DEMO.draft.name)}」并加入调度。首次运行时间：${DEMO.draft.frequency}。后续想调整频率、增减能力或修改推送方式，直接在对话里告诉我即可。</div></div>`)
+  showToast('任务已创建并调度')
+}
+
+// 重放演示
+function replay() {
+  msgMount.innerHTML = ''
+  // 还原 jobTree 与 jobCount
+  const jobTree = document.getElementById('jobTree')
+  const jobCount = document.getElementById('jobCount')
+  if (jobCount) jobCount.textContent = '(1)'
+  if (jobTree) jobTree.innerHTML = `
+    <div class="tree-job-row" onclick="location.href='duty-tasks.html'">
+      <span class="tree-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+      <div class="tree-job-info">
+        <span class="tree-job-name">平顶山浓度排名日报</span>
+        <span class="tree-job-status success">已调度</span>
+      </div>
+      <span class="tree-job-settings" onclick="event.stopPropagation();location.href='duty-create.html?edit=a'" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+    </div>`
+  setTimeout(step1_user, 200)
+}
+
+// Toast
+let toastTimer
+function showToast(msg) {
+  const t = document.getElementById('toast')
+  t.textContent = msg
+  t.classList.add('show')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200)
+}
+
+// 自动起播
+setTimeout(step1_user, 400)
+</script>
+<script>
+/**
+ * 切换侧栏「最近任务」区块的展开/折叠状态，并持久化到 localStorage
+ * @param {HTMLElement} headEl 点击的标题DOM
+ */
+function toggleRecentSection(headEl){
+  if (window.event) window.event.stopPropagation();
+  const section = (headEl && headEl.closest) ? headEl.closest('.sidebar-fixed-section') : document.querySelector('.sidebar-fixed-section');
+  if (!section) return;
+  section.classList.toggle('collapsed');
+  const collapsed = section.classList.contains('collapsed');
+  try { localStorage.setItem('unieco_recent_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+
+/**
+ * 页面加载时从 localStorage 恢复「最近任务」的折叠状态
+ */
+(function restoreRecentFold(){
+  try {
+    const collapsed = localStorage.getItem('unieco_recent_collapsed') === '1';
+    const section = document.querySelector('.sidebar-fixed-section');
+    if (section && collapsed) section.classList.add('collapsed');
+  } catch(e) {}
+})();
+</script>
+
+</body>
+</html>

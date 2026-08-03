@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniEcoClaw · 新建模板</title>
+<link rel="stylesheet" href="duty-proto.css">
+<style>
+.tpl-form-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 16px; }
+.tpl-form-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border-light); }
+.tpl-step-badge { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-primary); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.tpl-step-title { font-size: 15px; font-weight: 600; flex: 1; }
+.tpl-step-sub { font-size: 12px; color: var(--text-muted); }
+.tpl-form-row { display: flex; gap: 14px; margin-bottom: 14px; }
+.tpl-form-row > * { flex: 1; min-width: 0; }
+.tpl-textarea { width: 100%; min-height: 90px; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-size: 13.5px; font-family: var(--font-ui); outline: none; background: var(--bg-input); color: var(--text-primary); resize: vertical; line-height: 1.6; }
+.tpl-textarea:focus { border-color: var(--accent-primary); }
+.tpl-helper { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.tpl-cap-row { display: flex; align-items: center; gap: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px; }
+.tpl-cap-row .num { width: 22px; height: 22px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border-color); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
+.tpl-cap-row .name { flex: 1; font-size: 13.5px; font-weight: 500; }
+.tpl-cap-row .actions { display: flex; gap: 4px; }
+.tpl-cap-row .mini-btn { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; padding: 3px 9px; font-size: 11.5px; color: var(--text-secondary); cursor: pointer; font-family: var(--font-ui); }
+.tpl-cap-row .mini-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.tpl-cap-row .mini-btn.danger:hover { border-color: var(--error); color: var(--error); }
+.tpl-cap-config { background: var(--bg-card); border: 1px dashed var(--border-strong); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 14px; margin-left: 32px; }
+.tpl-cap-config .config-title { font-size: 11px; color: var(--text-muted); font-family: var(--font-code); margin-bottom: 10px; }
+.tpl-channel-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.tpl-channel-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-card); cursor: pointer; transition: .15s; }
+.tpl-channel-item:hover { border-color: var(--border-strong); }
+.tpl-channel-item.checked { border-color: var(--accent-primary); background: rgba(var(--accent-primary-rgb), .05); }
+.tpl-channel-item .ch-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tpl-channel-item .ch-icon svg { width: 16px; height: 16px; color: var(--accent-primary); }
+.tpl-channel-item .ch-info { flex: 1; }
+.tpl-channel-item .ch-name { font-size: 13px; font-weight: 600; }
+.tpl-channel-item .ch-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="session-list">
+    <div class="page-sidebar-top">
+      <div class="page-sidebar-nav">
+        <div class="sidebar-brand">
+          <div class="logo-icon"><img src="logo.png" alt="UniEcoClaw"></div>
+          <div>
+            <div class="logo-text">UniEcoClaw</div>
+            <div class="logo-tag">数智环保 · UniEcoClaw</div>
+          </div>
+        </div>
+        <div class="sidebar-primary-nav">
+          <a class="sidebar-primary-nav-item nav-create" href="duty-chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新建任务</span></a>
+          <a class="sidebar-primary-nav-item" href="duty-tasks.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>自动化</span></a>
+          <a class="sidebar-primary-nav-item active" href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>任务模板库</span></a>
+          <a class="sidebar-primary-nav-item" href="duty-capabilities.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>能力·技能·连接器</span></a>
+          <span class="sidebar-primary-nav-item" style="cursor:default"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>更多</span></span>
+        </div>
+      </div>
+      </div>
+    <div class="sidebar-fixed-section">
+      <div class="sidebar-fixed-head" onclick="toggleRecentSection(this)"><svg class="sidebar-fold-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="sidebar-fixed-head-label">最近任务</span><span class="sidebar-fixed-head-count">5</span></div>
+      <div class="sidebar-fold-body"><div class="session-sections-scroll" style="padding:0 8px 8px">
+        <a class="session-item active"><span class="session-item-title">新对话</span><span class="session-item-time">11:06</span></a>
+        <a class="session-item"><span class="session-item-title">平顶山值守任务·07/28运行分析</span><span class="session-item-time">10:19</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/27</span><span class="session-item-time">7月27日</span></a>
+        <a class="session-item"><span class="session-item-title">[运行结果上下文]#City 7/23</span><span class="session-item-time">7月23日</span></a>
+        <button class="session-more-btn">查看更多(2)</button>
+      </div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">A</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Acerola</div>
+      </div>
+      <button class="icon-btn" title="通知" onclick="showToast('暂无新通知')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+      <button class="icon-btn" title="设置" onclick="showToast('打开设置')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="create-page">
+      <a class="crt-back" href="templates-library.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>返回模板库</a>
+
+      <div class="page-header" style="margin-bottom:20px">
+        <div>
+          <h1>新建模板</h1>
+          <div class="page-sub">把一个高频任务封装成模板，方便复用、分享与派生</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-default" onclick="location.href='templates-library.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>取消</button>
+          <button class="btn btn-default" onclick="showToast('已保存为模板')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存模板</button>
+          <button class="btn btn-primary" onclick="showToast('已保存并跳到任务创建')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>保存并创建任务</button>
+        </div>
+      </div>
+
+      <section class="tpl-form-section" id="sec1">
+        <div class="tpl-form-section-head">
+          <span class="tpl-step-badge">1</span>
+          <div style="flex:1">
+            <div class="tpl-step-title">模板信息</div>
+            <div class="tpl-step-sub">起一个易识别、好搜索的模板名称</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">模板名称 <span class="required-mark">*</span></label>
+          <input class="n-input" id="tplName" placeholder="如：平顶山日报推送" value="">
+          <div class="tpl-helper">建议使用「城市 + 任务类型」格式，便于团队成员识别</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">模板描述 <span class="required-mark">*</span></label>
+          <textarea class="tpl-textarea" placeholder="一段话说明这个模板解决了什么问题、适用于什么场景"></textarea>
+        </div>
+        <div class="tpl-form-row">
+          <div>
+            <label class="form-label">所属分组</label>
+            <select class="n-select">
+              <option>日报 / 周报</option>
+              <option>空气质量</option>
+              <option>水环境</option>
+              <option>考核排名</option>
+              <option>未分组</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">标签</label>
+            <input class="n-input" placeholder="多个标签用逗号分隔">
+          </div>
+        </div>
+      </section>
+
+      <section class="tpl-form-section" id="sec2">
+        <div class="tpl-form-section-head">
+          <span class="tpl-step-badge">2</span>
+          <div style="flex:1">
+            <div class="tpl-step-title">能力清单</div>
+            <div class="tpl-step-sub">勾选此模板要交付的能力成果，可逐项展开配置</div>
+          </div>
+          <button class="btn btn-default btn-sm" onclick="showToast('打开能力库')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>从能力库添加</button>
+        </div>
+
+        <div id="capList">
+          <div class="tpl-cap-row">
+            <span class="num">1</span>
+            <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div>
+            <div class="name">一张图（城市空气质量分布图）</div>
+            <div class="actions">
+              <button class="mini-btn" onclick="toggleConfig('cfg1')">展开配置</button>
+              <button class="mini-btn danger">删除</button>
+            </div>
+          </div>
+          <div class="tpl-cap-config" id="cfg1" style="display:none">
+            <div class="config-title">CFG · MAP_PACKAGE</div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>截图颜色：</span><div class="segmented"><button class="active" onclick="seg(this)">浅色</button><button onclick="seg(this)">深色</button></div></div>
+              <div class="compact-field"><span>查询：</span><div class="segmented"><button class="active" onclick="seg(this)">城市</button><button onclick="seg(this)">站点</button></div></div>
+              <div class="compact-field region-field"><span>行政区：</span><input class="n-input" value="平顶山市"></div>
+            </div>
+            <div class="ranking-toolbar">
+              <div class="compact-field"><span>时间类型：</span><div class="segmented"><button class="active" onclick="seg(this)">实时</button><button onclick="seg(this)">日累计</button><button onclick="seg(this)">日</button></div></div>
+            </div>
+          </div>
+
+          <div class="tpl-cap-row">
+            <span class="num">2</span>
+            <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div>
+            <div class="name">浓度排名（城市 / 站点）</div>
+            <div class="actions">
+              <button class="mini-btn" onclick="toggleConfig('cfg2')">展开配置</button>
+              <button class="mini-btn danger">删除</button>
+            </div>
+          </div>
+          <div class="tpl-cap-config" id="cfg2" style="display:none">
+            <div class="config-title">CFG · CONCENTRATION_RANKING</div>
+            <div class="factor-chips">
+              <span class="factor-chip active">AQI</span>
+              <span class="factor-chip active">PM2.5</span>
+              <span class="factor-chip">PM10</span>
+              <span class="factor-chip active">O3</span>
+              <span class="factor-chip">NO2</span>
+              <span class="factor-chip">SO2</span>
+              <span class="factor-chip active">CO</span>
+            </div>
+          </div>
+
+          <div class="tpl-cap-row">
+            <span class="num">3</span>
+            <div class="capability-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+            <div class="name">日报文本（自动生成）</div>
+            <div class="actions">
+              <button class="mini-btn" onclick="toggleConfig('cfg3')">展开配置</button>
+              <button class="mini-btn danger">删除</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="output-add-bar" style="margin-top:14px">
+          <span>添加能力</span>
+          <button onclick="showToast('已添加能力')"><b>＋</b> 一张图</button>
+          <button onclick="showToast('已添加能力')"><b>＋</b> 浓度排名</button>
+          <button onclick="showToast('已添加能力')"><b>＋</b> 小时播报</button>
+          <button onclick="showToast('已添加能力')"><b>＋</b> 监测数据</button>
+          <button onclick="showToast('已添加能力')"><b>＋</b> 超标预警</button>
+        </div>
+      </section>
+
+      <section class="tpl-form-section" id="sec3">
+        <div class="tpl-form-section-head">
+          <span class="tpl-step-badge">3</span>
+          <div style="flex:1">
+            <div class="tpl-step-title">交付设置</div>
+            <div class="tpl-step-sub">执行频率、推送时间与推送渠道（可多选）</div>
+          </div>
+        </div>
+
+        <div class="schedule-picker" style="margin-bottom:18px">
+          <div class="sched-cat-tabs">
+            <button class="sched-cat-btn active" onclick="schedCat(this)">每日</button>
+            <button class="sched-cat-btn" onclick="schedCat(this)">每周</button>
+            <button class="sched-cat-btn" onclick="schedCat(this)">每月</button>
+            <button class="sched-cat-btn" onclick="schedCat(this)">Cron 表达式</button>
+          </div>
+          <div class="sched-sub-label">选择预设</div>
+          <div class="preset-chip-grid">
+            <button class="preset-chip active">每天 09:00</button>
+            <button class="preset-chip">每天 18:00</button>
+            <button class="preset-chip">工作日 09:00</button>
+            <button class="preset-chip">每 1 小时</button>
+            <button class="preset-chip">每 30 分钟</button>
+            <button class="preset-chip">自定义</button>
+          </div>
+          <div class="sched-custom-row">
+            <span class="sched-custom-label">时间</span>
+            <div class="sched-custom-inputs">
+              <input class="sched-num-input" value="09">
+              <span>:</span>
+              <input class="sched-num-input" value="00">
+            </div>
+            <span class="sched-custom-label" style="margin-left:auto">推送时区</span>
+            <select class="sched-unit-select"><option>Asia/Shanghai (UTC+8)</option></select>
+          </div>
+          <div class="schedule-preview">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>下次运行：<b>明天 09:00</b> · 后续每日 09:00 重复</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">推送渠道（可多选）</label>
+          <div class="tpl-channel-grid">
+            <div class="tpl-channel-item checked" onclick="this.classList.toggle('checked')">
+              <div class="ch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+              <div class="ch-info"><div class="ch-name">企业微信</div><div class="ch-sub">已配置 · 推送至「环保值班」群</div></div>
+            </div>
+            <div class="tpl-channel-item" onclick="this.classList.toggle('checked')">
+              <div class="ch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+              <div class="ch-info"><div class="ch-name">钉钉</div><div class="ch-sub">未配置 · 点击前往设置</div></div>
+            </div>
+            <div class="tpl-channel-item" onclick="this.classList.toggle('checked')">
+              <div class="ch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+              <div class="ch-info"><div class="ch-name">邮件</div><div class="ch-sub">已配置 · 推送至值班邮箱</div></div>
+            </div>
+            <div class="tpl-channel-item" onclick="this.classList.toggle('checked')">
+              <div class="ch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+              <div class="ch-info"><div class="ch-name">飞书</div><div class="ch-sub">未配置 · 点击前往设置</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tpl-form-section" id="sec4">
+        <div class="tpl-form-section-head">
+          <span class="tpl-step-badge">4</span>
+          <div style="flex:1">
+            <div class="tpl-step-title">高级</div>
+            <div class="tpl-step-sub">角色基底提示词与补充说明，影响所有派生任务的执行行为</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">角色基底提示词</label>
+          <textarea class="tpl-textarea" style="min-height:120px;font-family:var(--font-code);font-size:12.5px" placeholder="你是一名环保数据值守员...">你是一名环保数据值守员，负责生成准确、客观、可执行的空气质量报告。请基于所提供的监测数据：
+1. 优先呈现 AQI 与首要污染物
+2. 指出超标站点与同比环比变化
+3. 给出明确的下一步建议</textarea>
+          <div class="tpl-helper">所有派生任务执行时都会带上这段提示词</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">补充说明</label>
+          <textarea class="tpl-textarea" placeholder="如：忽略临港工业区数据；周末不推送；推送时附带最近 24 小时趋势图等"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="n-checkbox"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>允许团队成员基于此模板派生任务</label>
+        </div>
+        <div class="form-group">
+          <label class="n-checkbox checked"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></span>允许通过 tar.gz 跨环境分享</label>
+        </div>
+      </section>
+
+      <div class="action-bar">
+        <div style="font-size:12.5px;color:var(--text-muted)">保存后可在「模板库」中查看、克隆或分享</div>
+        <div class="action-right">
+          <button class="btn btn-default" onclick="location.href='templates-library.html'">取消</button>
+          <button class="btn btn-default" onclick="showToast('已保存为模板')">保存模板</button>
+          <button class="btn btn-primary" onclick="showToast('已保存并跳到任务创建')">保存并创建任务</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+function scrollTo(id){
+  const el = document.getElementById(id);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  document.querySelectorAll('.step-item').forEach(s=>s.classList.remove('active'));
+  const step = id.replace('sec','');
+  document.querySelector(`.step-item[data-step="${step}"]`)?.classList.add('active');
+}
+function seg(el){ const p=el.parentElement; p.querySelectorAll('button').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+function schedCat(el){ const p=el.parentElement; p.querySelectorAll('.sched-cat-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+function toggleConfig(id){ const e=document.getElementById(id); e.style.display = e.style.display==='none' ? 'block' : 'none'; }
+let tTimer=null;
+function showToast(msg){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; t.classList.add('show'); clearTimeout(tTimer); tTimer=setTimeout(()=>t.classList.remove('show'),2000); }
+
+/** 从 URL 参数预填模板信息（支持从"创建任务→保存为模板"跳转） */
+(function initFromParams(){
+  const p = new URLSearchParams(location.search);
+  const from = p.get('from');
+  const name = p.get('name');
+  if (name) document.getElementById('tplName').value = name;
+  if (from === 'create') {
+    showToast('已从任务配置带入，请补充模板描述与调度后保存');
+  } else if (p.get('clone')) {
+    showToast('已从模板克隆，修改后请保存为新版本');
+  } else if (p.get('edit')) {
+    showToast('正在编辑模板');
+  }
+})();
+</script>
+<script>
+/**
+ * 切换侧栏「最近任务」区块的展开/折叠状态，并持久化到 localStorage
+ * @param {HTMLElement} headEl 点击的标题DOM
+ */
+function toggleRecentSection(headEl){
+  if (window.event) window.event.stopPropagation();
+  const section = (headEl && headEl.closest) ? headEl.closest('.sidebar-fixed-section') : document.querySelector('.sidebar-fixed-section');
+  if (!section) return;
+  section.classList.toggle('collapsed');
+  const collapsed = section.classList.contains('collapsed');
+  try { localStorage.setItem('unieco_recent_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+
+/**
+ * 页面加载时从 localStorage 恢复「最近任务」的折叠状态
+ */
+(function restoreRecentFold(){
+  try {
+    const collapsed = localStorage.getItem('unieco_recent_collapsed') === '1';
+    const section = document.querySelector('.sidebar-fixed-section');
+    if (section && collapsed) section.classList.add('collapsed');
+  } catch(e) {}
+})();
+</script>
+
+</body>
+</html>
