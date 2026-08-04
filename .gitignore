@@ -53,3 +53,4 @@ packages/client/src/**/*.js
 .hermes/
 .codegraph/
 .trae/
+.gstack/

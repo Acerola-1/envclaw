@@ -234,6 +234,13 @@ export default {
     changelog: '更新日志',
     noChangelog: '暂无更新日志',
     versionManagement: '版本管理',
+    newTask: '新建任务',
+    automation: '自动化',
+    templates: '任务模板库',
+    platformsSkillsMcps: '平台·技能·连接器',
+    more: '更多',
+    recentChats: '最近对话',
+    viewMore: '查看更多',
   },
 
   runtimeVersions: {
@@ -609,6 +616,24 @@ export default {
     resumeSpeech: '继续',
     stopSpeech: '停止',
     speechNotSupported: '此浏览器不支持语音播放',
+    heroTitle: 'UniEcoClaw，我帮你',
+    heroSubtitle: '直接提问，或选一个能力开始——也可以让我把它变成定时运行的值守任务',
+    queryData: '查数据',
+    buildDuty: '建值守',
+    model: '模型',
+    skill: '技能',
+    connector: '连接器',
+    fullAccess: '完全访问权限',
+    createDuty: '创建为值守任务',
+    confirmDirect: '直接确认（跳过向导）',
+  },
+
+  // 值守
+  duty: {
+    timedTasks: '定时任务',
+    runLog: '运行记录',
+    createTask: '创建任务',
+    addFromTemplate: '从模板/技能添加',
   },
 
   // 看板

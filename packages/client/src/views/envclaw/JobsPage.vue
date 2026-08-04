@@ -1,310 +1,625 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { NInput, NSpin } from 'naive-ui'
+import { useRouter, useRoute } from 'vue-router'
 import { useJobsStore } from '@/stores/hermes/jobs'
 import type { Job } from '@/api/hermes/jobs'
-import JobCard from '@/components/envclaw/jobs/JobCard.vue'
 
-const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const jobsStore = useJobsStore()
 
-const searchQuery = ref('')
-const activeFilter = ref<'all' | 'running' | 'paused' | 'error'>('all')
-const selectedJobId = ref<string | null>(null)
+// ---- Secondary tabs ----
+const activeTab = ref<'jobs' | 'runlog'>('jobs')
 
-const filters = [
-  { key: 'all' as const, labelKey: 'envclaw.jobs.filterAll' },
-  { key: 'running' as const, labelKey: 'envclaw.jobs.filterRunning' },
-  { key: 'paused' as const, labelKey: 'envclaw.jobs.filterPaused' },
-  { key: 'error' as const, labelKey: 'envclaw.jobs.filterError' },
-]
+// ---- Real data from store ----
+const jobs = computed<Job[]>(() => jobsStore.jobs)
+const loading = computed(() => jobsStore.loading)
 
-function getJobId(job: Job): string {
-  return job.job_id || job.id
+// ---- Deliver channel label map ----
+const deliverLabel: Record<string, string> = { wecom:'企业微信', dingtalk:'钉钉', feishu:'飞书', local:'本地', wecom_webhook:'企业微信', dingtalk_webhook:'钉钉', feishu_webhook:'飞书', mail:'邮件', smtp:'邮件' }
+
+// ---- Status helpers ----
+function statusOf(j: Job): [string, string] {
+  if (j.state === 'paused') return ['已暂停', 'paused']
+  if (!j.enabled) return ['已暂停', 'paused']
+  if (j.last_status === 'error') return ['异常', 'error']
+  if (j.state === 'running' || j.state === 'scheduled') return ['运行中', 'running']
+  return ['已调度', 'scheduled']
+}
+function cronToHuman(cron: string): string {
+  if (!cron || typeof cron !== 'string') return '—'
+  const parts = cron.trim().split(/\s+/)
+  if (parts.length < 5) return cron
+  const [min, hour, dom, month, dow] = parts
+  if (min.startsWith('*/')) { const n = parseInt(min.slice(2)); return n <= 1 ? '每分钟' : `每 ${n} 分钟` }
+  if (hour.startsWith('*/')) { const n = parseInt(hour.slice(2)); return n <= 1 ? '每小时' : `每 ${n} 小时` }
+  if (dow !== '*' && dom === '*') {
+    const dayMap: Record<string, string> = { '1':'周一','2':'周二','3':'周三','4':'周四','5':'周五','6':'周六','0':'周日','7':'周日' }
+    const days = dow.split(',').map((d: string) => dayMap[d] || d).join('、')
+    return `每${days} ${hour}:${min}`
+  }
+  if (dom !== '*' && dom !== '*') return `每月 ${dom} 日 ${hour}:${min}`
+  if (dow === '*' && dom === '*') return `每天 ${hour}:${min}`
+  return cron
+}
+function humanState(s: string): string {
+  const m: Record<string, string> = { running: '运行中', paused: '已暂停', scheduled: '已调度', failed: '失败' }
+  return m[s] || s
 }
 
-const filteredJobs = computed(() => {
-  let result = jobsStore.jobs
+function formatNextRun(j: Job): string {
+  if (j.state === 'paused' || !j.enabled) return '—'
+  if (!j.next_run_at) return '—'
+  const d = new Date(j.next_run_at)
+  const now = new Date()
+  const diffMs = d.getTime() - now.getTime()
+  if (diffMs < 0) return '—'
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 60) return `${diffMin} 分钟后`
+  const diffHour = Math.floor(diffMin / 60)
+  if (diffHour < 24) return `${diffHour} 小时后`
+  return d.toLocaleDateString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+}
 
-  if (activeFilter.value === 'running') {
-    result = result.filter(j =>
-      j.enabled && j.state !== 'paused' && (j.last_status === null || j.last_status === 'ok')
-    )
-  } else if (activeFilter.value === 'paused') {
-    result = result.filter(j => j.state === 'paused' || !j.enabled)
-  } else if (activeFilter.value === 'error') {
-    result = result.filter(j => j.last_status && j.last_status !== 'ok')
+function formatLastRun(j: Job): string {
+  if (!j.last_run_at) return '—'
+  const d = new Date(j.last_run_at)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return '刚刚'
+  if (diffMin < 60) return `${diffMin} 分钟前`
+  const diffHour = Math.floor(diffMin / 60)
+  if (diffHour < 24) return `${diffHour} 小时前`
+  return d.toLocaleDateString('zh-CN', { month:'short', day:'numeric' })
+}
+
+function lastRunLabel(j: Job): [string, string] {
+  if (j.last_status === 'error') return [j.last_error?.split('\n')[0]?.slice(0, 20) || '执行失败', 'error']
+  if (j.last_status === 'ok') return ['成功', 'success']
+  return ['—', '']
+}
+
+function deliverName(j: Job): string {
+  const d = j.deliver || 'local'
+  for (const [k, v] of Object.entries(deliverLabel)) {
+    if (d.includes(k)) return v
   }
+  return d
+}
 
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(j => j.name.toLowerCase().includes(q))
+// ---- Computed stats ----
+const jobStats = computed(() => {
+  const list = jobs.value
+  return {
+    running: list.filter(j => j.enabled && j.state !== 'paused').length,
+    paused: list.filter(j => j.state === 'paused' || !j.enabled).length,
+    ended: 0,
+    error: list.filter(j => j.last_status === 'error').length,
   }
-
-  return result
 })
 
-// 各状态计数
-const countAll = computed(() => jobsStore.jobs.length)
-const countRunning = computed(() =>
-  jobsStore.jobs.filter(j => j.enabled && j.state !== 'paused' && (j.last_status === null || j.last_status === 'ok')).length
-)
-const countPaused = computed(() =>
-  jobsStore.jobs.filter(j => j.state === 'paused' || !j.enabled).length
-)
-const countError = computed(() =>
-  jobsStore.jobs.filter(j => j.last_status && j.last_status !== 'ok').length
-)
+// ---- View mode (list / kanban) ----
+const viewMode = ref<'list' | 'kanban'>('list')
+const jobSearch = ref('')
 
-function handleSelect(jobId: string) {
-  selectedJobId.value = selectedJobId.value === jobId ? null : jobId
+const filteredJobs = computed(() => {
+  const kw = jobSearch.value.trim().toLowerCase()
+  if (!kw) return jobs.value
+  return jobs.value.filter(j => j.name.toLowerCase().includes(kw))
+})
+
+const jobGroups = computed(() => {
+  const list = filteredJobs.value
+  return [
+    { key:'running', label:'运行中', dot:'var(--success)', items: list.filter(j => j.enabled && j.state !== 'paused') },
+    { key:'paused',  label:'已暂停', dot:'var(--warning)', items: list.filter(j => j.state === 'paused' || !j.enabled) },
+  ].filter(g => g.items.length > 0)
+})
+
+// ---- Kanban columns ----
+const kanbanCols = computed(() => [
+  { key:'running', label:'运行中', dot:'running', items: filteredJobs.value.filter(j => j.enabled && j.state !== 'paused') },
+  { key:'paused',  label:'已暂停', dot:'paused',  items: filteredJobs.value.filter(j => j.state === 'paused' || !j.enabled) },
+])
+
+// ---- Run log mock data (prototype) ----
+interface RunLogRun {
+  time: string; sub: string; status: string; duration: string; trigger: string; runId: string
+  shots: number; data: number; hasFiles: boolean; folderPath: string
+  summary: Record<string, string>
+  files?: { icon: string; name: string; size: string; path: string }[]
+  shotThumbs?: { title: string; desc: string }[]
+  dataRows?: string[][]
+  logLines?: { t: string; m: string }[]
+  error?: string; isManual?: boolean
+}
+interface RunLogTask { taskId: string; name: string; tpl: string; deliver: string; stats: Record<string, number>; recent: { status: string; time: string; sub: string }; runs: RunLogRun[] }
+
+const runlogTasks = ref<RunLogTask[]>([
+  { taskId:'b', name:'平顶山小时数据播报', tpl:'每小时 · 企业微信推送', deliver:'企业微信', stats:{ total:4, ok:4, fail:0 }, recent:{ status:'success', time:'08-02 11:00', sub:'今天' }, runs:[
+    { time:'08-02 11:00', sub:'今天', status:'success', duration:'00:01:24', trigger:'定时', runId:'run-1', shots:1, data:1, hasFiles:true, folderPath:'/outputs/1100', summary:{ triggerTime:'08-02 11:00:00', dataRange:'2026-08-02 10:00', source:'数智大气平台', deliver:'企业微信（平顶山运维群）', model:'gpt-4o-mini', tokens:'2,148' }, files:[{ icon:'img', name:'浓度排名_平顶山市.png', size:'412 KB', path:'' }], shotThumbs:[{ title:'浓度排名 · 平顶山', desc:'18市 + 4区县AQI热力排名' }], logLines:[{t:'info',m:'start run'},{t:'ok',m:'data fetched'},{t:'ok',m:'deliver.wecom.send → OK 200'},{t:'ok',m:'run done, status=success, duration=00:01:24'}] },
+  ]},
+  { taskId:'c', name:'污染源超标异常监控', tpl:'每 15 分钟 · 钉钉推送', deliver:'钉钉', stats:{ total:3, ok:0, fail:3 }, recent:{ status:'failed', time:'08-02 11:42', sub:'今天' }, runs:[
+    { time:'08-02 11:42', sub:'今天', status:'failed', duration:'00:00:18', trigger:'定时', runId:'run-2', shots:0, data:0, hasFiles:false, folderPath:'', summary:{ triggerTime:'08-02 11:42:00', dataRange:'—', source:'数智大气平台', deliver:'钉钉（凭证失效）', model:'gpt-4o-mini', tokens:'—' }, error:'钉钉机器人 Webhook 已失效 (HTTP 400):\nerror code: invalidrobot\n请在「设置 → 渠道 → 钉钉」中更新凭证后重试。', logLines:[{t:'info',m:'start run'},{t:'err',m:'ERROR deliver.dingtalk.send → HTTP 400 invalidrobot'}] },
+  ]},
+  { taskId:'a', name:'平阴县每日城市排名分析任务', tpl:'每天 09:00 · 企业微信推送', deliver:'企业微信', stats:{ total:1, ok:1, fail:0 }, recent:{ status:'success', time:'08-02 09:00', sub:'今天' }, runs:[
+    { time:'08-02 09:00', sub:'今天', status:'success', duration:'00:02:08', trigger:'定时', runId:'run-3', shots:2, data:1, hasFiles:true, folderPath:'/outputs/0900', summary:{ triggerTime:'08-02 09:00:00', dataRange:'2026-08-01 全天', source:'数智大气平台', deliver:'企业微信（平阴县环保局）', model:'gpt-4o-mini', tokens:'4,812' }, files:[{ icon:'img', name:'城市浓度排名.png', size:'624 KB', path:'' }], logLines:[{t:'info',m:'start run'},{t:'ok',m:'run done, status=success, duration=00:02:08'}] },
+  ]},
+])
+
+// ---- L1/L2 expand state ----
+const expandedL1 = ref<Set<string>>(new Set())
+const expandedL2 = ref<Set<string>>(new Set())
+
+function toggleL1(taskId: string) {
+  if (expandedL1.value.has(taskId)) expandedL1.value.delete(taskId)
+  else expandedL1.value.add(taskId)
 }
 
-function handleEdit(jobId: string) {
-  router.push({ name: 'envclaw.jobDetail', params: { jobId } })
-}
+// ---- Actions ----
+function handleRun(jobId: string) { jobsStore.runJob(jobId) }
+function handlePause(jobId: string) { jobsStore.pauseJob(jobId) }
+function handleResume(jobId: string) { jobsStore.resumeJob(jobId) }
+function handleDelete(jobId: string) { if (confirm('确认删除？')) jobsStore.deleteJob(jobId) }
 
+// ---- Navigation ----
+function goCreate() { router.push({ name: 'hermes.dutyCreate' }) }
+function goPicker() { router.push({ name: 'hermes.dutyPicker' }) }
+function goDetail(id: string) { router.push({ name: 'hermes.dutyDetail', params: { id } }) }
+function goEdit(id: string) { router.push({ name: 'hermes.dutyCreate', query: { edit: id } }) }
+
+// ---- Init ----
 onMounted(() => {
-  void jobsStore.fetchJobs()
+  jobsStore.fetchJobs()
+  if (route.hash === '#tab=runlog') activeTab.value = 'runlog'
 })
 </script>
 
 <template>
-  <div class="jobs-page">
-    <!-- 页面标题 -->
+  <div class="page">
+    <!-- Page Header -->
     <div class="page-header">
       <div>
-        <h1>{{ t('envclaw.jobs.title') }}</h1>
-        <div class="page-sub">{{ t('envclaw.jobs.description') }}</div>
+        <h1>值守任务</h1>
+        <div class="page-sub">无人值守的定时任务，按计划自动运行并推送结果</div>
       </div>
       <div class="page-actions">
-        <button class="btn btn-primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          {{ t('envclaw.jobs.createTask') }}
-        </button>
+        <a class="btn btn-default" @click="goPicker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>从模板 / 技能添加任务
+        </a>
+        <a class="btn btn-primary" @click="goCreate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>创建任务
+        </a>
       </div>
     </div>
 
-    <!-- 筛选条 -->
-    <div class="filter-bar">
-      <div
-        v-for="f in filters"
-        :key="f.key"
-        class="filter-pill"
-        :class="{ active: activeFilter === f.key, [f.key]: activeFilter === f.key }"
-        @click="activeFilter = f.key"
-      >
-        <span v-if="f.key !== 'all'" class="dot" :style="{ background: f.key === 'running' ? 'var(--success)' : f.key === 'paused' ? 'var(--warning)' : 'var(--error)' }"></span>
-        {{ t(f.labelKey) }}
-        <span class="num">
-          {{ f.key === 'all' ? countAll : f.key === 'running' ? countRunning : f.key === 'paused' ? countPaused : countError }}
-        </span>
+    <!-- Secondary Tabs -->
+    <div class="seg-switch" style="margin-bottom:18px">
+      <button class="seg-btn" :class="{ active: activeTab === 'jobs' }" @click="activeTab = 'jobs'">
+        定时任务<span class="count-tag">{{ jobs.length }}</span>
+      </button>
+      <button class="seg-btn" :class="{ active: activeTab === 'runlog' }" @click="activeTab = 'runlog'">
+        运行记录<span class="count-tag">5762</span>
+      </button>
+    </div>
+
+    <!-- ===== TAB A: 定时任务 ===== -->
+    <div v-if="loading" style="text-align:center;padding:48px;color:var(--text-muted)">加载中...</div>
+    <div v-else v-show="activeTab === 'jobs'">
+      <!-- Stat cards -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-icon running"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+          <div class="stat-body"><span class="stat-label">运行中</span><span class="stat-value">{{ jobStats.running }}</span><span class="stat-trend">实时调度</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon paused"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
+          <div class="stat-body"><span class="stat-label">已暂停</span><span class="stat-value">{{ jobStats.paused }}</span><span class="stat-trend">手动暂停</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="stat-body"><span class="stat-label">已结束</span><span class="stat-value">{{ jobStats.ended }}</span><span class="stat-trend">归档任务</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon failed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div class="stat-body"><span class="stat-label">异常</span><span class="stat-value">{{ jobStats.error }}</span><span class="stat-trend">需处理</span></div>
+        </div>
       </div>
 
-      <div class="filter-bar-right">
-        <NInput
-          v-model:value="searchQuery"
-          :placeholder="t('envclaw.jobs.searchPlaceholder')"
-          size="small"
-          clearable
-          class="search-input"
-        >
-          <template #prefix>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </template>
-        </NInput>
+      <!-- View toggle + Search -->
+      <div class="view-bar">
+        <div class="seg-switch" style="margin-bottom:0">
+          <button class="seg-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>列表
+          </button>
+          <button class="seg-btn" :class="{ active: viewMode === 'kanban' }" @click="viewMode = 'kanban'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="11" rx="1"/></svg>看板
+          </button>
+        </div>
+        <div class="search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input v-model="jobSearch" placeholder="搜索任务名称...">
+        </div>
+      </div>
+
+      <!-- LIST VIEW -->
+      <div v-show="viewMode === 'list'">
+        <template v-for="g in jobGroups" :key="g.key">
+          <section v-if="g.items.length" class="job-group">
+            <div class="job-group-head">
+              <span class="job-group-title"><span class="pill-dot" :style="{ background: g.dot }"></span>{{ g.label }}</span>
+              <span class="job-group-count">{{ g.items.length }} 个</span>
+            </div>
+            <div class="card-grid">
+              <div v-for="j in g.items" :key="j.id" class="job-card" @click="goDetail(j.id)">
+                <div class="card-head">
+                  <div class="card-title">{{ j.name }}</div>
+                  <span class="status-pill" :class="statusOf(j)[1]"><span class="pill-dot"></span>{{ statusOf(j)[0] }}</span>
+                </div>
+                <div class="card-body">
+                  <div class="info-row"><span class="label">调度频率</span><span class="val mono">{{ cronToHuman(j.schedule_display) }}</span></div>
+                  <div class="info-row"><span class="label">推送渠道</span><span class="val">{{ deliverName(j) || '—' }}</span></div>
+                  <div class="info-row"><span class="label">下次运行</span><span class="val" :class="{ 'highlight-time': j.next_run_at }">{{ formatNextRun(j) }}</span></div>
+                  <div v-if="j.last_run_at" class="info-row"><span class="label">上次运行</span><span class="val" :class="lastRunLabel(j)[1]">{{ formatLastRun(j) }} · {{ lastRunLabel(j)[0] }}</span></div>
+                  <div class="info-row"><span class="label">状态</span><span class="val mono">{{ humanState(j.state) }}</span></div>
+                </div>
+                <div class="card-actions">
+                  <button class="act-btn act-primary" @click.stop="handleRun(j.id)">▶ 立即运行</button>
+                  <button v-if="j.state === 'paused' || !j.enabled" class="act-btn" @click.stop="handleResume(j.id)">▶ 恢复</button>
+                  <button v-else class="act-btn" @click.stop="handlePause(j.id)">⏸ 暂停</button>
+                  <a class="act-btn" @click.stop="goEdit(j.id)">✎ 编辑</a>
+                  <button class="act-btn act-danger" @click.stop="handleDelete(j.id)">✕ 删除</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </template>
+        <div v-if="filteredJobs.length === 0" class="empty-state">没有匹配的任务<span class="empty-hint">试试调整搜索关键词</span></div>
+      </div>
+
+      <!-- KANBAN VIEW -->
+      <div v-show="viewMode === 'kanban'" class="kanban">
+        <div v-for="col in kanbanCols" :key="col.key" class="kanban-col">
+          <div class="kanban-head">
+            <div class="kanban-head-left"><span class="dot" :class="col.dot"></span><span>{{ col.label }}</span><span class="num">{{ col.items.length }}</span></div>
+          </div>
+          <div class="kanban-body">
+            <div v-for="j in col.items" :key="j.id" class="tk-card" @click="goDetail(j.id)">
+              <div class="tk-card-head"><div class="tk-name">{{ j.name }}</div><span class="tk-pill" :class="statusOf(j)[1]">{{ statusOf(j)[0] }}</span></div>
+              <div class="tk-meta"><span class="item">🕐 {{ cronToHuman(j.schedule_display) }}</span></div>
+              <div class="tk-progress"><i :style="{ width: '50%' }"></i></div>
+              <div class="tk-progress-text"><span>{{ formatLastRun(j) }}</span><span class="pct">—</span></div>
+              <div class="tk-foot"><div class="tk-foot-right">{{ formatNextRun(j) }}</div></div>
+            </div>
+            <div class="tk-add" @click="goCreate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加任务
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 任务卡片网格 -->
-    <NSpin :show="jobsStore.loading && jobsStore.jobs.length === 0">
-      <div v-if="!jobsStore.loading && jobsStore.jobs.length === 0" class="empty-state">
-        <p>{{ t('envclaw.jobs.noJobs') }}</p>
-        <p class="empty-hint">{{ t('envclaw.jobs.noJobsHint') }}</p>
+    <!-- ===== TAB B: 运行记录 ===== -->
+    <div v-show="activeTab === 'runlog'">
+      <!-- Stat cards -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-icon total"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="stat-body"><span class="stat-label">总执行</span><span class="stat-value">5762</span><span class="stat-trend">累计 · 含 108 次手动触发</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="stat-body"><span class="stat-label">成功</span><span class="stat-value">5474</span><span class="stat-trend up">较上周 +286</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon failed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+          <div class="stat-body"><span class="stat-label">失败</span><span class="stat-value">288</span><span class="stat-trend down">较上周 -52</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <div class="stat-body"><span class="stat-label">成功率</span><span class="stat-value">95.0<span class="unit">%</span></span><span class="stat-trend up">较上周 +1.3%</span></div>
+        </div>
       </div>
 
-      <div v-else-if="filteredJobs.length === 0" class="empty-state">
-        {{ t('envclaw.jobs.noMatch') }}
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <span class="toolbar-label">日期</span>
+          <select><option>本周</option><option>今日</option><option>近 7 天</option><option>近 30 天</option></select>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+          <span class="toolbar-label">状态</span>
+          <select><option>全部</option><option>成功</option><option>失败</option><option>运行中</option></select>
+        </div>
+        <div class="toolbar-right">
+          <div class="tl-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input placeholder="搜索任务名 / 错误关键词">
+          </div>
+          <button class="btn btn-default">重置</button>
+        </div>
       </div>
 
-      <div v-else class="card-grid">
-        <JobCard
-          v-for="job in filteredJobs"
-          :key="getJobId(job)"
-          :job="job"
-          :selected="selectedJobId === getJobId(job)"
-          @select="handleSelect"
-          @edit="handleEdit"
-        />
+      <!-- Failure banner -->
+      <div class="fail-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>本周 <b>7</b> 条失败记录，其中 <b>4</b> 条因「污染源超标异常监控」任务钉钉凭证失效集中出现，<a href="#">前往修复</a></span>
       </div>
-    </NSpin>
+
+      <!-- Run log 3-layer -->
+      <div class="runlog-stack">
+        <section v-for="t in runlogTasks" :key="t.taskId" class="rl-task" :class="{ open: expandedL1.has(t.taskId) }">
+          <div class="rl-task-head" @click="toggleL1(t.taskId)">
+            <span class="rl-chev">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </span>
+            <div class="rl-task-main">
+              <div class="rl-task-title">{{ t.name }}</div>
+              <div class="rl-task-sub"><span class="rl-dot"></span>{{ t.tpl }}<span class="rl-dot"></span>总执行 <b>{{ t.stats.total }}</b> 次
+                <span v-if="t.stats.fail" class="rl-chip failed">{{ t.stats.fail }} 失败</span>
+                <span v-else class="rl-chip success">{{ t.stats.ok }} 成功</span>
+              </div>
+            </div>
+            <div class="rl-task-right">
+              <span class="rl-time-meta">最近 · {{ t.recent.time }}<span class="rl-sub-time">{{ t.recent.sub }}</span></span>
+              <span class="rl-pill" :class="t.recent.status === 'failed' ? 'failed' : 'success'"><span class="pill-dot"></span>{{ t.recent.status === 'failed' ? '失败' : '成功' }}</span>
+            </div>
+          </div>
+          <div class="rl-task-body">
+            <div v-for="r in t.runs" :key="r.runId" class="rl-run" :class="{ open: expandedL2.has(r.runId) }">
+              <div class="rl-run-head" @click="toggleL2(r.runId)">
+                <span class="rl-chev rl-chev-sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>
+                <div class="rl-run-time"><span class="rl-time-main">{{ r.time }}</span><span class="rl-sub-time">{{ r.sub }}</span></div>
+                <span class="rl-pill" :class="r.status === 'failed' ? 'failed' : r.status === 'running' ? 'running' : 'success'"><span class="pill-dot"></span>{{ r.status === 'failed' ? '失败' : r.status === 'running' ? '运行中' : '成功' }}</span>
+                <div class="rl-run-meta">
+                  <span class="rl-meta-item">{{ r.duration }}</span>
+                  <span class="rl-meta-item" v-if="r.shots + r.data > 0">{{ r.shots + r.data }} 产出</span>
+                  <span class="rl-meta-item" :class="{ manual: r.isManual }">{{ r.trigger === '手动' ? '👆' : '🕐' }}{{ r.trigger }}</span>
+                </div>
+              </div>
+              <div class="rl-run-body">
+                <div class="rl-detail">
+                  <!-- Error section -->
+                  <div v-if="r.status === 'failed' && r.error" class="fail-banner" style="margin-bottom:14px">
+                    <span><b>执行失败</b>：{{ r.error.split('\n')[0] }}</span>
+                    <a href="#" style="margin-left:auto">前往修复</a>
+                  </div>
+                  <!-- Summary -->
+                  <div class="detail-section">
+                    <h4>任务执行摘要 <span class="h-tag">{{ r.runId }}</span></h4>
+                    <div class="detail-grid">
+                      <div class="item"><span class="k">触发时间</span><span class="v">{{ r.summary.triggerTime }}</span></div>
+                      <div class="item"><span class="k">数据时间</span><span class="v">{{ r.summary.dataRange }}</span></div>
+                      <div class="item"><span class="k">数据来源</span><span class="v">{{ r.summary.source }}</span></div>
+                      <div class="item"><span class="k">推送渠道</span><span class="v">{{ r.summary.deliver }}</span></div>
+                      <div class="item"><span class="k">模型</span><span class="v">{{ r.summary.model }}</span></div>
+                      <div class="item"><span class="k">Token 消耗</span><span class="v">{{ r.summary.tokens }}</span></div>
+                    </div>
+                  </div>
+                  <!-- Log section -->
+                  <div v-if="r.logLines && r.logLines.length" class="detail-section">
+                    <h4>执行日志 <span class="h-tag">{{ r.logLines.length }} 行</span></h4>
+                    <div class="detail-log">
+                      <span v-for="(l, li) in r.logLines" :key="li" :class="'log-' + (l.t === 'err' ? 'err' : l.t === 'ok' ? 'ok' : 'info')">[{{ r.time.split(' ')[0] }}] {{ l.m }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-@use '@/styles/variables' as *;
+@use "@/styles/variables" as *;
 
-.jobs-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 24px 28px;
-  overflow-y: auto;
+// ---- Page shell (matches prototype .page) ----
+.page {
+  padding: 24px 28px 60px;
+  max-width: 1180px;
+  margin: 0 auto;
 }
 
-/* 页面标题 */
+// ---- Page header ----
 .page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 20px;
-
-  h1 {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: 0.2px;
-  }
-
-  .page-sub {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin-top: 5px;
-  }
-
-  .page-actions {
-    display: flex;
-    gap: 8px;
-  }
+  display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px;
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: .2px; }
+  .page-sub { color: $text-secondary; font-size: 13px; margin-top: 5px; }
 }
+.page-actions { display: flex; gap: 8px; }
 
+// ---- Buttons ----
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
-  border-radius: $radius-md;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: 0.15s;
-  white-space: nowrap;
-
-  &.btn-primary {
-    background: var(--accent-primary);
-    color: var(--text-on-accent);
-
-    &:hover {
-      background: var(--accent-hover);
-    }
-  }
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px;
+  border-radius: var(--radius-md); font-size: 13px; font-weight: 500; cursor: pointer;
+  border: 1px solid transparent; transition: .15s; white-space: nowrap; text-decoration: none;
+  svg { width: 14px; height: 14px; }
 }
+.btn-primary { background: $accent-primary; color: #fff; &:hover { background: $accent-hover; } }
+.btn-default { background: $bg-card; color: $text-primary; border-color: $border-color; &:hover { border-color: var(--border-strong); background: $bg-secondary; } }
 
-/* 筛选条 */
-.filter-bar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  align-items: center;
+// ---- Segmented tabs ----
+.seg-switch { display: inline-flex; gap: 4px; background: $bg-secondary; border-radius: var(--radius-md); padding: 3px; }
+.seg-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px;
+  border: none; background: transparent; color: $text-secondary; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: .15s;
+  svg { width: 14px; height: 14px; }
+  &:hover { color: $text-primary; }
+  &.active { background: $bg-card; color: $accent-primary; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 }
-
-.filter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 24px;
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: 0.15s;
-  user-select: none;
-
-  &:hover {
-    border-color: var(--border-strong, var(--border-color));
-    color: var(--text-primary);
-  }
-
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .num {
-    font-weight: 600;
-    margin-left: 2px;
-  }
-
-  &.active {
-    border-color: var(--accent-primary);
-    background: rgba(var(--accent-primary-rgb), 0.10);
-    color: var(--accent-primary);
-  }
-
-  &.active.running {
-    border-color: var(--success);
-    background: rgba(var(--success-rgb), 0.12);
-    color: var(--success);
-  }
-
-  &.active.paused {
-    border-color: var(--warning);
-    background: rgba(var(--warning-rgb), 0.15);
-    color: var(--warning);
-  }
-
-  &.active.error {
-    border-color: var(--error);
-    background: rgba(var(--error-rgb), 0.12);
-    color: var(--error);
-  }
+.count-tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 18px; padding: 0 6px; border-radius: 9px;
+  font-size: 10.5px; font-weight: 600; margin-left: 2px;
 }
+.seg-btn.active .count-tag { background: rgba(var(--accent-primary-rgb), .12); color: $accent-primary; }
+.seg-btn:not(.active) .count-tag { background: $bg-secondary; color: $text-secondary; }
 
-.filter-bar-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+// ---- Stat cards ----
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.stat-card { background: $bg-card; border: 1px solid $border-color; border-radius: var(--radius-md); padding: 16px; display: flex; gap: 14px; align-items: center; }
+.stat-icon {
+  width: 42px; height: 42px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  svg { width: 18px; height: 18px; }
+  &.running { background: rgba(var(--success-rgb), .12); color: $success; }
+  &.paused { background: rgba(var(--warning-rgb), .15); color: $warning; }
+  &.done { background: rgba(var(--accent-primary-rgb), .10); color: $accent-primary; }
+  &.failed { background: rgba(var(--error-rgb), .12); color: $error; }
+  &.total { background: rgba(var(--accent-primary-rgb), .10); color: $accent-primary; }
+  &.success { background: rgba(var(--success-rgb), .12); color: $success; }
+  &.rate { background: $bg-secondary; color: $text-primary; border: 1px solid $border-color; }
 }
+.stat-body { display: flex; flex-direction: column; gap: 2px; }
+.stat-label { font-size: 12px; color: $text-muted; }
+.stat-value { font-size: 22px; font-weight: 700; color: $text-primary; .unit { font-size: 13px; font-weight: 500; } }
+.stat-trend { font-size: 11px; color: $text-muted; &.up { color: $success; } &.down { color: $error; } }
 
+// ---- View bar ----
+.view-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+
+// ---- Search input ----
 .search-input {
-  width: 220px;
+  display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  border: 1px solid $border-color; border-radius: var(--radius-sm); background: $bg-input; width: 220px;
+  svg { width: 14px; height: 14px; color: $text-muted; flex-shrink: 0; }
+  input {
+    border: none; outline: none; background: transparent; font-size: 13px;
+    color: $text-primary; width: 100%; font-family: inherit;
+    &::placeholder { color: $text-muted; }
+  }
 }
 
-/* 卡片网格 */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  gap: 14px;
+// ---- Job groups & cards ----
+.job-group { margin-bottom: 22px; }
+.job-group-head { display: flex; align-items: center; gap: 10px; padding: 0 4px 10px; }
+.job-group-title { font-size: 13px; font-weight: 600; color: $text-primary; letter-spacing: .2px; display: inline-flex; align-items: center; gap: 6px; }
+.pill-dot { width: 8px; height: 8px; border-radius: 50%; }
+.job-group-count { font-size: 12px; color: $text-muted; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+
+.job-card {
+  background: $bg-card; border: 1px solid $border-color; border-radius: var(--radius-lg); padding: 16px 18px 12px;
+  cursor: pointer; transition: .15s;
+  &:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+}
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.card-title { font-size: 14px; font-weight: 600; color: $text-primary; flex: 1; margin-right: 10px; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 11px; font-size: 11.5px; font-weight: 500; flex-shrink: 0;
+  .pill-dot { width: 6px; height: 6px; background: currentColor; }
+  &.running { background: rgba(var(--success-rgb), .12); color: $success; }
+  &.paused { background: rgba(var(--warning-rgb), .15); color: $warning; }
+  &.done { background: $bg-secondary; color: $text-muted; }
+  &.error { background: rgba(var(--error-rgb), .12); color: $error; }
+}
+.card-body { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.info-row { display: flex; gap: 8px; font-size: 12.5px; .label { color: $text-muted; min-width: 60px; } .val { color: $text-primary; &.mono { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; } &.highlight-time { color: $accent-primary; font-weight: 500; } &.success { color: $success; } &.error { color: $error; } } }
+.card-actions { display: flex; gap: 4px; border-top: 1px solid $border-light; padding-top: 10px; }
+.act-btn {
+  display: inline-flex; gap: 4px; padding: 4px 10px; border: 1px solid $border-color; border-radius: var(--radius-sm);
+  background: $bg-card; color: $text-secondary; font-size: 12px; cursor: pointer; text-decoration: none;
+  &:hover { border-color: $accent-primary; color: $accent-primary; }
+  &.act-primary { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+  &.act-danger { &:hover { border-color: $error; color: $error; } }
 }
 
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-muted);
-  font-size: 14px;
+// ---- Kanban ----
+.kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.kanban-col { background: $bg-secondary; border-radius: var(--radius-lg); padding: 14px; }
+.kanban-head { margin-bottom: 12px; }
+.kanban-head-left { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: $text-primary;
+  .dot { width: 8px; height: 8px; border-radius: 50%; &.running { background: $success; } &.paused { background: $warning; } &.done { background: $text-muted; } }
+  .num { font-size: 12px; color: $text-muted; font-weight: 500; margin-left: auto; }
 }
+.kanban-body { display: flex; flex-direction: column; gap: 8px; }
+.tk-card { background: $bg-card; border: 1px solid $border-color; border-radius: var(--radius-md); padding: 12px; cursor: pointer; transition: .15s; &:hover { border-color: var(--border-strong); } }
+.tk-card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.tk-name { font-size: 13px; font-weight: 600; color: $text-primary; flex: 1; }
+.tk-pill { font-size: 10.5px; padding: 1px 7px; border-radius: 9px; font-weight: 500;
+  &.running { background: rgba(var(--success-rgb), .12); color: $success; }
+  &.paused { background: rgba(var(--warning-rgb), .15); color: $warning; }
+  &.done { background: $bg-secondary; color: $text-muted; }
+  &.error { background: rgba(var(--error-rgb), .12); color: $error; }
+}
+.tk-meta { font-size: 11px; color: $text-muted; margin-bottom: 6px; .item { display: inline-flex; align-items: center; gap: 4px; } }
+.tk-progress { height: 4px; background: $bg-secondary; border-radius: 2px; margin-bottom: 6px; i { display: block; height: 100%; border-radius: 2px; background: $accent-primary; } }
+.tk-progress-text { display: flex; justify-content: space-between; font-size: 11px; color: $text-muted; margin-bottom: 8px; }
+.tk-foot { display: flex; justify-content: space-between; }
+.tk-foot-right { font-size: 11px; color: $text-secondary; }
+.tk-add { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; border: 1px dashed $border-color; border-radius: var(--radius-md); color: $text-muted; font-size: 13px; cursor: pointer; &:hover { color: $accent-primary; border-color: $accent-primary; } svg { width: 14px; height: 14px; } }
 
-.empty-hint {
-  display: block;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 8px;
+// ---- Empty state ----
+.empty-state { text-align: center; padding: 48px 20px; color: $text-muted; font-size: 14px; .empty-hint { display: block; font-size: 12px; margin-top: 6px; } }
+
+// ---- Toolbar ----
+.toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; background: $bg-card; border: 1px solid $border-color; border-radius: var(--radius-lg); padding: 12px 14px; }
+.toolbar-group { display: flex; align-items: center; gap: 6px; }
+.toolbar-label { font-size: 12px; color: $text-muted; margin-right: 4px; white-space: nowrap; }
+.toolbar-divider { width: 1px; height: 20px; background: $border-color; margin: 0 4px; }
+.toolbar select, .toolbar input { font-size: 12.5px; padding: 6px 10px; border: 1px solid $border-color; border-radius: var(--radius-sm); background: $bg-input; color: $text-primary; cursor: pointer; outline: none; }
+.toolbar-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.tl-search { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid $border-color; border-radius: var(--radius-sm); background: $bg-input; svg { width: 13px; height: 13px; color: $text-muted; } input { border: none; outline: none; background: transparent; font-size: 12.5px; color: $text-primary; width: 160px; } }
+
+// ---- Failure banner ----
+.fail-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(var(--error-rgb), .06); border: 1px solid rgba(var(--error-rgb), .25); border-radius: var(--radius-md); margin-bottom: 14px; font-size: 12.5px; color: $error; svg { width: 16px; height: 16px; flex-shrink: 0; } b { color: $error; } a { color: $accent-primary; font-weight: 500; text-decoration: none; } }
+
+// ---- Run log 3-layer ----
+.runlog-stack { background: $bg-card; border: 1px solid $border-color; border-radius: var(--radius-lg); overflow: hidden; }
+
+.rl-task { border-bottom: 1px solid $border-light; &:last-child { border-bottom: none; } }
+.rl-task-head {
+  display: flex; align-items: center; gap: 10px; padding: 14px 18px; cursor: pointer; transition: .15s;
+  &:hover { background: $bg-card-hover; }
 }
+.rl-chev { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; color: $text-muted; flex-shrink: 0; svg { width: 14px; height: 14px; transition: transform .2s; } }
+.rl-task.open > .rl-task-head .rl-chev svg, .rl-run.open > .rl-run-head .rl-chev svg { transform: rotate(90deg); }
+.rl-task-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.rl-task-title { font-size: 14px; font-weight: 600; color: $text-primary; }
+.rl-task-sub { display: flex; align-items: center; gap: 6px; font-size: 11px; color: $text-muted; flex-wrap: wrap; }
+.rl-dot { width: 4px; height: 4px; border-radius: 50%; background: $border-color; flex-shrink: 0; }
+.rl-chip { display: inline-flex; padding: 1px 7px; border-radius: 9px; font-size: 10.5px; font-weight: 500;
+  &.success { background: rgba(var(--success-rgb), .12); color: $success; }
+  &.failed { background: rgba(var(--error-rgb), .12); color: $error; }
+  &.running { background: rgba(var(--warning-rgb), .15); color: $warning; }
+}
+.rl-task-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.rl-time-meta { font-size: 12px; color: $text-secondary; text-align: right; }
+.rl-sub-time { display: block; font-size: 10.5px; color: $text-muted; }
+.rl-pill {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 11px; font-size: 11px; font-weight: 500;
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  &.success { background: rgba(var(--success-rgb), .12); color: $success; }
+  &.failed { background: rgba(var(--error-rgb), .12); color: $error; }
+  &.running { background: rgba(var(--warning-rgb), .15); color: $warning; }
+}
+.rl-task-body { display: none; background: $bg-secondary; border-top: 1px solid $border-light; }
+.rl-task.open > .rl-task-body { display: block; }
+
+.rl-run { border-bottom: 1px solid $border-light; &:last-child { border-bottom: none; } }
+.rl-run-head { display: flex; align-items: center; gap: 10px; padding: 10px 18px; cursor: pointer; transition: .15s; &:hover { background: rgba(var(--accent-primary-rgb), .03); } }
+.rl-chev-sm { width: 14px; height: 14px; svg { width: 11px; height: 11px; } }
+.rl-run-time { display: flex; flex-direction: column; min-width: 90px; }
+.rl-time-main { font-size: 12.5px; color: $text-secondary; }
+.rl-run-meta { display: flex; gap: 8px; margin-left: auto; }
+.rl-meta-item { font-size: 11px; color: $text-muted; &.manual { color: $accent-primary; } }
+
+.rl-run-body { display: none; }
+.rl-run.open > .rl-run-body { display: block; }
+.rl-detail { padding: 0 18px 16px; }
+
+.detail-section { background: $bg-card; border: 1px solid $border-color; border-radius: var(--radius-md); padding: 14px 16px; margin-top: 12px;
+  h4 { font-size: 12.5px; font-weight: 600; color: $text-primary; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .h-tag { font-size: 10.5px; padding: 1px 7px; border-radius: 9px; background: $bg-secondary; color: $text-muted; border: 1px solid $border-color; font-weight: 500; }
+}
+.detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 24px; font-size: 12.5px; .item { display: flex; gap: 8px; .k { color: $text-muted; min-width: 64px; } .v { color: $text-primary; font-size: 12px; } } }
+.detail-log { background: $text-primary; color: #d6d6d6; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 11.5px; line-height: 1.7; max-height: 180px; overflow-y: auto; .log-ok { color: #7fc987; } .log-err { color: #f18d8d; } .log-info { color: #9eb6d8; } }
 </style>

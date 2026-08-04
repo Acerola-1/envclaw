@@ -152,16 +152,10 @@ async function handleRefresh() {
 
 <template>
   <div class="model-selector">
-    <div class="model-label-row">
+    <!-- <div class="model-label-row">
       <div class="model-label">{{ t('models.title') }}</div>
-      <button
-        class="model-refresh"
-        type="button"
-        :disabled="refreshing"
-        :title="t('models.refresh')"
-        :aria-label="t('models.refresh')"
-        @click="handleRefresh"
-      >
+      <button class="model-refresh" type="button" :disabled="refreshing" :title="t('models.refresh')"
+        :aria-label="t('models.refresh')" @click="handleRefresh">
         <svg
           :class="{ spinning: refreshing }"
           width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -171,73 +165,55 @@ async function handleRefresh() {
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
         </svg>
       </button>
-    </div>
+    </div> -->
     <button class="model-trigger" @click="openModal">
       <span class="model-name" :title="appStore.selectedModel">{{ selectedDisplayName || '—' }}</span>
-      <svg class="model-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="model-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="6 9 12 15 18 9" />
       </svg>
     </button>
 
-    <NModal
-      :show="showModal"
-      preset="card"
-      :title="t('models.title')"
-      :style="{ width: 'min(480px, calc(100vw - 32px))' }"
-      :mask-closable="true"
-      @update:show="handleModalShowChange"
-    >
-      <NInput
-        v-model:value="searchQuery"
-        :placeholder="t('models.searchPlaceholder')"
-        clearable
-        size="small"
-        class="model-search"
-      />
+    <NModal :show="showModal" preset="card" :title="t('models.title')"
+      :style="{ width: 'min(480px, calc(100vw - 32px))' }" :mask-closable="true" @update:show="handleModalShowChange">
+      <NInput v-model:value="searchQuery" :placeholder="t('models.searchPlaceholder')" clearable size="small"
+        class="model-search" />
       <div class="model-list">
         <div v-for="group in filteredGroups" :key="group.provider" class="model-group">
           <div class="model-group-header" @click="toggleGroup(group.provider)">
-            <svg
-              class="model-group-arrow"
-              :class="{ collapsed: isGroupCollapsed(group.provider) }"
-              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            >
+            <svg class="model-group-arrow" :class="{ collapsed: isGroupCollapsed(group.provider) }" width="12"
+              height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9" />
             </svg>
             <span class="model-group-label">{{ group.label }}</span>
             <span class="model-group-count">{{ group.models.length }}</span>
           </div>
           <div v-show="!isGroupCollapsed(group.provider)" class="model-group-items">
-            <div
-              v-for="model in group.models"
-              :key="model"
-              class="model-item"
-              :class="{
-                active: model === appStore.selectedModel && group.provider === appStore.selectedProvider,
-                disabled: !!group.model_meta?.[model]?.disabled,
-              }"
-              :title="group.model_meta?.[model]?.disabled ? t('models.disabledTooltip') : ''"
-              @click="handleSelect(model, group.provider)"
-            >
+            <div v-for="model in group.models" :key="model" class="model-item" :class="{
+              active: model === appStore.selectedModel && group.provider === appStore.selectedProvider,
+              disabled: !!group.model_meta?.[model]?.disabled,
+            }" :title="group.model_meta?.[model]?.disabled ? t('models.disabledTooltip') : ''"
+              @click="handleSelect(model, group.provider)">
               <span class="model-item-label">
                 <span class="model-item-name">{{ modelDisplayName(model, group.provider) }}</span>
                 <span v-if="modelAlias(model, group.provider)" class="model-item-id">
                   {{ t('models.aliasCanonical', { model }) }}
                 </span>
               </span>
-              <span v-if="group.model_meta?.[model]?.preview" class="model-badge-preview">{{ t('models.previewBadge') }}</span>
-              <span v-if="group.model_meta?.[model]?.disabled" class="model-badge-disabled">{{ t('models.disabledBadge') }}</span>
-              <span v-if="isCustomModel(model, group.provider)" class="model-badge-custom">{{ t('models.customBadge') }}</span>
-              <button
-                v-if="isCustomModel(model, group.provider)"
-                class="model-custom-remove"
-                type="button"
-                :title="t('models.removeCustomModel')"
-                @click.stop="removeCustomModel(model, group.provider)"
-              >
+              <span v-if="group.model_meta?.[model]?.preview" class="model-badge-preview">{{ t('models.previewBadge')
+                }}</span>
+              <span v-if="group.model_meta?.[model]?.disabled" class="model-badge-disabled">{{ t('models.disabledBadge')
+                }}</span>
+              <span v-if="isCustomModel(model, group.provider)" class="model-badge-custom">{{ t('models.customBadge')
+                }}</span>
+              <button v-if="isCustomModel(model, group.provider)" class="model-custom-remove" type="button"
+                :title="t('models.removeCustomModel')" @click.stop="removeCustomModel(model, group.provider)">
                 ×
               </button>
-              <svg v-if="model === appStore.selectedModel && group.provider === appStore.selectedProvider" class="model-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg v-if="model === appStore.selectedModel && group.provider === appStore.selectedProvider"
+                class="model-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
@@ -248,19 +224,10 @@ async function handleRefresh() {
         </div>
         <div class="model-custom">
           <div class="model-custom-row">
-            <NSelect
-              v-model:value="customProvider"
-              :options="providerOptions"
-              size="small"
-              class="model-custom-provider"
-            />
-            <NInput
-              v-model:value="customInput"
-              :placeholder="t('models.customModelPlaceholder')"
-              size="small"
-              class="model-custom-input"
-              @keydown.enter="handleCustomSubmit"
-            />
+            <NSelect v-model:value="customProvider" :options="providerOptions" size="small"
+              class="model-custom-provider" />
+            <NInput v-model:value="customInput" :placeholder="t('models.customModelPlaceholder')" size="small"
+              class="model-custom-input" @keydown.enter="handleCustomSubmit" />
           </div>
           <div class="model-custom-hint">
             {{ t('models.customModelHint') }}
@@ -277,7 +244,6 @@ async function handleRefresh() {
 
 .model-selector {
   padding: 0 12px;
-  margin-bottom: 8px;
 }
 
 .model-label-row {
@@ -325,26 +291,31 @@ async function handleRefresh() {
 }
 
 @keyframes model-refresh-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .model-trigger {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
-  padding: 6px 8px;
-  background: $bg-input;
-  border: 1px solid $border-color;
-  border-radius: $radius-sm;
-  color: $text-primary;
-  font-size: 13px;
+  padding: 6px 10px 6px 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
-  transition: border-color $transition-fast;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: .15s;
 
   &:hover {
-    border-color: $accent-muted;
+    background: var(--bg-secondary);
+    border-color: var(--border-light);
   }
 }
 

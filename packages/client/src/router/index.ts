@@ -28,6 +28,41 @@ const router = createRouter({
       ],
     },
     {
+      path: '/hermes/duty',
+      name: 'hermes.duty',  
+      component: () => import('@/views/envclaw/JobsPage.vue'),
+    },
+    {
+      path: '/hermes/duty/:id',
+      name: 'hermes.dutyDetail',
+      component: () => import('@/views/hermes/JobDetailPage.vue'),
+    },
+    {
+      path: '/hermes/duty/create',
+      name: 'hermes.dutyCreate',
+      component: () => import('@/views/hermes/CreateTask.vue'),
+    },
+    {
+      path: '/hermes/duty/picker',
+      name: 'hermes.dutyPicker',
+      component: () => import('@/views/hermes/PickerPage.vue'),
+    },
+    {
+      path: '/hermes/templates',
+      name: 'hermes.templates',
+      component: () => import('@/views/hermes/TemplatesPage.vue'),
+    },
+    {
+      path: '/hermes/templates/:id/edit',
+      name: 'hermes.templateEditor',
+      component: () => import('@/views/hermes/TemplateEditorPage.vue'),
+    },
+    {
+      path: '/hermes/capabilities',
+      name: 'hermes.capabilities',
+      component: () => import('@/views/hermes/CapabilitiesPage.vue'),
+    },
+    {
       path: '/hermes/chat',
       name: 'hermes.chat',
       component: () => import('@/views/hermes/ChatView.vue'),

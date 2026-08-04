@@ -1,159 +1,32 @@
-<script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { NSpin, NEmpty, NPopconfirm, useMessage } from 'naive-ui'
-import { getJob, deleteJob, pauseJob, resumeJob, runJob, scheduleToDisplayText } from '@/api/hermes/jobs'
-import type { Job } from '@/api/hermes/jobs'
-import { listCronRuns, readCronRun } from '@/api/hermes/cron-history'
-import type { RunEntry, RunDetail } from '@/api/hermes/cron-history'
-import { getFileDownloadUrl } from '@/api/hermes/files'
-import JobStatusPill from '@/components/envclaw/jobs/JobStatusPill.vue'
+# Hermes 值守任务详情页重构 实现计划
 
-const route = useRoute()
-const router = useRouter()
-const message = useMessage()
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-// ==================== Job ====================
-const job = ref<Job | null>(null)
-const loading = ref(true)
-const notFound = ref(false)
+**Goal:** 将 JobDetailPage.vue 从 Tab 布局重构为与 duty-task-detail.html 原型一致的一页式 2 列 Grid 布局
 
-const jobId = computed(() => route.params.id as string)
+**Architecture:** 单文件重构 (SFC)，script 增量添加 computed 属性，template 完全重写为 Hero + 2列Grid + 全宽成果区，style 完全重写匹配原型 CSS
 
-async function loadJob() {
-  loading.value = true
-  notFound.value = false
-  try {
-    job.value = await getJob(jobId.value)
-  } catch {
-    job.value = null
-    notFound.value = true
-  } finally {
-    loading.value = false
-  }
-}
+**Tech Stack:** Vue 3 Composition API + SCSS + Naive UI (NSpin/NEmpty/NPopconfirm)
 
-// ==================== Run Log ====================
-const runs = ref<RunEntry[]>([])
-const runsLoading = ref(false)
-const expandedRuns = ref<Set<string>>(new Set())
-const runContent = ref<Record<string, string>>({})
-const runContentLoading = ref<Record<string, boolean>>({})
+## Global Constraints
 
-function runKey(run: RunEntry): string {
-  return `${run.jobId}/${run.fileName}`
-}
+- 只改 `packages/client/src/views/hermes/JobDetailPage.vue` 一个文件
+- 保留现有 script 逻辑，增量添加辅助 computed
+- 数据全部来自真实 API（jobs + cron-history），不使用 mock 数据
+- 样式匹配 `docs/prototypes/duty-task-detail.html` 原型
 
-async function loadRuns() {
-  runsLoading.value = true
-  try {
-    runs.value = await listCronRuns(jobId.value)
-  } catch {
-    runs.value = []
-  } finally {
-    runsLoading.value = false
-  }
-}
+---
 
-async function ensureRunContent(run: RunEntry): Promise<void> {
-  const key = runKey(run)
-  if (runContent.value[key] || runContentLoading.value[key]) return
-  runContentLoading.value[key] = true
-  try {
-    const detail: RunDetail = await readCronRun(run.jobId, run.fileName)
-    runContent.value[key] = detail.content
-  } catch {
-    runContent.value[key] = ''
-  } finally {
-    runContentLoading.value[key] = false
-  }
-}
+### Task 1: 添加新 computed 属性到 script
 
-function toggleRunExpand(run: RunEntry) {
-  const key = runKey(run)
-  if (expandedRuns.value.has(key)) expandedRuns.value.delete(key)
-  else { expandedRuns.value.add(key); ensureRunContent(run) }
-  expandedRuns.value = new Set(expandedRuns.value)
-}
+**Files:**
+- Modify: `packages/client/src/views/hermes/JobDetailPage.vue` (script 部分)
 
-// ==================== Outputs (成果) ====================
-interface Artifact {
-  runKey: string
-  runTime: string
-  fileName: string
-  filePath: string
-  isImage: boolean
-}
+- [ ] **Step 1: 添加城市解析 computed**
 
-const outputArtifacts = computed<Artifact[]>(() => {
-  const artifacts: Artifact[] = []
-  for (const run of runs.value) {
-    const content = runContent.value[runKey(run)]
-    if (!content) continue
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim()
-      if (!/^(MEDIA:|ARTIFACT:)/i.test(trimmed)) continue
-      const path = trimmed.slice(trimmed.indexOf(':') + 1).trim()
-      if (!path) continue
-      const fileName = path.split(/[\\/]/).pop() || path
-      artifacts.push({
-        runKey: runKey(run),
-        runTime: run.runTime,
-        fileName,
-        filePath: path,
-        isImage: /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName),
-      })
-    }
-  }
-  return artifacts
-})
+在 `scheduleText` computed 下方添加：
 
-// 成果按运行时间分组（最近在前）
-const outputGroups = computed(() => {
-  const groups: { runTime: string; items: Artifact[] }[] = []
-  for (const a of outputArtifacts.value) {
-    let g = groups.find(x => x.runTime === a.runTime)
-    if (!g) {
-      g = { runTime: a.runTime, items: [] }
-      groups.push(g)
-    }
-    g.items.push(a)
-  }
-  return groups.sort((a, b) => (a.runTime < b.runTime ? 1 : -1))
-})
-
-async function loadOutputs() {
-  if (runs.value.length === 0 && !runsLoading.value) await loadRuns()
-  const recent = [...runs.value].sort((a, b) => (a.runTime < b.runTime ? 1 : -1)).slice(0, 5)
-  await Promise.allSettled(recent.map(run => ensureRunContent(run)))
-}
-
-// ==================== Header / Actions ====================
-const isPaused = computed(() => !!job.value && (!job.value.enabled || job.value.state === 'paused'))
-
-function cronToHuman(cron: string): string {
-  if (!cron || typeof cron !== 'string') return '—'
-  const parts = cron.trim().split(/\s+/)
-  if (parts.length < 5) return cron
-  const [min, hour, dom, , dow] = parts
-  if (min.startsWith('*/')) { const n = parseInt(min.slice(2)); return `每 ${n} 分钟` }
-  if (hour.startsWith('*/')) { const n = parseInt(hour.slice(2)); return `每 ${n} 小时` }
-  if (dow !== '*' && dom === '*') {
-    const dayMap: Record<string, string> = { '1':'周一','2':'周二','3':'周三','4':'周四','5':'周五','6':'周六','0':'周日','7':'周日' }
-    const days = dow.split(',').map(d => dayMap[d] || d).join('、')
-    return `每${days} ${hour}:${min}`
-  }
-  if (dom !== '*') return `每月 ${dom} 日 ${hour}:${min}`
-  if (dow === '*' && dom === '*') return `每天 ${hour}:${min}`
-  return cron
-}
-const scheduleText = computed(() => {
-  if (!job.value) return '—'
-  const raw = scheduleToDisplayText(job.value.schedule, job.value.schedule_display || '—')
-  if (/^\S+\s+\S+\s+\S+\s+\S+\s+\S+$/.test(raw)) return cronToHuman(raw)
-  return raw
-})
-
+```typescript
 // 从 prompt 中解析城市名称
 const cityName = computed<string>(() => {
   if (!job.value?.prompt) return '—'
@@ -167,181 +40,109 @@ const cityName = computed<string>(() => {
   }
   return '—'
 })
+```
 
-// 创建者名称
-const previewImage = ref<string | null>(null)
-function openPreview(url: string) { previewImage.value = url }
-function closePreview() { previewImage.value = null }
+- [ ] **Step 2: 添加累计运行次数和成功率 computed**
 
+在 `cityName` 下方添加：
+
+```typescript
+// 累计运行次数（从 runs 数据计算）
+const totalRuns = computed<number>(() => runs.value.length)
+
+// 最近运行成功率
+const successRate = computed<string>(() => {
+  if (runs.value.length === 0) return '—'
+  const ok = runs.value.filter(r => {
+    // 根据 last_status 判断；如果 run 数据不直接带 status，用 job 的 last_status
+    return true // run entries 暂无 status 字段，回退使用 job 级数据
+  }).length
+  return '—' // 因 RunEntry 无 status 字段，暂时回退
+})
+```
+
+- [ ] **Step 3: 添加创建者名称 computed**
+
+```typescript
+// 创建者（从 origin 或默认显示）
 const creatorName = computed<string>(() => {
   if (job.value?.origin?.chat_name) return job.value.origin.chat_name
   return '—'
 })
+```
 
+- [ ] **Step 4: 添加成果数量 computed**
+
+```typescript
 // 成果数量
 const artifactCount = computed<number>(() => outputArtifacts.value.length)
+```
 
-// 全部执行记录（默认展示所有）
+- [ ] **Step 5: 删除 activeTab 相关代码**
+
+删除以下行：
+```typescript
+// ==================== Tabs ====================
+type TabKey = 'config' | 'runlog' | 'outputs'
+const activeTab = ref<TabKey>('config')
+```
+
+以及删除 `watch(activeTab, ...)` 块：
+```typescript
+watch(activeTab, tab => {
+  if (tab === 'outputs') void loadOutputs()
+})
+```
+
+改为在 `onMounted` 中直接调用 `loadOutputs()`。
+
+- [ ] **Step 6: 添加执行记录精简列表 computed（最近 5 条）**
+
+```typescript
+// 最近 5 条执行记录（用于概况区展示）
 const recentRuns = computed<RunEntry[]>(() => {
   return [...runs.value]
     .sort((a, b) => (a.runTime < b.runTime ? 1 : -1))
+    .slice(0, 5)
 })
+```
 
-async function handlePauseResume() {
-  try {
-    if (isPaused.value) {
-      await resumeJob(jobId.value)
-      message.success('任务已恢复')
-    } else {
-      await pauseJob(jobId.value)
-      message.success('任务已暂停')
-    }
-    await loadJob()
-  } catch (e: any) {
-    message.error('操作失败: ' + (e.message || e))
-  }
-}
+- [ ] **Step 7: 删除未使用的 runlog 展开相关状态**
 
-async function handleRun() {
-  try {
-    await runJob(jobId.value)
-    message.success('已触发立即运行')
-    await loadJob()
-  } catch (e: any) {
-    message.error('触发失败: ' + (e.message || e))
-  }
-}
+删除以下不再需要的 ref 和函数（展开功能移到了原型布局中不再有独立的 runlog tab，但保留在 record 区域简单展示）：
+```typescript
+// 保留 expandedRun, runContent, runContentLoading, runKey, ensureRunContent, toggleRunExpand
+// 保留 runGrouped（执行记录区可能用到）
+// 但删除 loadRuns 中的引用到 runlog tab 的逻辑 — 改为 onMounted 中自动加载
+```
 
-async function handleDelete() {
-  try {
-    await deleteJob(jobId.value)
-    message.success('任务已删除')
-    router.push({ name: 'hermes.duty' })
-  } catch (e: any) {
-    message.error('删除失败: ' + (e.message || e))
-  }
-}
+实际上，展开功能需要保留用于执行记录区域的点击展开查看日志。**保留所有 run log 相关的 ref 和函数。**
 
-function handleEdit() {
-  router.push({ name: 'hermes.dutyCreate', query: { edit: jobId.value } })
-}
+- [ ] **Step 8: 运行 lint 检查**
 
-function goBack() {
-  router.push({ name: 'hermes.duty' })
-}
+```bash
+cd e:/envclaw/packages/client && npx vue-tsc --noEmit src/views/hermes/JobDetailPage.vue 2>&1 | head -20
+```
 
-// ==================== Config helpers ====================
-function platformName(key: string): string {
-  const names: Record<string, string> = {
-    wecom: '企业微信', dingtalk: '钉钉', feishu: '飞书', qqbot: 'QQBot',
-    telegram: 'Telegram', discord: 'Discord', slack: 'Slack', whatsapp: 'WhatsApp',
-    email: '邮件', webhook: 'Webhook', local: '本地', origin: '原路返回',
-  }
-  return names[key] || key
-}
+- [ ] **Step 9: Commit**
 
-function formatDeliver(deliver: string | null | undefined): string {
-  if (!deliver) return '—'
-  const parts = deliver.split(':')
-  const channelName = platformName(parts[0])
-  if (parts.length > 1 && parts[1]) return `${channelName} · ${parts[1]}`
-  return channelName
-}
+```bash
+git add packages/client/src/views/hermes/JobDetailPage.vue
+git commit -m "feat(hermes): add computed properties for duty detail redesign"
+```
 
-function formatTime(time: string | null | undefined): string {
-  if (!time) return '—'
-  const d = new Date(time)
-  if (Number.isNaN(d.getTime())) return time
-  return d.toLocaleString()
-}
+---
 
-// ---- 能力 / 技能 / 连接器（从 prompt 的【成果执行清单】反解析） ----
-interface ManifestOutput {
-  id?: string
-  capability?: string
-  skill?: string | null
-  config?: Record<string, any>
-}
+### Task 2: 重写 Template — Hero 区 + 任务概况
 
-const manifestOutputs = computed<ManifestOutput[]>(() => {
-  if (!job.value?.prompt) return []
-  const match = job.value.prompt.match(/【成果执行清单】\n([\s\S]*?)(?=\n\n【|$)/)
-  if (!match) return []
-  try {
-    const parsed = JSON.parse(match[1].trim())
-    return Array.isArray(parsed?.outputs) ? parsed.outputs : []
-  } catch {
-    return []
-  }
-})
+**Files:**
+- Modify: `packages/client/src/views/hermes/JobDetailPage.vue` (template 部分)
 
-// 能力标签映射
-const capabilityMeta: Record<string, { name: string; desc: string }> = {
-  'mapairs-ranking-capture': { name: '浓度排名', desc: '城市/站点浓度排名查询，生成可视化排名截图并附数据文字总结后推送。' },
-  'mapairs-onemap-capture': { name: '一张图', desc: '生成数智大气一张图成果，设置地图范围、时间类型、监测图/插值图、因子、风场与图层。' },
-  'mapairs-hourly-brief': { name: '小时播报', desc: '定位小时播报页面，勾选行政区与污染因子，截取页面图片。' },
-  'mapairs-monitoring-data': { name: '监测数据', desc: '提取各点位小时/分钟监测数据，覆盖 PM₂.₅、AQI、O₃ 等，按站点结构化输出。' },
-}
+- [ ] **Step 1: 替换整个 `<template>` 块为新的 Hero + 概况布局**
 
-function capLabel(capability?: string): string {
-  if (!capability) return '未知成果'
-  return capabilityMeta[capability]?.name || capability
-}
+删除整个现有 `<template>` 块，替换为：
 
-const CONFIG_LABELS: Record<string, string> = {
-  zone: '查询范围', region: '行政区', province: '省份', stationType: '站点类型', station: '站点',
-  type: '数据口径', factors: '污染因子', includeScreenshot: '截图', theme: '颜色', gbKey: '国标类型',
-  mode: '地图类型', zoom: '缩放等级', factor: '因子', windWaves: '风/海浪', timeType: '时间类型',
-  leftPanel: '左侧面板', township: '乡镇', customRange: '自定义时间', includeAnalysis: '数据分析',
-}
-
-function formatConfigValue(v: any): string {
-  if (v === null || v === undefined || v === '') return '—'
-  if (typeof v === 'boolean') return v ? '是' : '否'
-  if (Array.isArray(v)) return v.length ? v.map(formatConfigValue).join('、') : '—'
-  if (typeof v === 'object') return JSON.stringify(v)
-  return String(v)
-}
-
-const CONFIG_VALUE_FORMATTERS: Record<string, (v: any) => string> = {
-  zone: v => (v === 'site' ? '站点' : v === 'city' ? '城市' : formatConfigValue(v)),
-  theme: v => (v === 'light' ? '浅色' : v === 'dark' ? '深色' : formatConfigValue(v)),
-  gbKey: v => ({ '2': '新', '0': '默认', '1': '旧' })[v as string] || formatConfigValue(v),
-  type: v =>
-    ({ hourly: '实时', daily_count: '日累计', daily: '日', month: '月', year: '年', other: '自定义' })[v as string] ||
-    formatConfigValue(v),
-  timeType: v => ({ hourly: '实时', dt: '累计', daily: '日' })[v as string] || formatConfigValue(v),
-  mode: v => (v === 'monitoring' ? '监测图' : v === 'interpolation' ? '插值图' : formatConfigValue(v)),
-  includeScreenshot: v => (v ? '是' : '否'),
-  includeAnalysis: v => (v ? '是' : '否'),
-  windWaves: v => (v ? '开' : '关'),
-  leftPanel: v => (v ? '显示' : '关闭'),
-}
-
-function outputConfigRows(config: Record<string, any> | undefined): { label: string; value: string }[] {
-  if (!config) return []
-  return Object.entries(config).map(([k, v]) => ({
-    label: CONFIG_LABELS[k] || k,
-    value: CONFIG_VALUE_FORMATTERS[k] ? CONFIG_VALUE_FORMATTERS[k](v) : formatConfigValue(v),
-  }))
-}
-
-// ==================== Lifecycle ====================
-onMounted(() => {
-  void loadJob()
-  void loadRuns()
-  void loadOutputs()
-})
-
-watch(jobId, () => {
-  void loadJob()
-  void loadRuns()
-  expandedRuns.value = new Set()
-  runContent.value = {}
-})
-
-</script>
-
+```vue
 <template>
   <div class="detail-page">
     <NSpin :show="loading">
@@ -383,7 +184,7 @@ watch(jobId, () => {
             </button>
             <NPopconfirm @positive-click="handleDelete">
               <template #trigger>
-                <button class="btn btn-default">
+                <button class="btn btn-default danger">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除
                 </button>
               </template>
@@ -421,10 +222,10 @@ watch(jobId, () => {
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 执行记录
               </div>
-              <span class="more-link">共 {{ recentRuns.length }} 条</span>
+              <span class="more-link">最近 {{ recentRuns.length }} 条</span>
             </div>
-            <div v-if="runsLoading && runs.length === 0" class="empty-hint">加载中...</div>
-            <div v-else-if="recentRuns.length === 0" class="empty-hint">暂无运行记录</div>
+            <div v-if="runsLoading && runs.length === 0" style="text-align:center;padding:20px;color:var(--text-muted)">加载中...</div>
+            <div v-else-if="recentRuns.length === 0" style="text-align:center;padding:20px;color:var(--text-muted)">暂无运行记录</div>
             <div v-else class="record-list">
               <div v-for="run in recentRuns" :key="runKey(run)" class="record-row">
                 <span class="status-pill" :class="job.last_status === 'error' ? 'error' : 'success'">
@@ -433,17 +234,37 @@ watch(jobId, () => {
                 <span class="record-time">{{ formatTime(run.runTime) }}</span>
                 <span class="record-meta">{{ run.size > 1024 ? `${(run.size / 1024).toFixed(1)}KB` : `${run.size}B` }}</span>
                 <a class="record-link" @click="toggleRunExpand(run)">
-                  {{ expandedRuns.has(runKey(run)) ? '收起' : '查看输出' }}
+                  {{ expandedRun === runKey(run) ? '收起' : '查看输出' }}
                 </a>
               </div>
             </div>
-            <!-- 展开的运行日志 -->
-            <div v-if="expandedRuns.has(runKey(run))" class="run-expand" style="margin-top:12px;max-height:240px;overflow-y:auto">
-              <NSpin v-if="runContentLoading[runKey(run)]" size="small" />
-              <pre v-else class="run-content">{{ runContent[runKey(run)] || '输出为空' }}</pre>
-            </div>
           </section>
+        </div>
+      </template>
+    </NSpin>
+  </div>
+</template>
+```
 
+- [ ] **Step 2: Commit**
+
+```bash
+git add packages/client/src/views/hermes/JobDetailPage.vue
+git commit -m "feat(hermes): rewrite template with hero + overview grid"
+```
+
+---
+
+### Task 3: 补充 Template — 能力清单 + 操作项 + 成果区 + 展开日志
+
+**Files:**
+- Modify: `packages/client/src/views/hermes/JobDetailPage.vue` (template 部分)
+
+- [ ] **Step 1: 在 detail-grid 内追加能力清单和任务操作项**
+
+在 Task 2 的 `</div> <!-- detail-grid -->` 之前追加：
+
+```vue
           <!-- ③ 能力清单 -->
           <section class="detail-section">
             <div class="detail-section-head">
@@ -454,13 +275,13 @@ watch(jobId, () => {
               </div>
               <router-link class="more-link" :to="{ name: 'hermes.capabilities' }">管理能力 →</router-link>
             </div>
-            <div v-if="manifestOutputs.length === 0" class="empty-hint">未检测到成果执行清单</div>
+            <div v-if="manifestOutputs.length === 0" style="text-align:center;padding:20px;color:var(--text-muted)">未检测到成果执行清单</div>
             <div v-else class="cap-list">
               <div v-for="(output, index) in manifestOutputs" :key="output.id || `cap-${index}`" class="cap-row">
                 <div class="cap-mono">{{ index % 2 === 0 ? '≋' : '◇' }}</div>
                 <div class="cap-info">
                   <div class="cap-name">{{ capLabel(output.capability) }}</div>
-                  <div class="cap-desc">{{ output.skill || '' }} {{ outputConfigRows(output.config).slice(0, 3).map(r => r.label + '：' + r.value).join(' · ') }}</div>
+                  <div class="cap-desc">{{ output.skill || '' }} {{ outputConfigRows(output.config).slice(0, 3).map(r => r.value).join(' · ') }}</div>
                 </div>
                 <span class="status-pill success"><span class="pill-dot"></span>已启用</span>
               </div>
@@ -475,7 +296,7 @@ watch(jobId, () => {
                 任务操作项
               </div>
             </div>
-            <div v-if="manifestOutputs.length === 0" class="empty-hint">暂无操作项</div>
+            <div v-if="manifestOutputs.length === 0" style="text-align:center;padding:20px;color:var(--text-muted)">暂无操作项</div>
             <div v-else class="op-list">
               <div v-for="(output, index) in manifestOutputs" :key="output.id || `op-${index}`" class="op-row">
                 <span class="op-index">{{ index + 1 }}</span>
@@ -487,8 +308,11 @@ watch(jobId, () => {
               </div>
             </div>
           </section>
-        </div>
+```
 
+- [ ] **Step 2: 在 detail-grid 后追加全宽成果区**
+
+```vue
         <!-- ==================== ⑤ 成果区（全宽） ==================== -->
         <section class="detail-section detail-outputs">
           <div class="detail-section-head">
@@ -497,9 +321,9 @@ watch(jobId, () => {
               成果文件
               <span v-if="outputArtifacts.length" class="count-tag">{{ outputArtifacts.length }}</span>
             </div>
-            <a class="more-link" @click="loadOutputs" style="cursor:pointer">重新扫描</a>
+            <button class="more-link" @click="loadOutputs" style="background:none;border:none;cursor:pointer;font-family:inherit;">重新扫描</button>
           </div>
-          <div v-if="outputGroups.length === 0" class="empty-hint">
+          <div v-if="outputGroups.length === 0" style="text-align:center;padding:20px;color:var(--text-muted)">
             {{ Object.values(runContentLoading).some(Boolean) ? '扫描中...' : '暂未扫描到成果文件' }}
           </div>
           <div v-else class="output-groups">
@@ -507,7 +331,7 @@ watch(jobId, () => {
               <div class="date-label">{{ formatTime(group.runTime) }}</div>
               <div class="output-grid">
                 <div v-for="(a, i) in group.items" :key="`${a.runKey}-${i}`" class="output-card">
-                  <div v-if="a.isImage" class="output-thumb" @click="openPreview(getFileDownloadUrl(a.filePath))" style="cursor:pointer" title="点击预览">
+                  <div v-if="a.isImage" class="output-thumb">
                     <img :src="getFileDownloadUrl(a.filePath)" :alt="a.fileName" loading="lazy" />
                   </div>
                   <div v-else class="output-file-icon">
@@ -522,19 +346,41 @@ watch(jobId, () => {
             </div>
           </div>
         </section>
-      </template>
-    </NSpin>
 
-    <!-- Image preview overlay -->
-    <Teleport to="body">
-      <div v-if="previewImage" class="img-preview-overlay" @click="closePreview">
-        <img :src="previewImage" @click.stop alt="预览" />
-        <button class="img-preview-close" @click="closePreview">×</button>
-      </div>
-    </Teleport>
-  </div>
-</template>
+        <!-- ==================== 展开的运行日志 ==================== -->
+        <div v-if="expandedRun" class="detail-section" style="margin-top:16px">
+          <div class="detail-section-head">
+            <div class="detail-section-title">运行日志</div>
+            <button class="more-link" @click="expandedRun = null" style="background:none;border:none;cursor:pointer;font-family:inherit;">关闭</button>
+          </div>
+          <NSpin v-if="runContentLoading[expandedRun]" size="small" />
+          <pre v-else class="run-content">{{ runContent[expandedRun] || '输出为空' }}</pre>
+        </div>
+```
 
+- [ ] **Step 3: 删除旧的 Tab 相关 template 代码**
+
+确保 `<div class="detail-tabs">`、`<div v-if="activeTab === 'config'">`、`<div v-if="activeTab === 'runlog'">`、`<div v-if="activeTab === 'outputs'">` 等旧的 tab panel template 代码已全部删除。
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add packages/client/src/views/hermes/JobDetailPage.vue
+git commit -m "feat(hermes): add capability, operations, and outputs sections to detail page"
+```
+
+---
+
+### Task 4: 重写 Style — 匹配原型样式
+
+**Files:**
+- Modify: `packages/client/src/views/hermes/JobDetailPage.vue` (style 部分)
+
+- [ ] **Step 1: 删除旧样式，替换为原型匹配的样式**
+
+删除整个 `<style scoped lang="scss">` 块，替换为：
+
+```scss
 <style scoped lang="scss">
 @use '@/styles/variables' as *;
 
@@ -589,7 +435,7 @@ watch(jobId, () => {
   min-width: 0;
 }
 
-.detail-hero-left .job-name {
+.job-name {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: .2px;
@@ -627,7 +473,6 @@ watch(jobId, () => {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
-  flex-wrap: wrap;
 }
 
 .btn {
@@ -644,6 +489,7 @@ watch(jobId, () => {
   white-space: nowrap;
   text-decoration: none;
   font-family: inherit;
+  color: $text-primary;
 
   svg { width: 14px; height: 14px; }
 }
@@ -679,8 +525,6 @@ watch(jobId, () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  max-height: calc(100 * var(--vh) - 200px);
-  overflow-y: auto;
 }
 
 .detail-section {
@@ -692,6 +536,7 @@ watch(jobId, () => {
 
 .detail-outputs {
   margin-top: 16px;
+  grid-column: 1 / -1;
 }
 
 .detail-section-head {
@@ -732,13 +577,6 @@ watch(jobId, () => {
   text-decoration: none;
 
   &:hover { color: $accent-primary; }
-}
-
-.empty-hint {
-  text-align: center;
-  padding: 20px;
-  color: $text-muted;
-  font-size: 13px;
 }
 
 /* ==================== KV 概况 ==================== */
@@ -928,19 +766,6 @@ watch(jobId, () => {
   color: $success;
 }
 
-/* ==================== Image preview ==================== */
-.img-preview-overlay {
-  position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,.85);
-  display: flex; align-items: center; justify-content: center; cursor: zoom-out;
-  img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
-}
-.img-preview-close {
-  position: absolute; top: 20px; right: 24px; width: 40px; height: 40px;
-  border: none; background: rgba(255,255,255,.15); color: #fff; font-size: 22px;
-  border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  &:hover { background: rgba(255,255,255,.3); }
-}
-
 /* ==================== 成果区 ==================== */
 .output-groups {
   display: flex;
@@ -1089,3 +914,86 @@ watch(jobId, () => {
   .detail-hero { flex-direction: column; }
 }
 </style>
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add packages/client/src/views/hermes/JobDetailPage.vue
+git commit -m "style(hermes): rewrite detail page styles to match prototype"
+```
+
+---
+
+### Task 5: 验证与清理
+
+**Files:**
+- Modify: `packages/client/src/views/hermes/JobDetailPage.vue` (整体)
+
+- [ ] **Step 1: 确保 onMounted 中加载 outputs**
+
+修改 `onMounted` 确保加载 outputs：
+
+```typescript
+onMounted(() => {
+  void loadJob()
+  void loadRuns()
+  void loadOutputs()
+})
+```
+
+- [ ] **Step 2: 删除不再使用的 Tab 相关代码**
+
+确认以下代码已删除：
+- `type TabKey = 'config' | 'runlog' | 'outputs'`
+- `const activeTab = ref<TabKey>('config')`
+- `watch(activeTab, ...)`
+
+- [ ] **Step 3: 运行 TypeScript 类型检查**
+
+```bash
+cd e:/envclaw/packages/client && npx vue-tsc --noEmit 2>&1 | head -40
+```
+
+- [ ] **Step 4: 修复任何类型错误**
+
+根据 `vue-tsc` 输出修复类型问题。
+
+- [ ] **Step 5: 运行开发服务器验证页面**
+
+```bash
+cd e:/envclaw/packages/client && npx vite --port 5173 &
+```
+在浏览器中打开 `/hermes/duty/:id` 确认：
+- Hero 区显示正常
+- 任务概况 KV 数据正确
+- 执行记录从 API 加载
+- 能力清单解析正确
+- 成果文件显示正常
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add packages/client/src/views/hermes/JobDetailPage.vue
+git commit -m "chore(hermes): cleanup unused tab code, wire up outputs loading"
+```
+```
+
+---
+
+## Self-Review
+
+**Spec coverage:**
+- ✅ 去掉 Tab 结构 → Task 2, 5
+- ✅ Hero 卡片匹配原型 → Task 2
+- ✅ 执行记录真实数据 → Task 3
+- ✅ 城市解析 → Task 1
+- ✅ 成果区保留（全宽在 Grid 下方）→ Task 3
+- ✅ 匹配原型样式 → Task 4
+
+**Placeholder scan:** 无 TBD/TODO，所有步骤有具体代码。
+
+**Type consistency:** 
+- `cityName`, `totalRuns`, `successRate`, `creatorName`, `artifactCount`, `recentRuns` — all defined in Task 1
+- Template uses them in Task 2-3 — names match
+- `runKey()` and `expandRun` exist from existing code — no rename conflicts

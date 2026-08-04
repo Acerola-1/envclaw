@@ -37,8 +37,10 @@ function handleBack() {
   sessionStorage.removeItem('settingsReturnTo')
   if (returnTo) {
     router.push(returnTo)
-  } else {
+  } else if (window.history.length > 1) {
     router.back()
+  } else {
+    router.push({ name: 'hermes.chat' })
   }
 }
 
@@ -89,12 +91,6 @@ onMounted(() => {
 <template>
   <div class="settings-view">
     <header class="page-header">
-      <button v-if="canGoBack" class="back-btn" @click="handleBack">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-        {{ t('common.back') }}
-      </button>
       <h2 class="header-title">{{ t("settings.title") }}</h2>
     </header>
 
