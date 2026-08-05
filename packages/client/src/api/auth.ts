@@ -203,6 +203,7 @@ export interface PlatformLoginUserInfo {
   roleName: string
   avatar: string
   region: {
+    currentShortCode: string
     currentRegionName: string
     provinceName: string
     currentRegionLevel: number

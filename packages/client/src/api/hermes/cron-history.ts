@@ -5,6 +5,11 @@ export interface RunEntry {
   fileName: string
   runTime: string
   size: number
+  status?: string       // 'ok' | 'error' | 'running'
+  error?: string        // last error message
+  runCount?: number     // cumulative run count (from scheduler metadata)
+  hasOutput?: boolean
+  synthetic?: boolean
 }
 
 export interface RunDetail {

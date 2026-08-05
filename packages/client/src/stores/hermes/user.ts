@@ -10,6 +10,7 @@ export interface PlatformUserInfo {
   roleName: string
   avatar: string
   region: {
+    currentShortCode: string
     currentRegionName: string
     provinceName: string
     currentRegionLevel: number

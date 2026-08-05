@@ -1,5 +1,5 @@
 import type { Context } from 'koa'
-import { readdir, stat, readFile } from 'fs/promises'
+import { open, readdir, stat, readFile } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { getActiveProfileName, getProfileDir } from '../../services/hermes/hermes-profile'
@@ -135,6 +135,46 @@ function hasRunForJobAtOrAfter(runs: RunEntry[], jobId: string, runTime: string)
   return runs.some(run => run.jobId === jobId && run.runTime >= runTime)
 }
 
+/**
+ * 从输出文件内容推断运行状态。
+ * 读取文件前 2048 字节，匹配错误/成功特征。
+ */
+function inferRunStatus(content: string): { status: string | null; error: string | null } {
+  if (!content || content.trim().length === 0) return { status: null, error: null }
+
+  const lower = content.toLowerCase()
+  const hasMedia = /^MEDIA:/m.test(content)
+
+  // 明确的异常/失败信号
+  const errorPatterns = [
+    /error:/im, /exception/i, /traceback/i, /failed/i,
+    /aborted/i, /timeout/i, /cancelled/i, /refused/i,
+    /cannot\s(find|read|write|open|connect|access)/i,
+    /permission\sdenied/i, /not\sfound/i,
+    /invalid\s(api|cron|token|credential)/i,
+    /no\s(output|result|data|content)/i,
+  ]
+  const hasErrorSignal = errorPatterns.some(p => p.test(content))
+  const runawayPattern = /run\s(failed|aborted|cancelled|timed out)/i
+  const hasRunaway = runawayPattern.test(content)
+
+  if (hasErrorSignal || hasRunaway) {
+    const firstErrLine = content.split('\n').find(l =>
+      /error|fail|exception|abort|timeout|cancel/i.test(l)
+    )?.slice(0, 120) || null
+    return { status: 'error', error: firstErrLine }
+  }
+
+  // 有 MEDIA 输出且无错误信号 → 成功
+  if (hasMedia) return { status: 'ok', error: null }
+
+  // 短文件（< 100 字节）且无错误信号 → 成功（可能是简单的确认输出）
+  if (content.length < 100 && !hasErrorSignal) return { status: 'ok', error: null }
+
+  // 无法判断
+  return { status: null, error: null }
+}
+
 function inlineCode(value: unknown): string {
   const text = String(value)
   let longestBacktickRun = 0
@@ -211,12 +251,28 @@ export async function listRuns(ctx: Context) {
             try {
               const fileStat = await stat(filePath)
 
+              // Read first 2KB to infer status
+              let status: string | null = null
+              let error: string | null = null
+              try {
+                const fd = await open(filePath, 'r')
+                const buf = Buffer.alloc(2048)
+                const { bytesRead } = await fd.read(buf, 0, 2048, 0)
+                await fd.close()
+                const head = buf.toString('utf-8', 0, bytesRead)
+                const inferred = inferRunStatus(head)
+                status = inferred.status
+                error = inferred.error
+              } catch { /* can't read — leave status null */ }
+
               runs.push({
                 jobId: dir,
                 fileName: file,
                 runTime: parseRunTimeFromFileName(file),
                 size: fileStat.size,
                 hasOutput: true,
+                status,
+                error,
               })
             } catch { /* skip unreadable files */ }
           }
@@ -224,7 +280,45 @@ export async function listRuns(ctx: Context) {
       }
     }
 
+    // Reconcile: for each job's latest real run, use scheduler metadata as authoritative status.
+    // This keeps the "定时任务" tab (job.last_status) and "运行记录" tab (run.status) consistent.
     const jobs = await readCronJobs(profile)
+    const jobMap = new Map<string, CronJobMetadata>()
+    for (const j of jobs) {
+      const id = getJobId(j)
+      if (id) jobMap.set(id, j)
+    }
+
+    for (const [jobIdKey, jobRuns] of Object.entries(
+      runs.reduce<Record<string, RunEntry[]>>((acc, r) => {
+        if (r.synthetic) return acc
+        if (!acc[r.jobId]) acc[r.jobId] = []
+        acc[r.jobId].push(r)
+        return acc
+      }, {})
+    )) {
+      const meta = jobMap.get(jobIdKey)
+      if (!meta) continue
+      const lastRunAt = stringOrNull(meta.last_run_at)
+      const lastStatus = stringOrNull(meta.last_status)
+      if (!lastRunAt || !lastStatus) continue
+
+      // Find the newest real run for this job
+      const sorted = jobRuns.sort((a, b) => b.runTime.localeCompare(a.runTime))
+      const newest = sorted[0]
+      if (!newest) continue
+
+      // If the scheduler's last_run_at matches or is close to this run's time, use scheduler status
+      const schedulerTime = toDisplayTime(lastRunAt)
+      const isLatest = newest.runTime === schedulerTime
+        || Math.abs(new Date(newest.runTime).getTime() - new Date(schedulerTime).getTime()) < 120_000 // within 2 min
+
+      if (isLatest) {
+        newest.status = lastStatus
+        newest.error = stringOrNull(meta.last_error)
+      }
+    }
+
     const targetJobs = jobId ? jobs.filter(job => getJobId(job) === jobId) : jobs
     for (const job of targetJobs) {
       const id = getJobId(job)

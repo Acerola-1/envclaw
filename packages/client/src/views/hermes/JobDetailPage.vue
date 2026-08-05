@@ -440,8 +440,8 @@ watch(jobId, () => {
             <div v-else-if="recentRuns.length === 0" class="empty-hint">暂无运行记录</div>
             <div v-else class="record-list">
               <div v-for="run in recentRuns" :key="runKey(run)" class="record-row">
-                <span class="status-pill" :class="job.last_status === 'error' ? 'error' : 'success'">
-                  <span class="pill-dot"></span>{{ job.last_status === 'error' ? '失败' : '成功' }}
+                <span class="status-pill" :class="run.status === 'error' ? 'error' : 'success'">
+                  <span class="pill-dot"></span>{{ run.status === 'error' ? '失败' : run.status === 'ok' ? '成功' : '未知' }}
                 </span>
                 <span class="record-time">{{ formatTime(run.runTime) }}</span>
                 <span class="record-meta">{{ run.size > 1024 ? `${(run.size / 1024).toFixed(1)}KB` : `${run.size}B` }}</span>
@@ -701,7 +701,7 @@ watch(jobId, () => {
   border: 1px solid $border-color;
   border-radius: $radius-lg;
   padding: 20px 22px;
-  max-height: 400px;
+  max-height: 350px;
   overflow-y: auto;
 }
 

@@ -29,29 +29,56 @@ https://www.mapairs.com/oneMap
 | `windWaves` | `true` / `false` | 是否开启风/海浪动画 | 否（默认 true） |
 | `mode` | `monitoring` / `interpolation` | 地图类型：监测图 / 插值图 | 是 |
 
+---
 
+## 2. 地图模式（`category`）
+
+一张图配置顶层分为两种地图模式，影响后续所有配置项的可见性与可选值：
+
+| 代码值 | 中文标签 | 说明 |
+|-------|---------|------|
+| `initial` | 初始 | 标准一张图模式，含地图范围、地图类型、缩放等级、左侧面板等 |
+| `starground` | 星地模 | 星地模地图（卫星+地面模型），不含地图范围/类型，时间类型不同 |
 
 ---
 
-## 2. Hermes 任务配置参数一览
+## 3. Hermes 任务配置参数一览
 
 CreateTask 前端表单收集的"一张图"配置项，类型与默认值：
 
+### 3.1 通用配置（两种模式共有）
+
 | Hermes 字段 | 类型 | 默认值 | 说明 |
 |------------|------|--------|------|
-| `region` | `string` | 用户城市/区县（由 `onMounted` 根据账号层级自动设定） | 动态，见第 3 节 |
-| `timeType` | `'hourly' \| 'dt' \| 'daily'` | `'hourly'` | 时间类型：实时 / 累计 / 日 |
-| `mode` | `'monitoring' \| 'interpolation'` | `'monitoring'` | 地图类型：监测图 / 插值图 |
-| `factor` | `string` | `'PM2.5'` | 污染因子（见下方对照表） |
-| `zoom`(未使用) | `number` | `8` | 地图缩放等级（范围 3–16） |
+| `category` | `'initial' \| 'starground'` | `'initial'` | 地图模式 |
 | `theme` | `'light' \| 'dark'` | `'light'` | 截图颜色主题：浅色 / 深色 |
 | `windWaves` | `boolean` | `true` | 是否开启风/海浪动画 |
-| `screenshotScope`(未使用)  | `'mapOnly' \| 'mapLegend' \| 'fullPage'` | `'mapLegend'` | 截图区域范围（见下方截图参数表） |
-| `leftPanel` | `boolean` | `false` | 是否打开左侧面板 |
+
+### 3.2 初始地图（`category: 'initial'`）
+
+| Hermes 字段 | 类型 | 默认值 | 说明 |
+|------------|------|--------|------|
+| `region` | `string` | 用户城市/区县（由 `onMounted` 根据账号层级自动设定） | 动态，见第 4 节 |
+| `timeType` | `'hourly' \| 'dt' \| 'daily'` | `'hourly'` | 时间类型：实时 / 累计 / 日 |
+| `mode` | `'monitoring' \| 'interpolation'` | `'monitoring'` | 地图类型：监测图 / 插值图 |
+| `monitorFactor` | `string` | `'PM2.5'` | 监测图 - 点位值污染因子（见因子对照表） |
+| `monitorLayer` | `string` | `''` | 监测图 - 地图图层（环境要素单选，见图层对照表） |
+| `interpolationLayer` | `string` | `''` | 插值图 - 地图图层（污染因子+环境要素单选） |
+| `zoomLevel` | `'site' \| 'city' \| 'custom'` | `'city'` | 缩放等级：站点层级 / 城市层级 / 自定义 |
+| `zoomCustom` | `number` | `6` | 自定义缩放值（3–16），仅 `zoomLevel=custom` 时有效 |
+| `leftPanelOpen` | `boolean` | `false` | 是否显示左侧面板 |
+| `leftPanelZone` | `string` | `'city'` | 左侧面板展示区域，仅 `leftPanelOpen=true` 时有效（见展示区域对照表） |
+
+### 3.3 星地模（`category: 'starground'`）
+
+| Hermes 字段 | 类型 | 默认值 | 说明 |
+|------------|------|--------|------|
+| `starFactor` | `string` | `'PM2.5'` | 污染因子（同因子对照表） |
+| `starTimeType` | `'hourly' \| 'daily' \| 'month'` | `'hourly'` | 时间类型：实时 / 日 / 月 |
 
 ---
 
-## 3. 地图范围（`region`）对照
+## 4. 地图范围（`region`）对照
 
 `region` 已从硬编码改为动态值，从 `userStore.platformUserInfo.region`（`localStorage` 中 `hermes_platform_user`）读取：
 
@@ -73,12 +100,13 @@ CreateTask 前端表单收集的"一张图"配置项，类型与默认值：
 
 **默认值**：`onMounted` 时优先取 `currentShortCode`，fallback 取 `provinceShortCode`。`currentShortCode` 具体含义取决于账号层级：城市账号时为用户城市，区县账号时为用户区县。
 
-
 > 旧版遗留配置（`'henan'`、`'pingdingshan'` 等字符串）仍可正常读取，但会显示为原字符串，不再匹配动态选项。
 
 ---
 
-## 4. 时间类型（`timeType`）对照
+## 5. 时间类型对照
+
+### 5.1 初始地图（`timeType`）
 
 | 代码值 | 中文标签 | 说明 |
 |-------|---------|------|
@@ -86,11 +114,21 @@ CreateTask 前端表单收集的"一张图"配置项，类型与默认值：
 | `dt` | 累计 | 累计数据（日累计到当前时点） |
 | `daily` | 日 | 单日数据 |
 
+### 5.2 星地模（`starTimeType`）
+
+| 代码值 | 中文标签 | 说明 |
+|-------|---------|------|
+| `hourly` | 实时 | 实时数据 |
+| `daily` | 日 | 单日数据 |
+| `month` | 月 | 月度数据 |
+
 > 注意：`timeType` 与浓度排名页面的 `period` 含义不同。一张图的 `timeType` 只控制数据时间维度，不涉及 datetime/date 控件选择。
 
 ---
 
-## 5. 地图类型（`mode`）对照
+## 6. 地图类型（`mode`）对照
+
+仅初始地图有此配置。
 
 | 代码值 | 中文标签 | 说明 |
 |-------|---------|------|
@@ -99,12 +137,12 @@ CreateTask 前端表单收集的"一张图"配置项，类型与默认值：
 
 ---
 
-## 6. 污染因子（`factor`）对照
+## 7. 污染因子对照
 
-`factor` 字段来源于 `mapFactorOptions`，由“首要污染物”选项 + 浓度排名页面因子列表组成：
+`monitorFactor`（初始监测图）和 `starFactor`（星地模）共用同一因子列表：
 
-| URL 参数值 | 显示标签 | 说明 |
-|-----------|---------|------|
+| 配置值 | 显示标签 | 说明 |
+|-------|---------|------|
 | `primaryPollutant` | 首要污染物 | 仅为任务配置值，不直接进 URL；执行时由 agent 调用 MCP 工具 `mcp_city_common_get_air_quality_realtime_stat` 取 `maxPollutionEn` 解析为下表具体因子（`O3_8H`→`O3`；`"-"`/空→`AQI`） |
 | `PM2.5` | PM₂.₅ | 可吸入细颗粒物（默认值） |
 | `PM10` | PM₁₀ | 可吸入颗粒物 |
@@ -112,30 +150,73 @@ CreateTask 前端表单收集的"一张图"配置项，类型与默认值：
 | `NO2` | NO₂ | 二氧化氮 |
 | `CO` | CO | 一氧化碳 |
 | `O3` | O₃ | 臭氧 |
-| `AQI` | AQI | 空气质量指数 |
 
 ---
 
-## 6. 缩放等级（`zoom`）
+## 8. 地图图层对照
 
-| 属性 | 值 |
-|------|-----|
-| 类型 | `number` |
-| 范围 | 3（最小，全球视图）– 16（最大，街道级） |
-| 默认值 | 8 |
+仅初始地图有此配置，依地图类型不同可选值范围不同。
+
+### 8.1 环境图层（监测图 `monitorLayer`）
+
+| 配置值 | 中文标签 | 说明 |
+|-------|---------|------|
+| `wind` | 风 | 风向风速图层 |
+| `temperature` | 温度 | 温度分布图层 |
+| `humidity` | 相对湿度 | 湿度分布图层 |
+| `rainfall` | 降雨 | 降雨量图层 |
+| `radiation` | 辐射 | 辐射图层 |
+| `pressure` | 气压 | 气压图层 |
+| `visibility` | 能见度 | 能见度图层 |
+
+### 8.2 全量图层（插值图 `interpolationLayer`）
+
+插值图图层 = 污染因子（不含首要污染物）+ 环境图层：
+
+| 配置值 | 中文标签 |
+|-------|---------|
+| `PM2.5` | PM₂.₅ |
+| `PM10` | PM₁₀ |
+| `SO2` | SO₂ |
+| `NO2` | NO₂ |
+| `CO` | CO |
+| `O3` | O₃ |
+| `wind` | 风 |
+| `temperature` | 温度 |
+| `humidity` | 相对湿度 |
+| `rainfall` | 降雨 |
+| `radiation` | 辐射 |
+| `pressure` | 气压 |
+| `visibility` | 能见度 |
 
 ---
 
-## 7. 截图参数
+## 9. 缩放等级对照
 
-| 字段 | 说明 | 可选值 |
-|------|------|-------|
-| `screenshotScope` | 截图区域范围 | `mapOnly`（仅地图）、`mapLegend`（地图+图例）、`fullPage`（完整页面） |
-| `theme` | 截图颜色主题 | `light`（浅色）、`dark`（深色） |
+仅初始地图有此配置。
+
+| 配置值 | 中文标签 | 说明 |
+|-------|---------|------|
+| `site` | 站点层级 | 缩放到站点级别 |
+| `city` | 城市层级 | 缩放到城市级别（默认） |
+| `custom` | 自定义 | 自定义缩放值，取 `zoomCustom`（3–16，默认 6） |
 
 ---
 
-## 8. 任务 prompt 中的配置示例
+## 10. 左侧面板 / 展示区域对照
+
+仅初始地图有此配置。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `leftPanelOpen` | `boolean` | 左侧面板开关：`true`=显示，`false`=关闭（默认） |
+| `leftPanelZone` | `'city' \| 'site' \| 'pollutionSource'` | 面板展示区域：城市 / 站点 / 污染源（默认城市） |
+
+---
+
+## 11. 任务 prompt 中的配置示例
+
+### 11.1 初始地图
 
 ```json
 {
@@ -143,18 +224,44 @@ CreateTask 前端表单收集的"一张图"配置项，类型与默认值：
   "outputs": [
     {
       "id": "output-2",
-      "capability": "mapairs-map-capture",
-      "skill": null,
+      "capability": "mapairs-onemap-capture",
+      "skill": "mapairs-onemap-capture",
       "config": {
+        "theme": "light",
+        "category": "initial",
+        "windWaves": true,
+        "mode": "monitoring",
         "region": "1320a70ee",
         "timeType": "hourly",
-        "mode": "monitoring",
-        "factor": "PM2.5",
-        "zoom": 8,
+        "monitorFactor": "PM2.5",
+        "monitorLayer": "wind",
+        "interpolationLayer": "",
+        "zoomLevel": "city",
+        "zoomCustom": 6,
+        "leftPanelOpen": false,
+        "leftPanelZone": "city"
+      }
+    }
+  ]
+}
+```
+
+### 11.2 星地模
+
+```json
+{
+  "version": 1,
+  "outputs": [
+    {
+      "id": "output-3",
+      "capability": "mapairs-onemap-capture",
+      "skill": "mapairs-onemap-capture",
+      "config": {
         "theme": "light",
+        "category": "starground",
         "windWaves": true,
-        "screenshotScope": "mapLegend",
-        "leftPanel": true
+        "starFactor": "PM2.5",
+        "starTimeType": "daily"
       }
     }
   ]
@@ -165,29 +272,30 @@ CreateTask 前端表单收集的"一张图"配置项，类型与默认值：
 
 ---
 
-## 9. 与浓度排名的关联
+## 12. 与浓度排名的关联
 
-- 一张图的 `factor` 因子列表复用浓度排名的 `rankingFactorOptions`（`primaryPollutant` 已注释移除）
+- 一张图的 `monitorFactor` / `starFactor` 因子列表复用浓度排名的 `rankingFactorOptions`
 - 两者均使用 Playwright 自动化截图，预期脚本风格一致
-- 目前浓度排名已有脚本 `mapairs-ranking-capture.py`，一张图尚未实现，需在 `mapairs-map-capture` 技能中补充
+- 目前浓度排名已有脚本 `mapairs-ranking-capture.py`，一张图脚本 `mapairs-onemap-capture` 待实现
 
 ---
 
-## 10. 当前已知限制
+## 13. 当前已知限制
 
 | 限制项 | 说明 | 影响 |
 |-------|------|------|
-| 无对应 Playwright 脚本 | `mapairs-map-capture` 技能尚未创建 | 一张图成果目前无法自动执行截图 |
+| 无对应 Playwright 脚本 | `mapairs-onemap-capture` 技能尚未创建 | 一张图成果目前无法自动执行截图 |
 | `timeType` 参数映射未验证 | 需确认页面时间控件选择逻辑 | 脚本实现时需对齐浓度排名的时间控件处理 |
-| `zoom` 缩放范围无下限保护 | UI 限制 3–16，脚本需额外校验 | 超出范围可能导致截图无效 |
+| `zoomCustom` 缩放范围无下限保护 | UI 限制 3–16，脚本需额外校验 | 超出范围可能导致截图无效 |
+| `monitorLayer` / `interpolationLayer` 图层切换未验证 | 需确认页面图层控件交互逻辑 | 脚本实现时需验证图层选择操作 |
 
 ---
 
-## 11. 相关文件
+## 14. 相关文件
 
 | 文件 | 作用 |
 |------|------|
 | `packages/client/src/views/hermes/CreateTask.vue` | 前端任务配置 UI（一张图配置面板） |
-| `packages/skills/mapairs-map-capture/` | **待创建** — 一张图 Playwright 技能目录 |
+| `packages/skills/mapairs-onemap-capture/` | **待创建** — 一张图 Playwright 技能目录 |
 | `packages/skills/mapairs-ranking-capture/scripts/mapairs_ranking_capture.py` | 浓度排名 Playwright 脚本（参考实现） |
 | `docs/URL参数对照.md` | 浓度排名参数对照文档（参考格式） |
