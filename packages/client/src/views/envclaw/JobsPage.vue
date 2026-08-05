@@ -617,6 +617,8 @@ onMounted(() => {
 .rl-detail { padding: 0 18px 16px; }
 
 .detail-section { background: $bg-card; border: 1px solid $border-color; border-radius: var(--radius-md); padding: 14px 16px; margin-top: 12px;
+  max-height: 400px;
+  overflow-y: auto;
   h4 { font-size: 12.5px; font-weight: 600; color: $text-primary; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
   .h-tag { font-size: 10.5px; padding: 1px 7px; border-radius: 9px; background: $bg-secondary; color: $text-muted; border: 1px solid $border-color; font-weight: 500; }
 }

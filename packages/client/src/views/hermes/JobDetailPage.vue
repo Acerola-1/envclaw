@@ -41,13 +41,15 @@ const runContent = ref<Record<string, string>>({})
 const runContentLoading = ref<Record<string, boolean>>({})
 
 function runKey(run: RunEntry): string {
-  return `${run.jobId}/${run.fileName}`
+  if (!run) return '__undefined__'
+  return `${run.jobId || '?'}/${run.fileName || '?'}`
 }
 
 async function loadRuns() {
   runsLoading.value = true
   try {
-    runs.value = await listCronRuns(jobId.value)
+    const result = await listCronRuns(jobId.value)
+    runs.value = Array.isArray(result) ? result.filter(r => r != null) : []
   } catch {
     runs.value = []
   } finally {
@@ -56,6 +58,7 @@ async function loadRuns() {
 }
 
 async function ensureRunContent(run: RunEntry): Promise<void> {
+  if (!run) return
   const key = runKey(run)
   if (runContent.value[key] || runContentLoading.value[key]) return
   runContentLoading.value[key] = true
@@ -70,6 +73,7 @@ async function ensureRunContent(run: RunEntry): Promise<void> {
 }
 
 function toggleRunExpand(run: RunEntry) {
+  if (!run) return
   const key = runKey(run)
   if (expandedRuns.value.has(key)) expandedRuns.value.delete(key)
   else { expandedRuns.value.add(key); ensureRunContent(run) }
@@ -88,6 +92,7 @@ interface Artifact {
 const outputArtifacts = computed<Artifact[]>(() => {
   const artifacts: Artifact[] = []
   for (const run of runs.value) {
+    if (!run) continue
     const content = runContent.value[runKey(run)]
     if (!content) continue
     for (const line of content.split('\n')) {
@@ -124,7 +129,7 @@ const outputGroups = computed(() => {
 
 async function loadOutputs() {
   if (runs.value.length === 0 && !runsLoading.value) await loadRuns()
-  const recent = [...runs.value].sort((a, b) => (a.runTime < b.runTime ? 1 : -1)).slice(0, 5)
+  const recent = [...runs.value].filter(r => r != null).sort((a, b) => (a.runTime < b.runTime ? 1 : -1)).slice(0, 5)
   await Promise.allSettled(recent.map(run => ensureRunContent(run)))
 }
 
@@ -149,9 +154,11 @@ function cronToHuman(cron: string): string {
 }
 const scheduleText = computed(() => {
   if (!job.value) return '—'
-  const raw = scheduleToDisplayText(job.value.schedule, job.value.schedule_display || '—')
-  if (/^\S+\s+\S+\s+\S+\s+\S+\s+\S+$/.test(raw)) return cronToHuman(raw)
-  return raw
+  try {
+    const raw = scheduleToDisplayText(job.value.schedule, job.value.schedule_display || '—')
+    if (/^\S+\s+\S+\s+\S+\s+\S+\s+\S+$/.test(raw)) return cronToHuman(raw)
+    return raw
+  } catch { return job.value.schedule_display || '—' }
 })
 
 // 从 prompt 中解析城市名称
@@ -184,6 +191,7 @@ const artifactCount = computed<number>(() => outputArtifacts.value.length)
 // 全部执行记录（默认展示所有）
 const recentRuns = computed<RunEntry[]>(() => {
   return [...runs.value]
+    .filter(r => r != null)
     .sort((a, b) => (a.runTime < b.runTime ? 1 : -1))
 })
 
@@ -327,10 +335,15 @@ function outputConfigRows(config: Record<string, any> | undefined): { label: str
 }
 
 // ==================== Lifecycle ====================
-onMounted(() => {
-  void loadJob()
-  void loadRuns()
-  void loadOutputs()
+onMounted(async () => {
+  try {
+    await loadJob()
+    await loadRuns()
+    await loadOutputs()
+  } catch (e) {
+    console.error('JobDetailPage init error:', e)
+    loading.value = false
+  }
 })
 
 watch(jobId, () => {
@@ -688,6 +701,8 @@ watch(jobId, () => {
   border: 1px solid $border-color;
   border-radius: $radius-lg;
   padding: 20px 22px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .detail-outputs {

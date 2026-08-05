@@ -6,12 +6,17 @@ import { updateConfigYamlForProfile } from '../config-helpers'
 import { logger } from '../logger'
 import { listProfileNamesFromDisk } from './hermes-profile'
 
+interface ManagedServer {
+  name: string
+  toolset: string
+}
+
 const LEGACY_SERVER_NAME = 'envclaw'
-const MANAGED_SERVERS = [
+const MANAGED_SERVERS: readonly ManagedServer[] = [
     // { name: 'envclaw-api', toolset: 'api' },
     // { name: 'envclaw-devices', toolset: 'devices' },
     // { name: 'envclaw-use', toolset: 'use' },
-] as const
+]
 const MANAGED_SERVER_NAMES: Set<string> = new Set(MANAGED_SERVERS.map(server => server.name))
 const LEGACY_SERVER_NAMES = new Set([
   LEGACY_SERVER_NAME,
@@ -239,6 +244,10 @@ async function injectIntoProfile(profile: string): Promise<BundledMcpInjectionTa
 }
 
 export async function injectBundledMcpServer(): Promise<BundledMcpInjectionResult> {
+  if (MANAGED_SERVERS.length === 0) {
+    return { serverNames: [], command: '(none)', targets: [] }
+  }
+
   const commandInfo = managedConfig('default', MANAGED_SERVERS[0].name, MANAGED_SERVERS[0].toolset)
   const result: BundledMcpInjectionResult = {
     serverNames: MANAGED_SERVERS.map(server => server.name),

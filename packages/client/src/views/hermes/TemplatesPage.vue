@@ -9,9 +9,21 @@ const templates = ref(PROTO_TEMPLATES)
 // ---- UI state ----
 const activeTab = ref('all')
 const activeFilter = ref('all')
+const selectedTag = ref('')
 const searchText = ref('')
 
 const sourceLabel: Record<string, string> = { system:'系统', mine:'我的', imported:'外部导入' }
+
+// ---- Dynamic tags ----
+const allTags = computed(() => {
+  const map = new Map<string, number>()
+  for (const t of templates.value) {
+    for (const tag of t.tags) {
+      map.set(tag, (map.get(tag) || 0) + 1)
+    }
+  }
+  return [...map.entries()].sort((a, b) => b[1] - a[1])
+})
 
 // ---- Computed groups ----
 const allCount = computed(() => templates.value.length)
@@ -26,6 +38,7 @@ const filtered = computed(() => {
   if (activeFilter.value === 'favorite') list = list.filter(t => t.favorite)
   if (activeFilter.value === 'recent') list = list.filter(t => t.used >= 3)
   if (activeFilter.value === 'shared') list = list.filter(t => t.source !== 'mine')
+  if (selectedTag.value) list = list.filter(t => t.tags.includes(selectedTag.value))
   const kw = searchText.value.trim().toLowerCase()
   if (kw) list = list.filter(t => t.name.toLowerCase().includes(kw) || t.caps.some(c => c.toLowerCase().includes(kw)))
   return list
@@ -52,9 +65,9 @@ function sourceCls(s: string): string {
         <div class="page-sub">将高频任务沉淀为模板，跨用户、跨环境一键复用</div>
       </div>
       <div class="page-actions">
-        <a class="btn btn-default" @click="router.push({ name: 'hermes.templateEditor' })">
+        <!-- <a class="btn btn-default" @click="router.push({ name: 'hermes.templateEditor' })">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>分享 / 导入
-        </a>
+        </a> -->
         <a class="btn btn-primary" @click="goCreate">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建模板
         </a>
@@ -69,18 +82,27 @@ function sourceCls(s: string): string {
             <span class="session-group-label">分组</span>
             <span class="session-group-count">({{ allCount }})</span>
           </div>
-          <a class="session-item" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'"><span class="session-item-title">全部模板</span><span class="session-item-time">{{ allCount }}</span></a>
-          <a class="session-item" :class="{ active: activeTab === 'system' }" @click="activeTab = 'system'"><span class="session-item-title">系统预置</span><span class="session-item-time">{{ systemCount }}</span></a>
-          <a class="session-item" :class="{ active: activeTab === 'mine' }" @click="activeTab = 'mine'"><span class="session-item-title">我的模板</span><span class="session-item-time">{{ mineCount }}</span></a>
-          <a class="session-item" :class="{ active: activeTab === 'imported' }" @click="activeTab = 'imported'"><span class="session-item-title">外部导入</span><span class="session-item-time">{{ importedCount }}</span></a>
-          <a class="session-item"><span class="session-item-title">已收藏</span><span class="session-item-time">{{ favCount }}</span></a>
+          <a class="session-item" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'; selectedTag = ''"><span class="session-item-title">全部模板</span><span class="session-item-time">{{ allCount }}</span></a>
+          <a class="session-item" :class="{ active: activeTab === 'system' }" @click="activeTab = 'system'; selectedTag = ''"><span class="session-item-title">系统预置</span><span class="session-item-time">{{ systemCount }}</span></a>
+          <a class="session-item" :class="{ active: activeTab === 'mine' }" @click="activeTab = 'mine'; selectedTag = ''"><span class="session-item-title">我的模板</span><span class="session-item-time">{{ mineCount }}</span></a>
+          <!-- <a class="session-item" :class="{ active: activeTab === 'imported' }" @click="activeTab = 'imported'"><span class="session-item-title">外部导入</span><span class="session-item-time">{{ importedCount }}</span></a> -->
+          <!-- <a class="session-item"><span class="session-item-title">已收藏</span><span class="session-item-time">{{ favCount }}</span></a> -->
         </div>
         <div class="session-section" style="margin:0">
           <div class="session-group-header"><span class="session-group-label">标签</span></div>
-          <a class="session-item"><span class="session-item-title">日报周报</span><span class="session-item-time">2</span></a>
-          <a class="session-item"><span class="session-item-title">空气质量</span><span class="session-item-time">2</span></a>
-          <a class="session-item"><span class="session-item-title">水环境</span><span class="session-item-time">1</span></a>
-          <a class="session-item"><span class="session-item-title">考核排名</span><span class="session-item-time">1</span></a>
+          <a
+            v-for="[tag, count] in allTags"
+            :key="tag"
+            class="session-item"
+            :class="{ active: selectedTag === tag }"
+            @click="selectedTag = selectedTag === tag ? '' : tag"
+          >
+            <span class="session-item-title">{{ tag }}</span>
+            <span class="session-item-time">{{ count }}</span>
+          </a>
+          <a v-if="allTags.length === 0" class="session-item" style="color: var(--text-muted); cursor: default">
+            <span class="session-item-title">暂无标签</span>
+          </a>
         </div>
       </div>
 
@@ -88,26 +110,26 @@ function sourceCls(s: string): string {
       <div style="flex:1;min-width:0">
         <!-- 4 Tab -->
         <div class="seg-switch" style="margin-top:4px">
-          <button class="seg-btn" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'">
+          <button class="seg-btn" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'; selectedTag = ''">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>全部 <span class="seg-count">{{ allCount }}</span>
           </button>
-          <button class="seg-btn" :class="{ active: activeTab === 'system' }" @click="activeTab = 'system'">
+          <button class="seg-btn" :class="{ active: activeTab === 'system' }" @click="activeTab = 'system'; selectedTag = ''">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>系统 <span class="seg-count">{{ systemCount }}</span>
           </button>
-          <button class="seg-btn" :class="{ active: activeTab === 'mine' }" @click="activeTab = 'mine'">
+          <button class="seg-btn" :class="{ active: activeTab === 'mine' }" @click="activeTab = 'mine'; selectedTag = ''">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我的 <span class="seg-count">{{ mineCount }}</span>
           </button>
-          <button class="seg-btn" :class="{ active: activeTab === 'imported' }" @click="activeTab = 'imported'">
+          <!-- <button class="seg-btn" :class="{ active: activeTab === 'imported' }" @click="activeTab = 'imported'">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>外部导入 <span class="seg-count">{{ importedCount }}</span>
-          </button>
+          </button> -->
         </div>
 
         <!-- Filter bar -->
         <div class="filter-bar">
           <div class="filter-pill" :class="{ active: activeFilter === 'all' }" @click="activeFilter = 'all'">全部 <span class="num">{{ allCount }}</span></div>
-          <div class="filter-pill" :class="{ active: activeFilter === 'favorite' }" @click="activeFilter = 'favorite'"><span class="dot" style="background:var(--warning)"></span>已收藏 <span class="num">{{ favCount }}</span></div>
+          <!-- <div class="filter-pill" :class="{ active: activeFilter === 'favorite' }" @click="activeFilter = 'favorite'"><span class="dot" style="background:var(--warning)"></span>已收藏 <span class="num">{{ favCount }}</span></div> -->
           <div class="filter-pill" :class="{ active: activeFilter === 'recent' }" @click="activeFilter = 'recent'"><span class="dot" style="background:var(--accent-primary)"></span>最近使用</div>
-          <div class="filter-pill" :class="{ active: activeFilter === 'shared' }" @click="activeFilter = 'shared'"><span class="dot" style="background:var(--success)"></span>可分享</div>
+          <!-- <div class="filter-pill" :class="{ active: activeFilter === 'shared' }" @click="activeFilter = 'shared'"><span class="dot" style="background:var(--success)"></span>可分享</div> -->
           <div class="filter-bar-right">
             <div class="search-input">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -140,8 +162,8 @@ function sourceCls(s: string): string {
                 <button class="act-btn act-danger">✕ 删除</button>
               </template>
               <template v-else>
-                <button class="act-btn">🔗 分享</button>
-                <button class="act-btn">⭐ 收藏</button>
+                <!-- <button class="act-btn">🔗 分享</button>
+                <button class="act-btn">⭐ 收藏</button> -->
               </template>
             </div>
           </div>

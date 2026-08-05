@@ -267,10 +267,10 @@ async function handleCreate() {
 
       <div class="create-tip-banner"><span class="ctb-tag">提示</span><span class="ctb-text">自动化任务执行时，请勿关闭电脑或退出客户端，否则任务将无法正常执行</span></div>
 
-      <div v-if="!isEdit" class="capability-heading"><div><span class="capability-kicker">01 · 定义任务目标</span><h2>这次任务要做什么？</h2></div></div>
+      <div v-if="!isEdit && selectedItems.length <= 0" class="capability-heading"><div><span class="capability-kicker">01 · 定义任务目标</span><h2>这次任务要做什么？</h2></div></div>
 
       <!-- 3 entry cards (hidden in edit mode) -->
-      <div v-if="!isEdit" class="onboard-card-grid" :class="{ dimmed: selectedItems.length > 0 }">
+      <div v-if="!isEdit && selectedItems.length <= 0" class="onboard-card-grid" :class="{ dimmed: selectedItems.length > 0 }">
         <div class="onboard-card tpl" @click="goPicker('tmpl')"><div class="obc-head"><span class="obc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="obc-badge">最推荐</span></div><h3>从模板添加</h3><p>系统内预置 6+ 份行业模板，一键应用到本次任务</p><span class="obc-cta">去选模板 →</span></div>
         <div class="onboard-card skill" @click="openSkillModal"><div class="obc-head"><span class="obc-ic" style="background:linear-gradient(135deg,#e8fbf2,#cff3e0);color:#1d8c52"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M12 2l2.4 7.4h7.6l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg></span><span class="obc-badge" style="background:#0b65bb;color:#fff">2 种形态</span></div><h3>从技能添加</h3><p>需配置（一张图/浓度排名等）和直接用（AI 脚本）两类技能</p><span class="obc-cta">去选技能 →</span></div>
         <div class="onboard-card mcp" @click="goPicker('mcps')"><div class="obc-head"><span class="obc-ic" style="background:linear-gradient(135deg,#f2ebff,#dfd4ff);color:#6d3ff0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span></div><h3>从连接器添加</h3><p>选择 MCP 连接器，调用本地文件 / 飞书 IM 等工具</p><span class="obc-cta">去选连接器 →</span></div>
