@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """数智大气（Mapairs）基础配置。
 
-Base URL 支持通过环境变量 MAPAIRS_BASE_URL 覆盖，默认使用内网地址；
-未来切换公网只需修改环境变量，无需改动脚本。
+Base URL 支持通过环境变量 MAPAIRS_BASE_URL 覆盖，默认使用公网地址；
+如需切回内网，可通过环境变量覆盖，无需改动脚本。
 """
 
 import os
 from urllib.parse import urlsplit
 
-# 默认内网部署地址；公网部署时通过 MAPAIRS_BASE_URL 覆盖。
-DEFAULT_BASE_URL = "http://192.168.4.25:8095"
+# 默认公网部署地址；内网部署时通过 MAPAIRS_BASE_URL 覆盖。
+DEFAULT_BASE_URL = "https://www.mapairs.com"
 # 登录页与登录后落地页路径（各功能页面统一从这里跳转）。
 LOGIN_PATH = "/lock"
 POST_LOGIN_PATH = "/overallSituation"

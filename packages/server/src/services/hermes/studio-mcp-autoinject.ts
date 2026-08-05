@@ -283,8 +283,7 @@ export async function injectBundledMcpServer(): Promise<BundledMcpInjectionResul
 // Spring AI (Java MCP SDK) servers that reject the extended client capabilities
 // Hermes advertises by default (rejects Unrecognized field "tools"/"form").
 const BUNDLED_HTTP_SERVERS: ReadonlyArray<{ name: string; url: string }> = [
-  { name: 'datacenter-statistics', url: 'http://192.168.4.25:8090/product/datacenter/api/mcp' },
-  { name: 'ipp-air-mcp-server', url: 'http://192.168.4.25:8090/product/datacenter/api2/mcp' },
+  { name: 'ipp-air-mcp-server', url: 'https://www.mapairs.com/product/datacenter/api2/mcp' },
 ]
 
 function bundledHttpServerConfig(url: string): Record<string, unknown> {
