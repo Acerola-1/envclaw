@@ -8,9 +8,9 @@ import { listProfileNamesFromDisk } from './hermes-profile'
 
 const LEGACY_SERVER_NAME = 'envclaw'
 const MANAGED_SERVERS = [
-  { name: 'envclaw-api', toolset: 'api' },
-  { name: 'envclaw-devices', toolset: 'devices' },
-  { name: 'envclaw-use', toolset: 'use' },
+    // { name: 'envclaw-api', toolset: 'api' },
+    // { name: 'envclaw-devices', toolset: 'devices' },
+    // { name: 'envclaw-use', toolset: 'use' },
 ] as const
 const MANAGED_SERVER_NAMES: Set<string> = new Set(MANAGED_SERVERS.map(server => server.name))
 const LEGACY_SERVER_NAMES = new Set([
