@@ -148,11 +148,11 @@ function inferRunStatus(content: string): { status: string | null; error: string
   // 明确的异常/失败信号
   const errorPatterns = [
     /error:/im, /exception/i, /traceback/i, /failed/i,
-    /aborted/i, /timeout/i, /cancelled/i, /refused/i,
-    /cannot\s(find|read|write|open|connect|access)/i,
-    /permission\sdenied/i, /not\sfound/i,
-    /invalid\s(api|cron|token|credential)/i,
-    /no\s(output|result|data|content)/i,
+    // /aborted/i, /timeout/i, /cancelled/i, /refused/i,
+    // /cannot\s(find|read|write|open|connect|access)/i,
+    // /permission\sdenied/i, /not\sfound/i,
+    // /invalid\s(api|cron|token|credential)/i,
+    // /no\s(output|result|data|content)/i,
   ]
   const hasErrorSignal = errorPatterns.some(p => p.test(content))
   const runawayPattern = /run\s(failed|aborted|cancelled|timed out)/i

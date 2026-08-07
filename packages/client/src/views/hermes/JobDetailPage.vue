@@ -7,11 +7,13 @@ import type { Job } from '@/api/hermes/jobs'
 import { listCronRuns, readCronRun } from '@/api/hermes/cron-history'
 import type { RunEntry, RunDetail } from '@/api/hermes/cron-history'
 import { getFileDownloadUrl } from '@/api/hermes/files'
+import { useChatStore } from '@/stores/hermes/chat'
 import JobStatusPill from '@/components/envclaw/jobs/JobStatusPill.vue'
 
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
+const chatStore = useChatStore()
 
 // ==================== Job ====================
 const job = ref<Job | null>(null)
@@ -80,6 +82,17 @@ function toggleRunExpand(run: RunEntry) {
   expandedRuns.value = new Set(expandedRuns.value)
 }
 
+async function handleStartRunChat(run: RunEntry) {
+  if (!run) return
+  await ensureRunContent(run)
+  const key = runKey(run)
+  const content = runContent.value[key] || ''
+  const jobName = job.value?.name || run.jobId
+  const runTime = formatTime(run.runTime)
+  const sessionId = await chatStore.ensureRunSession(run.jobId, run.fileName, content, { jobName, runTime })
+  router.push({ name: 'hermes.session', params: { sessionId } })
+}
+
 // ==================== Outputs (成果) ====================
 interface Artifact {
   runKey: string
@@ -144,7 +157,7 @@ function cronToHuman(cron: string): string {
   if (min.startsWith('*/')) { const n = parseInt(min.slice(2)); return `每 ${n} 分钟` }
   if (hour.startsWith('*/')) { const n = parseInt(hour.slice(2)); return `每 ${n} 小时` }
   if (dow !== '*' && dom === '*') {
-    const dayMap: Record<string, string> = { '1':'周一','2':'周二','3':'周三','4':'周四','5':'周五','6':'周六','0':'周日','7':'周日' }
+    const dayMap: Record<string, string> = { '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六', '0': '周日', '7': '周日' }
     const days = dow.split(',').map(d => dayMap[d] || d).join('、')
     return `每${days} ${hour}:${min}`
   }
@@ -384,20 +397,35 @@ watch(jobId, () => {
           </div>
           <div class="page-actions">
             <button class="btn btn-default" @click="handleRun">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="5 3 19 12 5 21 5 3"/></svg>立即运行
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>立即运行
             </button>
             <button class="btn btn-default" @click="handlePauseResume">
-              <svg v-if="isPaused" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+              <svg v-if="isPaused" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="1.6">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="1.6">
+                <rect x="6" y="4" width="4" height="16" rx="1" />
+                <rect x="14" y="4" width="4" height="16" rx="1" />
+              </svg>
               {{ isPaused ? '恢复' : '暂停' }}
             </button>
             <button class="btn btn-default" @click="handleEdit">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>编辑
             </button>
             <NPopconfirm @positive-click="handleDelete">
               <template #trigger>
                 <button class="btn btn-default">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>删除
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>删除
                 </button>
               </template>
               确定要删除任务「{{ job.name }}」吗？此操作不可撤销。
@@ -411,19 +439,27 @@ watch(jobId, () => {
           <section class="detail-section">
             <div class="detail-section-head">
               <div class="detail-section-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
                 任务概况
               </div>
             </div>
             <div class="detail-kv">
               <div class="kv"><span class="k">关联城市</span><span class="v">{{ cityName }}</span></div>
               <div class="kv"><span class="k">调度频率</span><span class="v mono">{{ scheduleText }}</span></div>
-              <div class="kv"><span class="k">下次运行</span><span class="v highlight-time">{{ formatTime(job.next_run_at) || '—' }}</span></div>
+              <div class="kv"><span class="k">下次运行</span><span class="v highlight-time">{{ formatTime(job.next_run_at)
+                  || '—'
+                  }}</span></div>
               <div class="kv"><span class="k">推送渠道</span><span class="v">{{ formatDeliver(job.deliver) }}</span></div>
               <div class="kv"><span class="k">成果数量</span><span class="v">{{ artifactCount }} 项</span></div>
               <div class="kv"><span class="k">累计运行</span><span class="v mono">{{ runs.length }} 次</span></div>
               <div class="kv"><span class="k">运行模型</span><span class="v">{{ job.model || '默认（跟随全局设置）' }}</span></div>
-              <div class="kv kv-full"><span class="k">描述</span><span class="v">{{ job.prompt_preview || job.prompt || '—' }}</span></div>
+              <div class="kv kv-full"><span class="k">描述</span><span class="v">{{ job.prompt_preview || job.prompt ||
+                  '—'
+                  }}</span></div>
             </div>
           </section>
 
@@ -431,7 +467,10 @@ watch(jobId, () => {
           <section class="detail-section">
             <div class="detail-section-head">
               <div class="detail-section-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
                 执行记录
               </div>
               <span class="more-link">共 {{ recentRuns.length }} 条</span>
@@ -444,14 +483,17 @@ watch(jobId, () => {
                   <span class="pill-dot"></span>{{ run.status === 'error' ? '失败' : run.status === 'ok' ? '成功' : '未知' }}
                 </span>
                 <span class="record-time">{{ formatTime(run.runTime) }}</span>
-                <span class="record-meta">{{ run.size > 1024 ? `${(run.size / 1024).toFixed(1)}KB` : `${run.size}B` }}</span>
+                <span class="record-meta">{{ run.size > 1024 ? `${(run.size / 1024).toFixed(1)}KB` : `${run.size}B`
+                  }}</span>
                 <a class="record-link" @click="toggleRunExpand(run)">
                   {{ expandedRuns.has(runKey(run)) ? '收起' : '查看输出' }}
                 </a>
+                <a class="record-link chat" @click="handleStartRunChat(run)">对话</a>
               </div>
             </div>
             <!-- 展开的运行日志 -->
-            <div v-if="expandedRuns.has(runKey(run))" class="run-expand" style="margin-top:12px;max-height:240px;overflow-y:auto">
+            <div v-if="expandedRuns.has(runKey(run))" class="run-expand"
+              style="margin-top:12px;max-height:240px;overflow-y:auto">
               <NSpin v-if="runContentLoading[runKey(run)]" size="small" />
               <pre v-else class="run-content">{{ runContent[runKey(run)] || '输出为空' }}</pre>
             </div>
@@ -461,7 +503,12 @@ watch(jobId, () => {
           <section class="detail-section">
             <div class="detail-section-head">
               <div class="detail-section-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
                 能力清单
                 <span v-if="manifestOutputs.length" class="count-tag">{{ manifestOutputs.length }}</span>
               </div>
@@ -473,7 +520,9 @@ watch(jobId, () => {
                 <div class="cap-mono">{{ index % 2 === 0 ? '≋' : '◇' }}</div>
                 <div class="cap-info">
                   <div class="cap-name">{{ capLabel(output.capability) }}</div>
-                  <div class="cap-desc">{{ output.skill || '' }} {{ outputConfigRows(output.config).slice(0, 3).map(r => r.label + '：' + r.value).join(' · ') }}</div>
+                  <div class="cap-desc">{{ output.skill || '' }} {{outputConfigRows(output.config).slice(0, 3).map(r =>
+                    r.label
+                    + '：' + r.value).join(' · ') }}</div>
                 </div>
                 <span class="status-pill success"><span class="pill-dot"></span>已启用</span>
               </div>
@@ -481,7 +530,7 @@ watch(jobId, () => {
           </section>
 
           <!-- ④ 任务操作项 -->
-          <section class="detail-section">
+          <!-- <section class="detail-section">
             <div class="detail-section-head">
               <div class="detail-section-title">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
@@ -499,42 +548,50 @@ watch(jobId, () => {
                 <span class="op-status success">已完成</span>
               </div>
             </div>
-          </section>
-        </div>
+          </section>-->
 
-        <!-- ==================== ⑤ 成果区（全宽） ==================== -->
-        <section class="detail-section detail-outputs">
-          <div class="detail-section-head">
-            <div class="detail-section-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              成果文件
-              <span v-if="outputArtifacts.length" class="count-tag">{{ outputArtifacts.length }}</span>
+          <!-- ==================== ⑤ 成果区（全宽） detail-outputs ==================== -->
+          <section class="detail-section">
+            <div class="detail-section-head">
+              <div class="detail-section-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                成果文件
+                <span v-if="outputArtifacts.length" class="count-tag">{{ outputArtifacts.length }}</span>
+              </div>
+              <a class="more-link" @click="loadOutputs" style="cursor:pointer">重新扫描</a>
             </div>
-            <a class="more-link" @click="loadOutputs" style="cursor:pointer">重新扫描</a>
-          </div>
-          <div v-if="outputGroups.length === 0" class="empty-hint">
-            {{ Object.values(runContentLoading).some(Boolean) ? '扫描中...' : '暂未扫描到成果文件' }}
-          </div>
-          <div v-else class="output-groups">
-            <div v-for="group in outputGroups" :key="group.runTime" class="output-group">
-              <div class="date-label">{{ formatTime(group.runTime) }}</div>
-              <div class="output-grid">
-                <div v-for="(a, i) in group.items" :key="`${a.runKey}-${i}`" class="output-card">
-                  <div v-if="a.isImage" class="output-thumb" @click="openPreview(getFileDownloadUrl(a.filePath))" style="cursor:pointer" title="点击预览">
-                    <img :src="getFileDownloadUrl(a.filePath)" :alt="a.fileName" loading="lazy" />
-                  </div>
-                  <div v-else class="output-file-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  </div>
-                  <div class="output-body">
-                    <div class="output-name" :title="a.fileName">{{ a.fileName }}</div>
-                    <a class="output-dl" :href="getFileDownloadUrl(a.filePath)" :download="a.fileName">下载</a>
+            <div v-if="outputGroups.length === 0" class="empty-hint">
+              {{ Object.values(runContentLoading).some(Boolean) ? '扫描中...' : '暂未扫描到成果文件' }}
+            </div>
+            <div v-else class="output-groups">
+              <div v-for="group in outputGroups" :key="group.runTime" class="output-group">
+                <div class="date-label">{{ formatTime(group.runTime) }}</div>
+                <div class="output-grid">
+                  <div v-for="(a, i) in group.items" :key="`${a.runKey}-${i}`" class="output-card">
+                    <div v-if="a.isImage" class="output-thumb" @click="openPreview(getFileDownloadUrl(a.filePath))"
+                      style="cursor:pointer" title="点击预览">
+                      <img :src="getFileDownloadUrl(a.filePath)" :alt="a.fileName" loading="lazy" />
+                    </div>
+                    <div v-else class="output-file-icon">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.6">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                    </div>
+                    <div class="output-body">
+                      <div class="output-name" :title="a.fileName">{{ a.fileName }}</div>
+                      <a class="output-dl" :href="getFileDownloadUrl(a.filePath)" :download="a.fileName">下载</a>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </template>
     </NSpin>
 
@@ -580,7 +637,9 @@ watch(jobId, () => {
   margin-bottom: 14px;
   padding: 0;
 
-  &:hover { color: $text-primary; }
+  &:hover {
+    color: $text-primary;
+  }
 }
 
 /* ==================== Hero ==================== */
@@ -633,7 +692,10 @@ watch(jobId, () => {
     color: $text-primary;
   }
 
-  b { color: $text-primary; font-weight: 600; }
+  b {
+    color: $text-primary;
+    font-weight: 600;
+  }
 }
 
 .page-actions {
@@ -658,7 +720,10 @@ watch(jobId, () => {
   text-decoration: none;
   font-family: inherit;
 
-  svg { width: 14px; height: 14px; }
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 .btn-default {
@@ -666,7 +731,10 @@ watch(jobId, () => {
   color: $text-primary;
   border-color: $border-color;
 
-  &:hover { border-color: $border-strong; background: $bg-secondary; }
+  &:hover {
+    border-color: $border-strong;
+    background: $bg-secondary;
+  }
 }
 
 .back-btn {
@@ -684,7 +752,10 @@ watch(jobId, () => {
   white-space: nowrap;
   font-family: inherit;
 
-  &:hover { background: $bg-card-hover; color: $text-primary; }
+  &:hover {
+    background: $bg-card-hover;
+    color: $text-primary;
+  }
 }
 
 /* ==================== 2列 Grid ==================== */
@@ -724,7 +795,9 @@ watch(jobId, () => {
   font-weight: 600;
   color: $text-primary;
 
-  svg { color: $text-secondary; }
+  svg {
+    color: $text-secondary;
+  }
 }
 
 .count-tag {
@@ -746,7 +819,9 @@ watch(jobId, () => {
   color: $text-secondary;
   text-decoration: none;
 
-  &:hover { color: $accent-primary; }
+  &:hover {
+    color: $accent-primary;
+  }
 }
 
 .empty-hint {
@@ -770,7 +845,9 @@ watch(jobId, () => {
   min-width: 0;
 }
 
-.kv-full { grid-column: 1 / -1; }
+.kv-full {
+  grid-column: 1 / -1;
+}
 
 .kv .k {
   font-size: 11.5px;
@@ -828,7 +905,9 @@ watch(jobId, () => {
   font-size: 12px;
   cursor: pointer;
 
-  &:hover { text-decoration: underline; }
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 /* ==================== 能力清单 ==================== */
@@ -945,15 +1024,42 @@ watch(jobId, () => {
 
 /* ==================== Image preview ==================== */
 .img-preview-overlay {
-  position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,.85);
-  display: flex; align-items: center; justify-content: center; cursor: zoom-out;
-  img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(0, 0, 0, .85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+
+  img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 4px;
+  }
 }
+
 .img-preview-close {
-  position: absolute; top: 20px; right: 24px; width: 40px; height: 40px;
-  border: none; background: rgba(255,255,255,.15); color: #fff; font-size: 22px;
-  border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  &:hover { background: rgba(255,255,255,.3); }
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255, 255, 255, .15);
+  color: #fff;
+  font-size: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(255, 255, 255, .3);
+  }
 }
 
 /* ==================== 成果区 ==================== */
@@ -987,7 +1093,9 @@ watch(jobId, () => {
   display: flex;
   flex-direction: column;
 
-  &:hover { border-color: $accent-primary; }
+  &:hover {
+    border-color: $accent-primary;
+  }
 }
 
 .output-thumb {
@@ -1040,7 +1148,9 @@ watch(jobId, () => {
   border: 1px solid $accent-primary;
   border-radius: $radius-sm;
 
-  &:hover { background: rgba(var(--accent-primary-rgb), .08); }
+  &:hover {
+    background: rgba(var(--accent-primary-rgb), .08);
+  }
 }
 
 /* ==================== 运行日志展开区 ==================== */
@@ -1077,11 +1187,30 @@ watch(jobId, () => {
     background: currentColor;
   }
 
-  &.success { background: rgba(var(--success-rgb), .12); color: $success; }
-  &.running { background: rgba(var(--success-rgb), .12); color: $success; }
-  &.paused { background: rgba(var(--warning-rgb), .15); color: $warning; }
-  &.error { background: rgba(var(--error-rgb), .12); color: $error; }
-  &.scheduled { background: rgba(var(--accent-primary-rgb), .10); color: $accent-primary; }
+  &.success {
+    background: rgba(var(--success-rgb), .12);
+    color: $success;
+  }
+
+  &.running {
+    background: rgba(var(--success-rgb), .12);
+    color: $success;
+  }
+
+  &.paused {
+    background: rgba(var(--warning-rgb), .15);
+    color: $warning;
+  }
+
+  &.error {
+    background: rgba(var(--error-rgb), .12);
+    color: $error;
+  }
+
+  &.scheduled {
+    background: rgba(var(--accent-primary-rgb), .10);
+    color: $accent-primary;
+  }
 }
 
 /* ==================== Error banner ==================== */
@@ -1097,10 +1226,25 @@ watch(jobId, () => {
 
 /* ==================== Responsive ==================== */
 @media (max-width: 980px) {
-  .detail-grid { grid-template-columns: 1fr; }
-  .detail-kv { grid-template-columns: 1fr; }
-  .record-row { grid-template-columns: 56px 1fr; }
-  .record-meta, .record-link { grid-column: 2; }
-  .detail-hero { flex-direction: column; }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-kv {
+    grid-template-columns: 1fr;
+  }
+
+  .record-row {
+    grid-template-columns: 56px 1fr;
+  }
+
+  .record-meta,
+  .record-link {
+    grid-column: 2;
+  }
+
+  .detail-hero {
+    flex-direction: column;
+  }
 }
 </style>

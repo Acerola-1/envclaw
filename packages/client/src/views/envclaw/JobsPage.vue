@@ -131,44 +131,137 @@ const runlogLoading = ref(false)
 interface RunLogRun { time: string; status: string; runId: string; duration: string; error?: string }
 interface RunLogTask { taskId: string; name: string; deliver: string; stats: { total: number; ok: number; fail: number }; runs: RunLogRun[] }
 
-const runlogTasks = computed<RunLogTask[]>(() => {
+const runlogTasks = computed<RunLogTask[]>(() => groupRunsToTasks(allRuns.value))
+
+const runlogStats = computed(() => {
+  const runs = allRuns.value
+  const total = runs.length
+  const ok = runs.filter(r => r.status === 'ok' || (!r.status && !r.error)).length
+  const fail = runs.filter(r => r.status === 'error' || (!r.status && r.error)).length
+  const known = ok + fail
+  const rate = known > 0 ? ((ok / known) * 100).toFixed(1) : '0.0'
+  return { total, ok, fail, rate }
+})
+
+// ---- Run log filters ----
+const runlogDateFilter = ref('all')
+const runlogStatusFilter = ref('all')
+const runlogSearch = ref('')
+
+const runlogDateOptions = [
+  { value: 'all', label: '全部' },
+  { value: 'today', label: '今日' },
+  { value: 'week', label: '本周' },
+  { value: '7days', label: '近 7 天' },
+  { value: '30days', label: '近 30 天' },
+]
+
+const runlogStatusOptions = computed(() => {
+  const statusSet = new Set<string>()
+  allRuns.value.forEach(r => {
+    statusSet.add(r.status || 'unknown')
+  })
+  const opts: { value: string; label: string }[] = [{ value: 'all', label: '全部' }]
+  if (statusSet.has('ok')) opts.push({ value: 'ok', label: '成功' })
+  if (statusSet.has('error')) opts.push({ value: 'error', label: '失败' })
+  if (statusSet.has('unknown')) opts.push({ value: 'unknown', label: '未知' })
+  return opts
+})
+
+function isDateInRange(runTime: string, filter: string): boolean {
+  if (filter === 'all') return true
+  const runDate = new Date(runTime)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  switch (filter) {
+    case 'today': return runDate >= today
+    case 'week': {
+      const day = now.getDay()
+      const mondayOffset = day === 0 ? -6 : 1 - day
+      const monday = new Date(today)
+      monday.setDate(monday.getDate() + mondayOffset)
+      return runDate >= monday
+    }
+    case '7days': {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 7)
+      return runDate >= d
+    }
+    case '30days': {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 30)
+      return runDate >= d
+    }
+    default: return true
+  }
+}
+
+function groupRunsToTasks(runs: RunEntry[]): RunLogTask[] {
   const jobMap = new Map<string, Job>()
   jobs.value.forEach(j => jobMap.set(j.id || j.job_id || '', j))
   const groups = new Map<string, RunEntry[]>()
-  allRuns.value.forEach(r => {
+  runs.forEach(r => {
     const jid = r.jobId
     if (!groups.has(jid)) groups.set(jid, [])
     groups.get(jid)!.push(r)
   })
-  return [...groups.entries()].map(([taskId, runs]) => {
+  return [...groups.entries()].map(([taskId, taskRuns]) => {
     const job = jobMap.get(taskId)
-    const ok = runs.filter(r => r.status === 'ok').length
-    const fail = runs.filter(r => r.status === 'error').length
+    const runs = taskRuns.map(r => ({
+      time: r.runTime,
+      status: r.status || (r.error ? 'failed' : 'success'),
+      runId: r.fileName,
+      duration: '—',
+      error: r.error,
+    })).sort((a, b) => b.time.localeCompare(a.time))
+    const ok = runs.filter(r => r.status === 'success' || r.status === 'ok').length
+    const fail = runs.filter(r => r.status === 'failed' || r.status === 'error').length
     return {
       taskId,
       name: job?.name || taskId.slice(0, 8),
       deliver: job?.deliver || '本地',
       stats: { total: runs.length, ok, fail },
-      runs: runs.map(r => ({
-        time: r.runTime,
-        status: r.status || (r.error ? 'failed' : 'success'),
-        runId: r.fileName,
-        duration: '—',
-        error: r.error,
-      })).sort((a, b) => b.time.localeCompare(a.time)),
+      runs,
     }
   })
+}
+
+const filteredRunlogTasks = computed(() => {
+  let runs = allRuns.value
+  if (runlogDateFilter.value !== 'all') {
+    runs = runs.filter(r => isDateInRange(r.runTime, runlogDateFilter.value))
+  }
+
+  let tasks = groupRunsToTasks(runs)
+
+  if (runlogStatusFilter.value !== 'all') {
+    tasks = tasks.map(t => {
+      const filtered = t.runs.filter(r => {
+        if (runlogStatusFilter.value === 'unknown') return r.status !== 'ok' && r.status !== 'error' && r.status !== 'failed' && r.status !== 'success'
+        return r.status === runlogStatusFilter.value || (runlogStatusFilter.value === 'ok' && r.status === 'success') || (runlogStatusFilter.value === 'error' && r.status === 'failed')
+      })
+      const ok = filtered.filter(r => r.status === 'success' || r.status === 'ok').length
+      const fail = filtered.filter(r => r.status === 'failed' || r.status === 'error').length
+      return { ...t, runs: filtered, stats: { total: filtered.length, ok, fail } }
+    }).filter(t => t.runs.length > 0)
+  }
+
+  const search = runlogSearch.value.trim().toLowerCase()
+  if (search) {
+    tasks = tasks.filter(t => {
+      if (t.name.toLowerCase().includes(search)) return true
+      return t.runs.some(r => r.error?.toLowerCase().includes(search))
+    })
+  }
+
+  return tasks
 })
 
-const runlogStats = computed(() => {
-  const runs = allRuns.value
-  const total = runs.length
-  const ok = runs.filter(r => r.status === 'ok').length
-  const fail = runs.filter(r => r.status === 'error').length
-  const known = ok + fail
-  const rate = known > 0 ? ((ok / known) * 100).toFixed(1) : '0.0'
-  return { total, ok, fail, rate }
-})
+function resetRunlogFilters() {
+  runlogDateFilter.value = 'all'
+  runlogStatusFilter.value = 'all'
+  runlogSearch.value = ''
+}
 
 async function loadRunLog() {
   if (runlogLoading.value) return
@@ -180,6 +273,7 @@ async function loadRunLog() {
 // ---- L1/L2 expand state ----
 const expandedL1 = ref<Set<string>>(new Set())
 const expandedL2 = ref<Set<string>>(new Set())
+const expandedMore = ref<Set<string>>(new Set())
 
 function toggleL1(taskId: string) {
   if (expandedL1.value.has(taskId)) expandedL1.value.delete(taskId)
@@ -188,6 +282,10 @@ function toggleL1(taskId: string) {
 function toggleL2(runId: string) {
   if (expandedL2.value.has(runId)) expandedL2.value.delete(runId)
   else expandedL2.value.add(runId)
+}
+function toggleMore(taskId: string) {
+  if (expandedMore.value.has(taskId)) expandedMore.value.delete(taskId)
+  else expandedMore.value.add(taskId)
 }
 
 // ---- Actions ----
@@ -360,19 +458,23 @@ onMounted(() => {
       <div class="toolbar">
         <div class="toolbar-group">
           <span class="toolbar-label">日期</span>
-          <select><option>本周</option><option>今日</option><option>近 7 天</option><option>近 30 天</option></select>
+          <select v-model="runlogDateFilter">
+            <option v-for="opt in runlogDateOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
         </div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group">
           <span class="toolbar-label">状态</span>
-          <select><option>全部</option><option>成功</option><option>失败</option><option>运行中</option></select>
+          <select v-model="runlogStatusFilter">
+            <option v-for="opt in runlogStatusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
         </div>
         <div class="toolbar-right">
           <div class="tl-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input placeholder="搜索任务名 / 错误关键词">
+            <input v-model="runlogSearch" placeholder="搜索任务名 / 错误关键词">
           </div>
-          <button class="btn btn-default">重置</button>
+          <button class="btn btn-default" @click="resetRunlogFilters">重置</button>
         </div>
       </div>
 
@@ -384,7 +486,7 @@ onMounted(() => {
 
       <!-- Run log 2-layer tree -->
       <div class="runlog-stack" v-if="!runlogLoading">
-        <section v-for="t in runlogTasks" :key="t.taskId" class="rl-task" :class="{ open: expandedL1.has(t.taskId) }">
+        <section v-for="t in filteredRunlogTasks" :key="t.taskId" class="rl-task" :class="{ open: expandedL1.has(t.taskId) }">
           <div class="rl-task-head" @click="toggleL1(t.taskId)">
             <span class="rl-chev">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
@@ -401,13 +503,13 @@ onMounted(() => {
             </div>
           </div>
           <div class="rl-task-body">
-            <div v-for="r in t.runs.slice(0, 20)" :key="r.runId" class="rl-run" :class="{ open: expandedL2.has(r.runId) }">
+            <div v-for="r in (expandedMore.has(t.taskId) ? t.runs : t.runs.slice(0, 20))" :key="r.runId" class="rl-run" :class="{ open: expandedL2.has(r.runId) }">
               <div class="rl-run-head" @click="toggleL2(r.runId)">
                 <span class="rl-chev rl-chev-sm">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
                 </span>
                 <div class="rl-run-time"><span class="rl-time-main">{{ r.time }}</span></div>
-                <span class="rl-pill" :class="r.status === 'failed' ? 'failed' : r.status === 'running' ? 'running' : 'success'"><span class="pill-dot"></span>{{ r.status === 'failed' ? '失败' : r.status === 'running' ? '运行中' : '成功' }}</span>
+                <span class="rl-pill" :class="r.status === 'failed' || r.status === 'error' ? 'failed' : r.status === 'running' ? 'running' : 'success'"><span class="pill-dot"></span>{{ r.status === 'failed' || r.status === 'error' ? '失败' : r.status === 'running' ? '运行中' : '成功' }}</span>
                 <div class="rl-run-meta">
                   <span class="rl-meta-item" v-if="r.status === 'failed' && r.error">{{ r.error.split('\n')[0].slice(0, 40) }}</span>
                 </div>
@@ -428,10 +530,10 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <div v-if="t.runs.length > 20" class="rl-run" style="padding:8px 16px;color:var(--text-muted);font-size:12px">… 还有 {{ t.runs.length - 20 }} 条记录</div>
+            <div v-if="t.runs.length > 20 && !expandedMore.has(t.taskId)" class="rl-run rl-more" @click.stop="toggleMore(t.taskId)" style="padding:8px 16px;color:var(--accent-primary);font-size:12px;cursor:pointer;text-align:center">… 还有 {{ t.runs.length - 20 }} 条记录，点击展开</div>
           </div>
         </section>
-        <div v-if="runlogTasks.length === 0" style="text-align:center;padding:48px;color:var(--text-muted);font-size:13px">暂无运行记录<span class="empty-hint">任务执行后将在此显示</span></div>
+        <div v-if="filteredRunlogTasks.length === 0" style="text-align:center;padding:48px;color:var(--text-muted);font-size:13px">暂无运行记录<span class="empty-hint">任务执行后将在此显示</span></div>
       </div>
       <div v-else style="text-align:center;padding:48px;color:var(--text-muted)">加载中...</div>
     </div>

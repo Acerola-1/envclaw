@@ -355,7 +355,7 @@ function restorePushChannels(deliver: string) {
   if (!pushChannels.value.length) pushChannels.value = ['local']
 }
 
-// Hydrate skillConfig from prompt manifest JSON
+// Hydrate skillConfig + local refs from prompt manifest JSON
 function hydrateConfigFromPrompt(promptText: string) {
   if (!promptText) return
   try {
@@ -365,13 +365,102 @@ function hydrateConfigFromPrompt(promptText: string) {
     const outputs = Array.isArray(parsed?.outputs) ? parsed.outputs : []
     outputs.forEach((o: any) => {
       if (!o?.config) return
-      // Map capability back to config item id
       const capId = Object.entries(SKILL_BY_TYPE).find(([, v]) => v === o.capability)?.[0] || o.capability
       if (capId && o.config && typeof o.config === 'object') {
         skillConfig.value[capId] = { ...o.config }
+        restoreLocalRefs(capId, o.config)
       }
     })
   } catch { /* prompt JSON 解析失败，跳过 */ }
+}
+
+// Restore local UI refs from loaded config map
+function restoreLocalRefs(sid: string, cfg: Record<string, string>) {
+  if (sid.includes('concentrationRanking') || sid.includes('ranking')) {
+    if (cfg['查询维度']) rankingQueryTarget.value = cfg['查询维度'] === '站点' ? 'site' : 'city'
+    if (cfg['时间类型']) {
+      const p = rankingPeriods.find(x => x.label === cfg['时间类型'])
+      if (p) rankingPeriod.value = p.value
+    }
+    if (cfg['污染因子']) rankingFactors.value = cfg['污染因子'].split(',').filter(Boolean)
+    if (cfg['截图颜色']) rankingTheme.value = cfg['截图颜色'] === '深色' ? 'dark' : 'light'
+    if (cfg['国标类型']) {
+      if (cfg['国标类型'] === '新') rankingGbKey.value = '2'
+      else if (cfg['国标类型'] === '旧') rankingGbKey.value = '1'
+      else rankingGbKey.value = '0'
+    }
+    if (cfg['截图类型']) rankingScreenshotTypes.value = cfg['截图类型'].split(',').filter(Boolean)
+    return
+  }
+  if (sid.includes('mapPackage') || sid.includes('Map')) {
+    if (cfg['地图模式']) mapCategory.value = cfg['地图模式'] === '星地模' ? 'starground' : 'initial'
+    if (cfg['地图范围']) mapScope.value = cfg['地图范围'] === '全国' ? 'national' : cfg['地图范围']
+    if (cfg['时间类型']) {
+      if (cfg['时间类型'] === '累计' || cfg['时间类型'] === 'dt') mapTimeType.value = 'dt'
+      else if (cfg['时间类型'] === '日') mapTimeType.value = 'daily'
+      else mapTimeType.value = 'hourly'
+    }
+    if (cfg['地图类型']) mapMode.value = cfg['地图类型'] === '插值图' ? 'interpolation' : 'monitoring'
+    if (cfg['因子']) mapMonitorFactor.value = mapPollutionOpts.find(o => o.label === cfg['因子'])?.value || 'PM2.5'
+    if (cfg['颜色']) mapTheme.value = cfg['颜色'] === '深色' ? 'dark' : 'light'
+    if (cfg['缩放等级']) {
+      const z = mapZoomOpts.find(o => o.label === cfg['缩放等级'])
+      if (z) mapZoomLevel.value = z.value
+    }
+    if (cfg['缩放自定义值']) mapZoomCustom.value = parseInt(cfg['缩放自定义值']) || 6
+    if (cfg['插值图层']) {
+      if (mapMode.value === 'interpolation') mapInterpolationLayer.value = cfg['插值图层']
+      else mapMonitorLayer.value = cfg['插值图层'] || ''
+    }
+    if (cfg['风海浪']) mapWindWaves.value = cfg['风海浪'] === '开'
+    if (cfg['左侧面板']) mapLeftPanel.value = cfg['左侧面板'] === '开'
+    if (cfg['左侧面板区域']) {
+      const z = mapLeftPanelZoneOpts.find(o => o.label === cfg['左侧面板区域'])
+      if (z) mapLeftPanelZone.value = z.value
+    }
+    if (cfg['星地因子']) mapStarFactor.value = mapPollutionOpts.find(o => o.label === cfg['星地因子'])?.value || 'PM2.5'
+    if (cfg['星地时间类型']) {
+      if (cfg['星地时间类型'] === '日') mapStarTimeType.value = 'daily'
+      else if (cfg['星地时间类型'] === '月') mapStarTimeType.value = 'month'
+      else mapStarTimeType.value = 'hourly'
+    }
+    return
+  }
+  if (sid.includes('hourlyBrief') || sid.includes('hourly')) {
+    if (cfg['查询维度']) hourlyQueryTarget.value = cfg['查询维度'] === '站点' ? 'site' : 'city'
+    if (cfg['乡镇']) {
+      const t = tshipOpts.find(x => x.label === cfg['乡镇'])
+      if (t) hourlyTownship.value = t.value
+    }
+    if (cfg['污染因子']) hourlyFactors.value = cfg['污染因子'].split(',').filter(Boolean)
+    if (cfg['截图颜色']) hourlyTheme.value = cfg['截图颜色'] === '深色' ? 'dark' : 'light'
+    if (cfg['国标类型']) {
+      if (cfg['国标类型'] === '新') hourlyGbKey.value = '2'
+      else if (cfg['国标类型'] === '旧') hourlyGbKey.value = '1'
+      else hourlyGbKey.value = '0'
+    }
+    if (cfg['截图类型']) hourlyScreenshotTypes.value = cfg['截图类型'].split(',').filter(Boolean)
+    return
+  }
+  if (sid.includes('monitoringData') || sid.includes('monitoring')) {
+    if (cfg['查询维度']) monitoringQueryTarget.value = cfg['查询维度'] === '站点' ? 'site' : 'city'
+    if (cfg['乡镇']) {
+      const t = tshipOpts.find(x => x.label === cfg['乡镇'])
+      if (t) monitoringTownship.value = t.value
+    }
+    if (cfg['时间范围']) {
+      const mp = monitoringPerOpts.find(x => x.label === cfg['时间范围'] || cfg['数据粒度'])
+      if (mp) monitoringPeriod.value = mp.value
+    }
+    if (cfg['污染因子']) monitoringFactors.value = cfg['污染因子'].split(',').filter(Boolean)
+    if (cfg['截图颜色']) monitoringTheme.value = cfg['截图颜色'] === '深色' ? 'dark' : 'light'
+    if (cfg['国标类型']) {
+      if (cfg['国标类型'] === '新') monitoringGbKey.value = '2'
+      else if (cfg['国标类型'] === '旧') monitoringGbKey.value = '1'
+      else monitoringGbKey.value = '0'
+    }
+    if (cfg['截图类型']) monitoringScreenshotTypes.value = cfg['截图类型'].split(',').filter(Boolean)
+  }
 }
 
 // ---- Push channels ----
@@ -392,6 +481,84 @@ const SKILL_BY_TYPE: Record<string, string> = {
   monitoringData: 'mapairs-monitoring-data',
 }
 
+// Build per-capability config from local UI refs for prompt
+function buildRankingConfig(): Record<string, string> {
+  const periodLabel = rankingPeriods.find(p => p.value === rankingPeriod.value)?.label || '实时'
+  const gbLabel = rankingGbKey.value === '2' ? '新' : rankingGbKey.value === '0' ? '默认' : '旧'
+  return {
+    '行政区': rankingRegion.value.join(','),
+    '查询维度': rankingQueryTarget.value === 'city' ? '城市' : '站点',
+    '时间类型': periodLabel,
+    '污染因子': rankingFactors.value.join(','),
+    '截图颜色': rankingTheme.value === 'light' ? '浅色' : '深色',
+    '国标类型': gbLabel,
+    '截图类型': rankingScreenshotTypes.value.join(','),
+  }
+}
+
+function buildMapConfig(): Record<string, string> {
+  const timeLabel = mapTimeType.value === 'hourly' ? '实时' : mapTimeType.value === 'dt' ? '累计' : '日'
+  const modeLabel = mapMode.value === 'monitoring' ? '监测图' : '插值图'
+  const factorLabel = mapPollutionOpts.find(o => o.value === mapMonitorFactor.value)?.label || 'PM₂.₅'
+  const zoomLabel = mapZoomOpts.find(o => o.value === mapZoomLevel.value)?.label || '城市层级'
+  const starTimeLabel = mapStarTimeType.value === 'hourly' ? '实时' : mapStarTimeType.value === 'daily' ? '日' : '月'
+  const starFactorLabel = mapPollutionOpts.find(o => o.value === mapStarFactor.value)?.label || 'PM₂.₅'
+  const categoryLabel = mapCategory.value === 'initial' ? '默认' : '星地模'
+  return {
+    '地图模式': categoryLabel,
+    '地图范围': mapScope.value === 'national' ? '全国' : mapScope.value,
+    '时间类型': timeLabel,
+    '地图类型': modeLabel,
+    '因子': mapMode.value === 'monitoring' ? factorLabel : (mapInterpolationLayer.value ? mapInterpolationLayerOpts.value.find(o => o.value === mapInterpolationLayer.value)?.label || '' : ''),
+    '颜色': mapTheme.value === 'light' ? '浅色' : '深色',
+    '缩放等级': zoomLabel,
+    '缩放自定义值': String(mapZoomCustom.value),
+    '插值图层': mapMode.value === 'interpolation' ? (mapInterpolationLayer.value || '') : (mapMonitorLayer.value || ''),
+    '风海浪': mapWindWaves.value ? '开' : '关',
+    '左侧面板': mapLeftPanel.value ? '开' : '关',
+    '左侧面板区域': mapLeftPanelZoneOpts.find(o => o.value === mapLeftPanelZone.value)?.label || '城市',
+    '星地因子': starFactorLabel,
+    '星地时间类型': starTimeLabel,
+  }
+}
+
+function buildHourlyConfig(): Record<string, string> {
+  const gbLabel = hourlyGbKey.value === '2' ? '新' : hourlyGbKey.value === '0' ? '默认' : '旧'
+  return {
+    '行政区': hourlyRegion.value.join(','),
+    '查询维度': hourlyQueryTarget.value === 'city' ? '城市' : '站点',
+    '乡镇': hourlyTownship.value ? tshipOpts.find(t => t.value === hourlyTownship.value)?.label || '全部乡镇' : '全部乡镇',
+    '污染因子': hourlyFactors.value.join(','),
+    '截图颜色': hourlyTheme.value === 'light' ? '浅色' : '深色',
+    '国标类型': gbLabel,
+    '截图类型': hourlyScreenshotTypes.value.join(','),
+  }
+}
+
+function buildMonitoringConfig(): Record<string, string> {
+  const periodLabel = monitoringPerOpts.find(p => p.value === monitoringPeriod.value)?.label || '小时'
+  const gbLabel = monitoringGbKey.value === '2' ? '新' : monitoringGbKey.value === '0' ? '默认' : '旧'
+  return {
+    '行政区': monitoringRegion.value.join(','),
+    '查询维度': monitoringQueryTarget.value === 'city' ? '城市' : '站点',
+    '乡镇': monitoringTownship.value ? tshipOpts.find(t => t.value === monitoringTownship.value)?.label || '全部乡镇' : '全部乡镇',
+    '时间范围': periodLabel,
+    '数据粒度': periodLabel,
+    '污染因子': monitoringFactors.value.join(','),
+    '截图颜色': monitoringTheme.value === 'light' ? '浅色' : '深色',
+    '国标类型': gbLabel,
+    '截图类型': monitoringScreenshotTypes.value.join(','),
+  }
+}
+
+function buildConfigForSkill(sid: string): Record<string, string> {
+  if (sid.includes('concentrationRanking') || sid.includes('ranking')) return buildRankingConfig()
+  if (sid.includes('mapPackage') || sid.includes('Map')) return buildMapConfig()
+  if (sid.includes('hourlyBrief') || sid.includes('hourly')) return buildHourlyConfig()
+  if (sid.includes('monitoringData') || sid.includes('monitoring')) return buildMonitoringConfig()
+  return skillConfig.value[sid] || {}
+}
+
 const finalPrompt = computed(() => {
   const parts: string[] = []
 
@@ -402,7 +569,7 @@ const finalPrompt = computed(() => {
       id: `output-${i + 1}`,
       capability: SKILL_BY_TYPE[s.id] || s.id,
       skill: SKILL_BY_TYPE[s.id] || s.id,
-      config: skillConfig.value[s.id] || {},
+      config: buildConfigForSkill(s.id),
     }))
   const manifest = JSON.stringify({ version: 1, outputs }, null, 2)
   parts.push(`【成果执行清单】\n${manifest}`)
