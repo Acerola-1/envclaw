@@ -105,6 +105,8 @@ const platformOptions = computed(() =>
           h('span', { class: `platform-option-status${configured ? ' configured' : ''}` }, configured ? '已配置' : '未配置'),
         ]),
         value: deliverValue,
+        // 未配置的平台禁用，不允许勾选
+        disabled: !configured,
       }
     })
 )
@@ -355,6 +357,25 @@ onMounted(() => {
 .dark .platform-option-status.configured {
   color: #66bb6a;
   background: rgba(102, 187, 106, 0.12);
+}
+
+/* 未配置的平台选项禁用样式 */
+.platform-option-label:has(.platform-option-status:not(.configured)) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Naive UI 禁用选项的额外样式 */
+:deep(.n-base-select__option-disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+:deep(.n-base-select__option-disabled .platform-option-name) {
+  color: #a0a0a0;
+}
+:deep(.n-base-select__option-disabled .platform-option-status) {
+  color: #96a5ac;
+  background: rgba(120, 144, 156, 0.1);
 }
 </style>
 <style scoped lang="scss">
