@@ -2,10 +2,10 @@
 import { ref, nextTick } from 'vue'
 
 const props = withDefaults(defineProps<{
-  modelValue: string
+  modelValue?: string
   disabled?: boolean
   placeholder?: string
-}>(), { disabled: false, placeholder: '今天帮你做些什么？ @ 引用对话文件，/ 调用技能与指令' })
+}>(), { modelValue: '', disabled: false, placeholder: '今天帮你做些什么？ @ 引用对话文件，/ 调用技能与指令' })
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void

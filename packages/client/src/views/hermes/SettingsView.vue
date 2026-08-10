@@ -29,21 +29,6 @@ const route = useRoute();
 const router = useRouter();
 const activeTab = ref("account");
 
-// 检查是否有返回来源页面
-const returnTo = sessionStorage.getItem('settingsReturnTo')
-const canGoBack = computed(() => true) // 始终显示返回按钮
-
-function handleBack() {
-  sessionStorage.removeItem('settingsReturnTo')
-  if (returnTo) {
-    router.push(returnTo)
-  } else if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push({ name: 'hermes.chat' })
-  }
-}
-
 const validTabs = computed(() => new Set([
   "account",
   ...(canManageUsers ? ["users"] : []),

@@ -15,7 +15,7 @@ const realSkills = ref<SkillInfo[]>([])
 
 onMounted(async () => {
   try { const r = await fetchMcpServers(); mcpServers.value = r.servers || [] } catch { /* */ }
-  try { realSkills.value = await fetchSkills() } catch { /* */ }
+  try { realSkills.value = (await fetchSkills()).archived || [] } catch { /* */ }
   // Parse hash: #tab=skills&pick=mapPackage
   const raw = (route.hash || '').replace(/^#/, '')
   const params = new URLSearchParams(raw)
@@ -103,7 +103,6 @@ function useMcps() {
   router.push({ name: 'hermes.dutyCreate', query: { from: 'picker', mcps: [...selectedMcpIds.value].join(',') } })
 }
 
-const sourceLabel: Record<string, string> = { system: '系统', mine: '我的', imported: '外部导入' }
 function badgeCls(s: PickerSkill) { return s.kind === 'config' ? 'config' : 'direct' }
 </script>
 

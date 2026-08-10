@@ -31,7 +31,7 @@ function cronToHuman(cron: string): string {
   if (!cron || typeof cron !== 'string') return '—'
   const parts = cron.trim().split(/\s+/)
   if (parts.length < 5) return cron
-  const [min, hour, dom, month, dow] = parts
+  const [min, hour, dom, _month, dow] = parts
   if (min.startsWith('*/')) { const n = parseInt(min.slice(2)); return n <= 1 ? '每分钟' : `每 ${n} 分钟` }
   if (hour.startsWith('*/')) { const n = parseInt(hour.slice(2)); return n <= 1 ? '每小时' : `每 ${n} 小时` }
   if (dow !== '*' && dom === '*') {
@@ -130,8 +130,6 @@ const runlogLoading = ref(false)
 
 interface RunLogRun { time: string; status: string; runId: string; duration: string; error?: string }
 interface RunLogTask { taskId: string; name: string; deliver: string; stats: { total: number; ok: number; fail: number }; runs: RunLogRun[] }
-
-const runlogTasks = computed<RunLogTask[]>(() => groupRunsToTasks(allRuns.value))
 
 const runlogStats = computed(() => {
   const runs = allRuns.value

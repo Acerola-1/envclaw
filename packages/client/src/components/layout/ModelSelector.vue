@@ -131,23 +131,6 @@ function openModal() {
 function handleModalShowChange(show: boolean) {
   setModalShow(show)
 }
-
-const refreshing = ref(false)
-
-async function handleRefresh() {
-  if (refreshing.value) return
-  refreshing.value = true
-  const startedAt = Date.now()
-  try {
-    await appStore.reloadModels({ preserveSelection: true })
-  } finally {
-    // 保证旋转动画至少可见一圈，避免请求太快图标闪一下
-    const elapsed = Date.now() - startedAt
-    const minSpin = 600
-    if (elapsed < minSpin) await new Promise(resolve => setTimeout(resolve, minSpin - elapsed))
-    refreshing.value = false
-  }
-}
 </script>
 
 <template>

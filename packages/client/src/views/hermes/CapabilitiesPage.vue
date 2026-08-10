@@ -69,7 +69,6 @@ const MOCK_SKILLS: MockSkill[] = [
 ]
 
 // ---- Computed ----
-const visiblePlatforms = computed(() => MOCK_PLATFORMS.filter(p => p.id !== 'szdq'))
 const allPlatforms = computed(() => MOCK_PLATFORMS)
 
 const skillCat = ref('all'); const skillSearch = ref('')
@@ -369,7 +368,7 @@ async function saveMcpToolsVisibility() {
 onMounted(async () => {
   loading.value = true
   await platformsStore.fetchPlatforms()
-  try { realSkills.value = await fetchSkills() } catch { /* */ }
+  try { realSkills.value = (await fetchSkills()).archived || [] } catch { /* */ }
   await loadMcpServers()
   loading.value = false
 })
@@ -474,7 +473,7 @@ onUnmounted(() => {
       <Teleport to="body">
         <div v-if="detailSkill" class="cdd-overlay" @click.self="closeDetail">
           <aside class="cdd-panel">
-            <div class="cdd-head"><div class="cdd-head-meta"><div class="cdd-icon-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="22" height="22"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg></div><div style="min-width:0;flex:1"><h2 class="cdd-title">{{ detailSkill.name }}</h2><div class="cdd-sub">{{ MOCK_PLATFORMS.find(p=>p.id===detailSkill.platformId)?.name }} · 需配置</div></div></div><button class="cdd-close" @click="closeDetail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+            <div class="cdd-head"><div class="cdd-head-meta"><div class="cdd-icon-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="22" height="22"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg></div><div style="min-width:0;flex:1"><h2 class="cdd-title">{{ detailSkill.name }}</h2><div class="cdd-sub">{{ MOCK_PLATFORMS.find(p=>p.id===detailSkill?.platformId)?.name }} · 需配置</div></div></div><button class="cdd-close" @click="closeDetail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
             <div class="cdd-scroll">
               <div class="cdd-section"><div class="cdd-sec-title">功能说明</div><div class="cdd-sec-body">{{ detailSkill.desc }}</div></div>
               <div class="cdd-section"><div class="cdd-sec-title">参数配置</div><table class="cdd-table"><thead><tr><th>参数名</th><th>可选值</th></tr></thead><tbody><tr v-for="p in detailSkill.params" :key="p.k"><td>{{ p.k }}</td><td>{{ p.v }}</td></tr></tbody></table></div>

@@ -29,8 +29,6 @@ const allTags = computed(() => {
 const allCount = computed(() => templates.value.length)
 const systemCount = computed(() => templates.value.filter(t => t.source === 'system').length)
 const mineCount = computed(() => templates.value.filter(t => t.source === 'mine').length)
-const importedCount = computed(() => templates.value.filter(t => t.source === 'imported').length)
-const favCount = computed(() => templates.value.filter(t => t.favorite).length)
 
 const filtered = computed(() => {
   let list = templates.value

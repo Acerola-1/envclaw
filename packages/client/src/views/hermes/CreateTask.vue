@@ -10,7 +10,7 @@ import { useAppStore } from '@/stores/hermes/app'
 import type { Job } from '@/api/hermes/jobs'
 import { fetchSkills, type SkillInfo } from '@/api/hermes/skills'
 import { getTemplate } from '@/data/templates'
-import { getCapSkill, MAPAIRS_CAPS, type CapSkill } from '@/data/capabilities'
+import { getCapSkill, MAPAIRS_CAPS } from '@/data/capabilities'
 
 const route = useRoute()
 const router = useRouter()
@@ -52,32 +52,6 @@ watch(selectedItems, (items) => {
     }
   })
 }, { deep: true, immediate: true })
-
-function getCapCfg(id: string) { return getCapSkill(id) }
-function paramVal(sid: string, pn: string, fb: string) { return skillConfig.value[sid]?.[pn] || fb }
-function setParam(sid: string, pn: string, v: string) { if (!skillConfig.value[sid]) skillConfig.value[sid] = {}; skillConfig.value[sid][pn] = v }
-
-const selectOpts: Record<string, string[]> = {
-  '查询维度': ['城市','站点'], '时间类型': ['实时','日累计','日','月','年','自定义'],
-  '地图范围': ['全国','河南省','平顶山市'], '地图类型': ['监测图','插值图'],
-  '因子': ['首要污染物','PM₂.₅','PM₁₀','SO₂','NO₂','CO','O₃','AQI'],
-  '污染因子': ['PM₂.₅','PM₁₀','SO₂','NO₂','CO','O₃','AQI'],
-  '截图颜色': ['浅色','深色'], '颜色': ['浅色','深色'],
-  '时间范围': ['最近24小时','最近7天','最近30天','自定义'],
-  '数据粒度': ['小时','分钟','日'], '国标类型': ['默认','新','旧'],
-}
-function selOptsFn(p: { name: string }) { return selectOpts[p.name] || ['默认'] }
-const multiOpts: Record<string, string[]> = { '污染因子': ['PM₂.₅','PM₁₀','SO₂','NO₂','CO','O₃','AQI'] }
-function multiOptsFn(p: { name: string }) { return multiOpts[p.name] || selectOpts[p.name] || ['默认'] }
-function toggleMulti(sid: string, pn: string, v: string) {
-  const cur = paramVal(sid, pn, '')
-  const arr = cur ? cur.split(',').filter(Boolean) : []
-  const idx = arr.indexOf(v); idx >= 0 ? arr.splice(idx,1) : arr.push(v)
-  setParam(sid, pn, arr.join(','))
-}
-
-// Deliver options
-const deliverOptions = computed(() => [{ label: '本地', value: 'local' }])
 
 // Model options
 const providerOptions = computed(() => [
@@ -149,7 +123,7 @@ const tshipOpts=[{label:'全部乡镇',value:'all'},{label:'新华区',value:'xi
 const monitoringRegion=ref<string[]>(defaultRegion.value?[defaultRegion.value]:[]);const monitoringQueryTarget=ref<'city'|'site'>('city');const monitoringTownship=ref('all')
 const monitoringPeriod=ref<'hour_avg'|'hour'|'daily'|'daily_count'|'other'>('hour')
 const monitoringFactors=ref(['AQI','PM₂.₅','O₃']);const monitoringTheme=ref<'light'|'dark'>('light');const monitoringGbKey=ref<'2'|'0'|'1'>('0')
-const monitoringPerOpts=[{label:'小时均值',value:'hour_avg'},{label:'小时',value:'hour'},{label:'日累计',value:'daily_count'}]
+const monitoringPerOpts = [{label:'小时均值',value:'hour_avg'},{label:'小时',value:'hour'},{label:'日累计',value:'daily_count'}] as const
 
 // Screenshot type options (common for ranking / hourly / monitoring)
 const rankingScreenshotTypes=ref<string[]>(['page'])
@@ -264,7 +238,7 @@ function confirmSkillModal() {
   selectedItems.value = selectedItems.value.filter(s => picked.has((s.kind === 'config' ? 'cap:' : 'sk:') + s.id))
   // Add newly selected items
   picked.forEach(key => {
-    const [prefix, id] = key.split(/:(.+)/)
+    const [, id] = key.split(/:(.+)/)
     if (!selectedItems.value.find(s => s.id === id)) {
       const skill = modalSkills.value.find(s => s.id === id)
       if (skill) selectedItems.value.push({ id: skill.id, name: skill.name, kind: skill.kind })
@@ -581,7 +555,7 @@ const finalPrompt = computed(() => {
   parts.push('【成果附带规则｜强制】\n所有成果生成后，你的最终回复中必须为每一个产出文件原样附上一行 `MEDIA:/绝对路径`（路径取脚本输出的 MEDIA:/ARTIFACT: 行）。Hermes 会据此自动将文件作为原生媒体投递到任务配置的推送目标。严禁自行调用任何推送工具、也不要用 delegate/派发子任务的方式去发送；只要把 MEDIA: 行写进最终回复即可。不允许只在本地生成而不在回复中用 MEDIA: 附上，不允许遗漏任何一项成果。')
 
   // ④ 交付验收清单
-  const checklistLines = outputs.map((o, i) => `- 【成果 ${i + 1}】页面截图（截图文件，需 MEDIA:）`)
+  const checklistLines = outputs.map((_, i) => `- 【成果 ${i + 1}】页面截图（截图文件，需 MEDIA:）`)
   const scCount = outputs.length
   parts.push(`【交付验收清单｜强制】\n本任务需按下表逐项交付，缺一不可：\n${checklistLines.join('\n')}\n其中截图类文件共 ${scCount} 个：你的最终回复必须包含 ${scCount} 行独立的 \`MEDIA:/绝对路径\`（每个截图一行，取脚本输出路径），行数必须等于 ${scCount}，不得合并、省略或只发其中一张。文字类成果直接写入回复正文。任一截图若未成功生成，必须明确报告失败原因，不得跳过或以其他截图替代。`)
 

@@ -20,7 +20,7 @@ function toggleL1(id: string) {
   if (expandedL1.value.has(id)) expandedL1.value.delete(id)
   else expandedL1.value.add(id)
 }
-function toggleL2(id: string) { /* similar */ }
+function toggleL2(_id: string) { /* similar */ }
 </script>
 
 <template>

@@ -489,13 +489,13 @@ watch(jobId, () => {
                   {{ expandedRuns.has(runKey(run)) ? '收起' : '查看输出' }}
                 </a>
                 <a class="record-link chat" @click="handleStartRunChat(run)">对话</a>
+                <!-- 展开的运行日志 -->
+                <div v-if="expandedRuns.has(runKey(run))" class="run-expand"
+                  style="margin-top:12px;max-height:240px;overflow-y:auto">
+                  <NSpin v-if="runContentLoading[runKey(run)]" size="small" />
+                  <pre v-else class="run-content">{{ runContent[runKey(run)] || '输出为空' }}</pre>
+                </div>
               </div>
-            </div>
-            <!-- 展开的运行日志 -->
-            <div v-if="expandedRuns.has(runKey(run))" class="run-expand"
-              style="margin-top:12px;max-height:240px;overflow-y:auto">
-              <NSpin v-if="runContentLoading[runKey(run)]" size="small" />
-              <pre v-else class="run-content">{{ runContent[runKey(run)] || '输出为空' }}</pre>
             </div>
           </section>
 

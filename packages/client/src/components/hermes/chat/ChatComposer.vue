@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/hermes/chat'
-import { useDutyStore } from '@/stores/envclaw/duty'
 import ChatInput from './ChatInput.vue'
 import CapabilityChips from './CapabilityChips.vue'
 import SlashCommandMenu from './SlashCommandMenu.vue'
@@ -10,7 +9,6 @@ import ModelSelector from '@/components/layout/ModelSelector.vue'
 
 const router = useRouter()
 const chatStore = useChatStore()
-const dutyStore = useDutyStore()
 
 const inputText = ref('')
 const showSlash = ref(false)
