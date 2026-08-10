@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/hermes/app'
 import { useChatStore } from '@/stores/hermes/chat'
 import { usePersistentRecord } from '@/composables/usePersistentRecord'
 import { getStoredUsername, isStoredSuperAdmin } from '@/api/client'
+import { fetchMyAvatar } from '@/api/auth'
 import RouteLinkItem from '@/components/common/RouteLinkItem.vue'
 import LanguageSwitch from '@/components/layout/LanguageSwitch.vue'
 import ThemeSwitch from '@/components/layout/ThemeSwitch.vue'
@@ -51,10 +52,16 @@ function handleSidebarClick(event: MouseEvent) {
   if (window.matchMedia('(max-width: 768px)').matches) appStore.closeSidebar()
 }
 
+const avatarDataUrl = ref<string | null>(null)
+
 onMounted(async () => {
   await chatStore.loadSessions()
   // Don't keep auto-selected session on new-chat page
   if (route.name === 'hermes.chat') { chatStore.activeSessionId = null; chatStore.activeSession = null }
+  try {
+    const av = await fetchMyAvatar()
+    if (av?.type === 'image' && av.dataUrl) avatarDataUrl.value = av.dataUrl
+  } catch { /* ignore */ }
 })
 
 function handleLogout() {
@@ -134,7 +141,7 @@ function handleLogout() {
     </div>
 
     <div class="sidebar-user">
-      <div class="user-avatar">{{ currentUsername?.charAt(0)?.toUpperCase() }}</div>
+      <div class="user-avatar" :style="avatarDataUrl ? { backgroundImage: 'url(' + avatarDataUrl + ')', backgroundSize: 'cover' } : {}">{{ avatarDataUrl ? '' : currentUsername?.charAt(0)?.toUpperCase() }}</div>
       <span class="user-name">{{ currentUsername }}</span>
       <button class="user-btn" title="通知"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="1.5">

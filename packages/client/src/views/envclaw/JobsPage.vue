@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useJobsStore } from '@/stores/hermes/jobs'
+import { listCronRuns, type RunEntry } from '@/api/hermes/cron-history'
 import type { Job } from '@/api/hermes/jobs'
 
 const router = useRouter()
@@ -123,38 +124,168 @@ const kanbanCols = computed(() => [
   { key:'paused',  label:'已暂停', dot:'paused',  items: filteredJobs.value.filter(j => j.state === 'paused' || !j.enabled) },
 ])
 
-// ---- Run log mock data (prototype) ----
-interface RunLogRun {
-  time: string; sub: string; status: string; duration: string; trigger: string; runId: string
-  shots: number; data: number; hasFiles: boolean; folderPath: string
-  summary: Record<string, string>
-  files?: { icon: string; name: string; size: string; path: string }[]
-  shotThumbs?: { title: string; desc: string }[]
-  dataRows?: string[][]
-  logLines?: { t: string; m: string }[]
-  error?: string; isManual?: boolean
-}
-interface RunLogTask { taskId: string; name: string; tpl: string; deliver: string; stats: Record<string, number>; recent: { status: string; time: string; sub: string }; runs: RunLogRun[] }
+// ---- Run log data (real API) ----
+const allRuns = ref<RunEntry[]>([])
+const runlogLoading = ref(false)
 
-const runlogTasks = ref<RunLogTask[]>([
-  { taskId:'b', name:'平顶山小时数据播报', tpl:'每小时 · 企业微信推送', deliver:'企业微信', stats:{ total:4, ok:4, fail:0 }, recent:{ status:'success', time:'08-02 11:00', sub:'今天' }, runs:[
-    { time:'08-02 11:00', sub:'今天', status:'success', duration:'00:01:24', trigger:'定时', runId:'run-1', shots:1, data:1, hasFiles:true, folderPath:'/outputs/1100', summary:{ triggerTime:'08-02 11:00:00', dataRange:'2026-08-02 10:00', source:'数智大气平台', deliver:'企业微信（平顶山运维群）', model:'gpt-4o-mini', tokens:'2,148' }, files:[{ icon:'img', name:'浓度排名_平顶山市.png', size:'412 KB', path:'' }], shotThumbs:[{ title:'浓度排名 · 平顶山', desc:'18市 + 4区县AQI热力排名' }], logLines:[{t:'info',m:'start run'},{t:'ok',m:'data fetched'},{t:'ok',m:'deliver.wecom.send → OK 200'},{t:'ok',m:'run done, status=success, duration=00:01:24'}] },
-  ]},
-  { taskId:'c', name:'污染源超标异常监控', tpl:'每 15 分钟 · 钉钉推送', deliver:'钉钉', stats:{ total:3, ok:0, fail:3 }, recent:{ status:'failed', time:'08-02 11:42', sub:'今天' }, runs:[
-    { time:'08-02 11:42', sub:'今天', status:'failed', duration:'00:00:18', trigger:'定时', runId:'run-2', shots:0, data:0, hasFiles:false, folderPath:'', summary:{ triggerTime:'08-02 11:42:00', dataRange:'—', source:'数智大气平台', deliver:'钉钉（凭证失效）', model:'gpt-4o-mini', tokens:'—' }, error:'钉钉机器人 Webhook 已失效 (HTTP 400):\nerror code: invalidrobot\n请在「设置 → 渠道 → 钉钉」中更新凭证后重试。', logLines:[{t:'info',m:'start run'},{t:'err',m:'ERROR deliver.dingtalk.send → HTTP 400 invalidrobot'}] },
-  ]},
-  { taskId:'a', name:'平阴县每日城市排名分析任务', tpl:'每天 09:00 · 企业微信推送', deliver:'企业微信', stats:{ total:1, ok:1, fail:0 }, recent:{ status:'success', time:'08-02 09:00', sub:'今天' }, runs:[
-    { time:'08-02 09:00', sub:'今天', status:'success', duration:'00:02:08', trigger:'定时', runId:'run-3', shots:2, data:1, hasFiles:true, folderPath:'/outputs/0900', summary:{ triggerTime:'08-02 09:00:00', dataRange:'2026-08-01 全天', source:'数智大气平台', deliver:'企业微信（平阴县环保局）', model:'gpt-4o-mini', tokens:'4,812' }, files:[{ icon:'img', name:'城市浓度排名.png', size:'624 KB', path:'' }], logLines:[{t:'info',m:'start run'},{t:'ok',m:'run done, status=success, duration=00:02:08'}] },
-  ]},
-])
+interface RunLogRun { time: string; status: string; runId: string; duration: string; error?: string }
+interface RunLogTask { taskId: string; name: string; deliver: string; stats: { total: number; ok: number; fail: number }; runs: RunLogRun[] }
+
+const runlogTasks = computed<RunLogTask[]>(() => groupRunsToTasks(allRuns.value))
+
+const runlogStats = computed(() => {
+  const runs = allRuns.value
+  const total = runs.length
+  const ok = runs.filter(r => r.status === 'ok' || (!r.status && !r.error)).length
+  const fail = runs.filter(r => r.status === 'error' || (!r.status && r.error)).length
+  const known = ok + fail
+  const rate = known > 0 ? ((ok / known) * 100).toFixed(1) : '0.0'
+  return { total, ok, fail, rate }
+})
+
+// ---- Run log filters ----
+const runlogDateFilter = ref('all')
+const runlogStatusFilter = ref('all')
+const runlogSearch = ref('')
+
+const runlogDateOptions = [
+  { value: 'all', label: '全部' },
+  { value: 'today', label: '今日' },
+  { value: 'week', label: '本周' },
+  { value: '7days', label: '近 7 天' },
+  { value: '30days', label: '近 30 天' },
+]
+
+const runlogStatusOptions = computed(() => {
+  const statusSet = new Set<string>()
+  allRuns.value.forEach(r => {
+    statusSet.add(r.status || 'unknown')
+  })
+  const opts: { value: string; label: string }[] = [{ value: 'all', label: '全部' }]
+  if (statusSet.has('ok')) opts.push({ value: 'ok', label: '成功' })
+  if (statusSet.has('error')) opts.push({ value: 'error', label: '失败' })
+  if (statusSet.has('unknown')) opts.push({ value: 'unknown', label: '未知' })
+  return opts
+})
+
+function isDateInRange(runTime: string, filter: string): boolean {
+  if (filter === 'all') return true
+  const runDate = new Date(runTime)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  switch (filter) {
+    case 'today': return runDate >= today
+    case 'week': {
+      const day = now.getDay()
+      const mondayOffset = day === 0 ? -6 : 1 - day
+      const monday = new Date(today)
+      monday.setDate(monday.getDate() + mondayOffset)
+      return runDate >= monday
+    }
+    case '7days': {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 7)
+      return runDate >= d
+    }
+    case '30days': {
+      const d = new Date(today)
+      d.setDate(d.getDate() - 30)
+      return runDate >= d
+    }
+    default: return true
+  }
+}
+
+function groupRunsToTasks(runs: RunEntry[]): RunLogTask[] {
+  const jobMap = new Map<string, Job>()
+  jobs.value.forEach(j => jobMap.set(j.id || j.job_id || '', j))
+  const groups = new Map<string, RunEntry[]>()
+  runs.forEach(r => {
+    const jid = r.jobId
+    if (!groups.has(jid)) groups.set(jid, [])
+    groups.get(jid)!.push(r)
+  })
+  return [...groups.entries()].map(([taskId, taskRuns]) => {
+    const job = jobMap.get(taskId)
+    const runs = taskRuns.map(r => ({
+      time: r.runTime,
+      status: r.status || (r.error ? 'failed' : 'success'),
+      runId: r.fileName,
+      duration: '—',
+      error: r.error,
+    })).sort((a, b) => b.time.localeCompare(a.time))
+    const ok = runs.filter(r => r.status === 'success' || r.status === 'ok').length
+    const fail = runs.filter(r => r.status === 'failed' || r.status === 'error').length
+    return {
+      taskId,
+      name: job?.name || taskId.slice(0, 8),
+      deliver: job?.deliver || '本地',
+      stats: { total: runs.length, ok, fail },
+      runs,
+    }
+  })
+}
+
+const filteredRunlogTasks = computed(() => {
+  let runs = allRuns.value
+  if (runlogDateFilter.value !== 'all') {
+    runs = runs.filter(r => isDateInRange(r.runTime, runlogDateFilter.value))
+  }
+
+  let tasks = groupRunsToTasks(runs)
+
+  if (runlogStatusFilter.value !== 'all') {
+    tasks = tasks.map(t => {
+      const filtered = t.runs.filter(r => {
+        if (runlogStatusFilter.value === 'unknown') return r.status !== 'ok' && r.status !== 'error' && r.status !== 'failed' && r.status !== 'success'
+        return r.status === runlogStatusFilter.value || (runlogStatusFilter.value === 'ok' && r.status === 'success') || (runlogStatusFilter.value === 'error' && r.status === 'failed')
+      })
+      const ok = filtered.filter(r => r.status === 'success' || r.status === 'ok').length
+      const fail = filtered.filter(r => r.status === 'failed' || r.status === 'error').length
+      return { ...t, runs: filtered, stats: { total: filtered.length, ok, fail } }
+    }).filter(t => t.runs.length > 0)
+  }
+
+  const search = runlogSearch.value.trim().toLowerCase()
+  if (search) {
+    tasks = tasks.filter(t => {
+      if (t.name.toLowerCase().includes(search)) return true
+      return t.runs.some(r => r.error?.toLowerCase().includes(search))
+    })
+  }
+
+  return tasks
+})
+
+function resetRunlogFilters() {
+  runlogDateFilter.value = 'all'
+  runlogStatusFilter.value = 'all'
+  runlogSearch.value = ''
+}
+
+async function loadRunLog() {
+  if (runlogLoading.value) return
+  runlogLoading.value = true
+  try { allRuns.value = await listCronRuns() } catch { /* */ }
+  finally { runlogLoading.value = false }
+}
 
 // ---- L1/L2 expand state ----
 const expandedL1 = ref<Set<string>>(new Set())
 const expandedL2 = ref<Set<string>>(new Set())
+const expandedMore = ref<Set<string>>(new Set())
 
 function toggleL1(taskId: string) {
   if (expandedL1.value.has(taskId)) expandedL1.value.delete(taskId)
   else expandedL1.value.add(taskId)
+}
+function toggleL2(runId: string) {
+  if (expandedL2.value.has(runId)) expandedL2.value.delete(runId)
+  else expandedL2.value.add(runId)
+}
+function toggleMore(taskId: string) {
+  if (expandedMore.value.has(taskId)) expandedMore.value.delete(taskId)
+  else expandedMore.value.add(taskId)
 }
 
 // ---- Actions ----
@@ -172,6 +303,7 @@ function goEdit(id: string) { router.push({ name: 'hermes.dutyCreate', query: { 
 // ---- Init ----
 onMounted(() => {
   jobsStore.fetchJobs()
+  loadRunLog()
   if (route.hash === '#tab=runlog') activeTab.value = 'runlog'
 })
 </script>
@@ -200,7 +332,7 @@ onMounted(() => {
         定时任务<span class="count-tag">{{ jobs.length }}</span>
       </button>
       <button class="seg-btn" :class="{ active: activeTab === 'runlog' }" @click="activeTab = 'runlog'">
-        运行记录<span class="count-tag">5762</span>
+        运行记录<span class="count-tag">{{ runlogStats.total }}</span>
       </button>
     </div>
 
@@ -306,19 +438,19 @@ onMounted(() => {
       <div class="stat-row">
         <div class="stat-card">
           <div class="stat-icon total"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-          <div class="stat-body"><span class="stat-label">总执行</span><span class="stat-value">5762</span><span class="stat-trend">累计 · 含 108 次手动触发</span></div>
+          <div class="stat-body"><span class="stat-label">总执行</span><span class="stat-value">{{ runlogStats.total }}</span><span class="stat-trend">累计 · 所有任务历史</span></div>
         </div>
         <div class="stat-card">
           <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div class="stat-body"><span class="stat-label">成功</span><span class="stat-value">5474</span><span class="stat-trend up">较上周 +286</span></div>
+          <div class="stat-body"><span class="stat-label">成功</span><span class="stat-value">{{ runlogStats.ok }}</span><span class="stat-trend up">成功执行</span></div>
         </div>
         <div class="stat-card">
           <div class="stat-icon failed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
-          <div class="stat-body"><span class="stat-label">失败</span><span class="stat-value">288</span><span class="stat-trend down">较上周 -52</span></div>
+          <div class="stat-body"><span class="stat-label">失败</span><span class="stat-value">{{ runlogStats.fail }}</span><span class="stat-trend down">异常执行</span></div>
         </div>
         <div class="stat-card">
           <div class="stat-icon rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
-          <div class="stat-body"><span class="stat-label">成功率</span><span class="stat-value">95.0<span class="unit">%</span></span><span class="stat-trend up">较上周 +1.3%</span></div>
+          <div class="stat-body"><span class="stat-label">成功率</span><span class="stat-value">{{ runlogStats.rate }}<span class="unit">%</span></span><span class="stat-trend up">实时计算</span></div>
         </div>
       </div>
 
@@ -326,93 +458,84 @@ onMounted(() => {
       <div class="toolbar">
         <div class="toolbar-group">
           <span class="toolbar-label">日期</span>
-          <select><option>本周</option><option>今日</option><option>近 7 天</option><option>近 30 天</option></select>
+          <select v-model="runlogDateFilter">
+            <option v-for="opt in runlogDateOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
         </div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group">
           <span class="toolbar-label">状态</span>
-          <select><option>全部</option><option>成功</option><option>失败</option><option>运行中</option></select>
+          <select v-model="runlogStatusFilter">
+            <option v-for="opt in runlogStatusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
         </div>
         <div class="toolbar-right">
           <div class="tl-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input placeholder="搜索任务名 / 错误关键词">
+            <input v-model="runlogSearch" placeholder="搜索任务名 / 错误关键词">
           </div>
-          <button class="btn btn-default">重置</button>
+          <button class="btn btn-default" @click="resetRunlogFilters">重置</button>
         </div>
       </div>
 
       <!-- Failure banner -->
-      <div class="fail-banner">
+      <!-- <div class="fail-banner">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span>本周 <b>7</b> 条失败记录，其中 <b>4</b> 条因「污染源超标异常监控」任务钉钉凭证失效集中出现，<a href="#">前往修复</a></span>
-      </div>
+      </div> -->
 
-      <!-- Run log 3-layer -->
-      <div class="runlog-stack">
-        <section v-for="t in runlogTasks" :key="t.taskId" class="rl-task" :class="{ open: expandedL1.has(t.taskId) }">
+      <!-- Run log 2-layer tree -->
+      <div class="runlog-stack" v-if="!runlogLoading">
+        <section v-for="t in filteredRunlogTasks" :key="t.taskId" class="rl-task" :class="{ open: expandedL1.has(t.taskId) }">
           <div class="rl-task-head" @click="toggleL1(t.taskId)">
             <span class="rl-chev">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </span>
             <div class="rl-task-main">
               <div class="rl-task-title">{{ t.name }}</div>
-              <div class="rl-task-sub"><span class="rl-dot"></span>{{ t.tpl }}<span class="rl-dot"></span>总执行 <b>{{ t.stats.total }}</b> 次
+              <div class="rl-task-sub"><span class="rl-dot"></span>{{ t.deliver }}<span class="rl-dot"></span>总执行 <b>{{ t.stats.total }}</b> 次
                 <span v-if="t.stats.fail" class="rl-chip failed">{{ t.stats.fail }} 失败</span>
                 <span v-else class="rl-chip success">{{ t.stats.ok }} 成功</span>
               </div>
             </div>
             <div class="rl-task-right">
-              <span class="rl-time-meta">最近 · {{ t.recent.time }}<span class="rl-sub-time">{{ t.recent.sub }}</span></span>
-              <span class="rl-pill" :class="t.recent.status === 'failed' ? 'failed' : 'success'"><span class="pill-dot"></span>{{ t.recent.status === 'failed' ? '失败' : '成功' }}</span>
+              <span class="rl-pill" :class="t.stats.fail ? 'failed' : 'success'"><span class="pill-dot"></span>{{ (t.stats.total > 0 && t.stats.fail === 0) ? '全部成功' : t.stats.fail + ' 次失败' }}</span>
             </div>
           </div>
           <div class="rl-task-body">
-            <div v-for="r in t.runs" :key="r.runId" class="rl-run" :class="{ open: expandedL2.has(r.runId) }">
+            <div v-for="r in (expandedMore.has(t.taskId) ? t.runs : t.runs.slice(0, 20))" :key="r.runId" class="rl-run" :class="{ open: expandedL2.has(r.runId) }">
               <div class="rl-run-head" @click="toggleL2(r.runId)">
                 <span class="rl-chev rl-chev-sm">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
                 </span>
-                <div class="rl-run-time"><span class="rl-time-main">{{ r.time }}</span><span class="rl-sub-time">{{ r.sub }}</span></div>
-                <span class="rl-pill" :class="r.status === 'failed' ? 'failed' : r.status === 'running' ? 'running' : 'success'"><span class="pill-dot"></span>{{ r.status === 'failed' ? '失败' : r.status === 'running' ? '运行中' : '成功' }}</span>
+                <div class="rl-run-time"><span class="rl-time-main">{{ r.time }}</span></div>
+                <span class="rl-pill" :class="r.status === 'failed' || r.status === 'error' ? 'failed' : r.status === 'running' ? 'running' : 'success'"><span class="pill-dot"></span>{{ r.status === 'failed' || r.status === 'error' ? '失败' : r.status === 'running' ? '运行中' : '成功' }}</span>
                 <div class="rl-run-meta">
-                  <span class="rl-meta-item">{{ r.duration }}</span>
-                  <span class="rl-meta-item" v-if="r.shots + r.data > 0">{{ r.shots + r.data }} 产出</span>
-                  <span class="rl-meta-item" :class="{ manual: r.isManual }">{{ r.trigger === '手动' ? '👆' : '🕐' }}{{ r.trigger }}</span>
+                  <span class="rl-meta-item" v-if="r.status === 'failed' && r.error">{{ r.error.split('\n')[0].slice(0, 40) }}</span>
                 </div>
               </div>
               <div class="rl-run-body">
                 <div class="rl-detail">
-                  <!-- Error section -->
                   <div v-if="r.status === 'failed' && r.error" class="fail-banner" style="margin-bottom:14px">
-                    <span><b>执行失败</b>：{{ r.error.split('\n')[0] }}</span>
-                    <a href="#" style="margin-left:auto">前往修复</a>
+                    <span><b>执行失败</b>：{{ r.error }}</span>
                   </div>
-                  <!-- Summary -->
                   <div class="detail-section">
-                    <h4>任务执行摘要 <span class="h-tag">{{ r.runId }}</span></h4>
+                    <h4>运行详情 <span class="h-tag">{{ r.runId }}</span></h4>
                     <div class="detail-grid">
-                      <div class="item"><span class="k">触发时间</span><span class="v">{{ r.summary.triggerTime }}</span></div>
-                      <div class="item"><span class="k">数据时间</span><span class="v">{{ r.summary.dataRange }}</span></div>
-                      <div class="item"><span class="k">数据来源</span><span class="v">{{ r.summary.source }}</span></div>
-                      <div class="item"><span class="k">推送渠道</span><span class="v">{{ r.summary.deliver }}</span></div>
-                      <div class="item"><span class="k">模型</span><span class="v">{{ r.summary.model }}</span></div>
-                      <div class="item"><span class="k">Token 消耗</span><span class="v">{{ r.summary.tokens }}</span></div>
-                    </div>
-                  </div>
-                  <!-- Log section -->
-                  <div v-if="r.logLines && r.logLines.length" class="detail-section">
-                    <h4>执行日志 <span class="h-tag">{{ r.logLines.length }} 行</span></h4>
-                    <div class="detail-log">
-                      <span v-for="(l, li) in r.logLines" :key="li" :class="'log-' + (l.t === 'err' ? 'err' : l.t === 'ok' ? 'ok' : 'info')">[{{ r.time.split(' ')[0] }}] {{ l.m }}</span>
+                      <div class="item"><span class="k">执行时间</span><span class="v">{{ r.time }}</span></div>
+                      <div class="item"><span class="k">状态</span><span class="v">{{ r.status === 'failed' ? '失败' : '成功' }}</span></div>
+                      <div class="item"><span class="k">任务</span><span class="v">{{ t.name }}</span></div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+            <div v-if="t.runs.length > 20 && !expandedMore.has(t.taskId)" class="rl-run rl-more" @click.stop="toggleMore(t.taskId)" style="padding:8px 16px;color:var(--accent-primary);font-size:12px;cursor:pointer;text-align:center">… 还有 {{ t.runs.length - 20 }} 条记录，点击展开</div>
           </div>
         </section>
+        <div v-if="filteredRunlogTasks.length === 0" style="text-align:center;padding:48px;color:var(--text-muted);font-size:13px">暂无运行记录<span class="empty-hint">任务执行后将在此显示</span></div>
       </div>
+      <div v-else style="text-align:center;padding:48px;color:var(--text-muted)">加载中...</div>
     </div>
   </div>
 </template>
@@ -617,6 +740,8 @@ onMounted(() => {
 .rl-detail { padding: 0 18px 16px; }
 
 .detail-section { background: $bg-card; border: 1px solid $border-color; border-radius: var(--radius-md); padding: 14px 16px; margin-top: 12px;
+  max-height: 400px;
+  overflow-y: auto;
   h4 { font-size: 12.5px; font-weight: 600; color: $text-primary; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
   .h-tag { font-size: 10.5px; padding: 1px 7px; border-radius: 9px; background: $bg-secondary; color: $text-muted; border: 1px solid $border-color; font-weight: 500; }
 }

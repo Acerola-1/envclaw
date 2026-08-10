@@ -37,11 +37,11 @@ const QUERY_CHIPS: Chip[] = [
 ]
 
 const DUTY_CHIPS: Chip[] = [
-  { id: 'duty-create', label: '创建值守任务', icon: 'zap', prompt: '请帮我创建一个值守任务...', kind: 'duty', highlighted: true },
-  { id: 'duty-ranking', label: '定时浓度排名', icon: 'bar-chart', prompt: '每天定时发送浓度排名...', kind: 'duty' },
-  { id: 'duty-onemap', label: '定时一张图', icon: 'map', prompt: '每天定时生成一张图...', kind: 'duty' },
-  { id: 'duty-hourly', label: '定时小时播报', icon: 'clock', prompt: '每小时定时播报...', kind: 'duty' },
-  { id: 'duty-monitor', label: '定时监测数据', icon: 'database', prompt: '定时采集监测数据...', kind: 'duty' },
+  { id: 'duty-create', label: '创建值守任务', icon: 'zap', prompt: '帮我创建一个值守任务：每天早上 8 点，查询平顶山市的实时浓度排名，并通过邮件发送到 duty@example.com', kind: 'duty', highlighted: true },
+  { id: 'duty-ranking', label: '定时浓度排名', icon: 'bar-chart', prompt: '帮我查询 平顶山市 的实时浓度排名，附带截图', kind: 'duty' },
+  { id: 'duty-onemap', label: '定时一张图', icon: 'map', prompt: '帮我生成一张图截图：范围 平顶山市，实时监测图，因子 PM₂.₅，浅色主题', kind: 'duty' },
+  { id: 'duty-hourly', label: '定时小时播报', icon: 'clock', prompt: '帮我生成 平顶山市 的小时播报', kind: 'duty' },
+  { id: 'duty-monitor', label: '定时监测数据', icon: 'database', prompt: '查询 平顶山市 的监测数据...', kind: 'duty' },
 ]
 
 export const useDutyStore = defineStore('duty', () => {

@@ -882,7 +882,18 @@ export const useChatStore = defineStore('chat', () => {
         if (prev?.messages?.length) s.messages = prev.messages
         if (prev?.contextTokens != null) s.contextTokens = prev.contextTokens
       }
+
+      // Preserve the current active local-only session (e.g. run-chat created
+      // by ensureRunSession) so it survives a navigation-triggered loadSessions
+      // before its first message has been persisted server-side.
+      const activeBefore = activeSession.value
+      const activeIsLocal = activeBefore && !fresh.some(s => s.id === activeBefore.id)
+
       sessions.value = fresh
+      if (activeIsLocal && activeBefore) {
+        sessions.value.unshift(activeBefore)
+      }
+
       pruneCompletedUnreadSessions(new Set(sessions.value.map(s => s.id)))
 
       // Restore route-selected session first (tab-local source of truth),
@@ -899,7 +910,17 @@ export const useChatStore = defineStore('chat', () => {
             ? storedId
             : sessions.value[0]?.id
       if (targetId) {
-        await switchSession(targetId)
+        // Local-only sessions (e.g. run-chat created by ensureRunSession)
+        // must skip server resume to preserve injected messages.
+        const target = sessions.value.find(s => s.id === targetId)
+        if (target?._pendingContext) {
+          activeSessionId.value = targetId
+          activeSession.value = target
+          setItemBestEffort(storageKey(), targetId)
+          clearSessionCompletedUnread(targetId)
+        } else {
+          await switchSession(targetId)
+        }
       } else {
         clearActiveSession()
       }
